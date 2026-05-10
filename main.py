@@ -1338,49 +1338,6 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.error(f"Database initialization error: {e}")
             traceback.print_exc()
-    else:
-        logging.info(f"⏭️ Skipping database initialization (WORKER_INDEX={worker_index}, not main worker)")
-        
-        # Executar migration das colunas hotel, room_number e deposit
-        try:
-            with _db_lock:
-                migration_conn = _db_connect()
-                try:
-                    cursor = migration_conn.cursor()
-                    cursor.execute("""
-                        ALTER TABLE commission_bookings 
-                        ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
-                    """)
-                    cursor.execute("""
-                        ALTER TABLE commission_bookings 
-                        ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
-                    """)
-                    cursor.execute("""
-                        ALTER TABLE commission_bookings 
-                        ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
-                    """)
-                    migration_conn.commit()
-                    cursor.close()
-                    logging.info("✅ Added hotel, room_number and deposit columns to commission_bookings")
-                except Exception as e:
-                    migration_conn.rollback()
-                    logging.warning(f"⚠️ Migration error: {str(e)}")
-                finally:
-                    migration_conn.close()
-        except Exception as e:
-            logging.warning(f"⚠️ Migration connection error: {str(e)}")
-        
-        # Fix PostgreSQL schema
-        if _USE_NEW_DB and USE_POSTGRES:
-            try:
-                logging.info("Fixing PostgreSQL schema...")
-                from fix_postgres_schema import fix_users_table, fix_system_logs_table
-                if fix_users_table():
-                    logging.info("users schema fixed")
-                if fix_system_logs_table():
-                    logging.info("system_logs schema fixed")
-            except Exception as e:
-                logging.warning(f"Schema fix error: {e}")
         
         # Create default users
         try:
@@ -1411,10 +1368,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.warning(f"⚠️ Could not apply performance indexes: {e}")
     else:
+        logging.info(f"⏭️ Skipping database initialization (WORKER_INDEX={worker_index}, not main worker)")
         # Other workers: wait for worker 0 to finish init
-        logging.info(f"⏳ Worker {worker_id}: Waiting for database initialization...")
+        logging.info(f"⏳ Worker {worker_index}: Waiting for database initialization...")
         time.sleep(10)  # Wait 10 seconds for worker 0 to complete all table creation
-        logging.info(f"✅ Worker {worker_id}: Ready")
+        logging.info(f"✅ Worker {worker_index}: Ready")
     
     # Pre-load promotional images cache
     try:
@@ -19255,7 +19213,11 @@ async def load_price_automation_settings(request: Request):
                         if not row[1] or row[1].strip() == '':
                             settings[row[0]] = None
                         else:
-                            settings[row[0]] = json.loads(row[1])
+                            # 🚨 PROTEÇÃO: Verificar se a string não está vazia antes de fazer parse
+                            if row[1] and row[1].strip() and row[1].strip() != 'null':
+                                settings[row[0]] = json.loads(row[1])
+                            else:
+                                settings[row[0]] = None
                     except:
                         settings[row[0]] = row[1]
                 
