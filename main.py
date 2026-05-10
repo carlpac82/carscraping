@@ -1465,17 +1465,16 @@ async def log_json_parsing_errors(request: Request, call_next):
         return response
     except Exception as e:
         error_msg = str(e)
-        if "JSON" in error_msg or "parsing" in error_msg.lower() or "expecting value" in error_msg.lower():
-            logging.error(f"🔍 GLOBAL JSON ERROR: {error_msg}")
-            logging.error(f"🔍 Request URL: {request.url}")
-            logging.error(f"🔍 Request Method: {request.method}")
-            logging.error(f"🔍 Request Headers: {dict(request.headers)}")
-            try:
-                body_bytes = await request.body()
-                body_str = body_bytes.decode('utf-8', errors='replace')
-                logging.error(f"🔍 Request Body (first 200 chars): {repr(body_str[:200])}")
-            except:
-                pass
+        logging.error(f"🔍 GLOBAL ERROR: {error_msg}")
+        logging.error(f"🔍 Request URL: {request.url}")
+        logging.error(f"🔍 Request Method: {request.method}")
+        logging.error(f"🔍 Request Headers: {dict(request.headers)}")
+        try:
+            body_bytes = await request.body()
+            body_str = body_bytes.decode('utf-8', errors='replace')
+            logging.error(f"🔍 Request Body (first 200 chars): {repr(body_str[:200])}")
+        except:
+            pass
         raise
 
 # CORS Middleware - Allow API calls from same origin
