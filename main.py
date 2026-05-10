@@ -60876,6 +60876,37 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/check-pending-checkout-emails")
+async def check_pending_checkout_emails(request: Request):
+    """
+    Check how many pending checkout emails exist for today
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from schedule_checkout_emails import get_pending_emails
+        
+        pending = get_pending_emails()
+        
+        return JSONResponse({
+            "ok": True,
+            "pending_count": len(pending),
+            "emails": pending
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error checking pending emails: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.post("/api/fix-swapped-vehicles-status")
 async def fix_swapped_vehicles_status(request: Request):
     """Fix status of vehicles that were swapped - mark old plates as available"""
