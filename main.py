@@ -19233,11 +19233,24 @@ async def save_automated_price_rules(request: Request):
     require_auth(request)
     
     try:
-        # 🚨 PROTEÇÃO: Capturar erro de parsing JSON
+        # 🚨 PROTEÇÃO: Capturar erro de parsing JSON com logging detalhado
         try:
+            # Ler o body raw antes de fazer parse para debug
+            body_bytes = await request.body()
+            body_str = body_bytes.decode('utf-8', errors='replace')
+            logging.error(f"🔍 RAW REQUEST BODY (first 200 chars): {repr(body_str[:200])}")
+            logging.error(f"🔍 REQUEST BODY LENGTH: {len(body_str)} chars")
+            
             data = await request.json()
         except Exception as json_err:
             logging.error(f"❌ JSON parsing error: {json_err}")
+            # Tentar ler o body raw para ver o que foi recebido
+            try:
+                body_bytes = await request.body()
+                body_str = body_bytes.decode('utf-8', errors='replace')
+                logging.error(f"🔍 FAILED RAW BODY: {repr(body_str[:200])}")
+            except:
+                pass
             return JSONResponse({"ok": False, "error": f"Invalid JSON: {str(json_err)}"}, status_code=400)
         
         # 🚨 PROTEÇÃO: Verificar se os dados são válidos
