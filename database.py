@@ -55,7 +55,7 @@ if USE_POSTGRES:
     # Connection Pool (1-10 per worker, 6 workers = max 60 total)
     try:
         connection_pool = pool.ThreadedConnectionPool(
-            minconn=2,
+            minconn=1,  # Reduced from 2 to minimize idle connections being terminated
             maxconn=10,
             **DB_CONFIG
         )
