@@ -1360,6 +1360,39 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.error(f"Error creating additional tables: {e}")
         
+        # Migrate rental_agreements table to add missing columns (ONLY worker 0)
+        try:
+            logging.info("🔧 Migrating rental_agreements table...")
+            conn = _db_connect()
+            try:
+                cursor = conn.cursor()
+                # Add missing columns if they don't exist
+                columns_to_add = [
+                    ("client_name", "TEXT"),
+                    ("return_location", "TEXT"),
+                    ("return_date", "TEXT"),
+                    ("pickup_location", "TEXT"),
+                    ("pickup_date", "TEXT"),
+                    ("country", "TEXT")
+                ]
+                
+                for col_name, col_type in columns_to_add:
+                    try:
+                        cursor.execute(f"ALTER TABLE rental_agreements ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
+                        logging.info(f"✅ Column {col_name} added/verified")
+                    except Exception as col_err:
+                        if "already exists" in str(col_err).lower():
+                            logging.debug(f"Column {col_name} already exists")
+                        else:
+                            logging.warning(f"Could not add column {col_name}: {col_err}")
+                
+                conn.commit()
+                logging.info("✅ rental_agreements migration completed")
+            finally:
+                conn.close()
+        except Exception as e:
+            logging.error(f"Error migrating rental_agreements: {e}")
+        
         # Apply performance indexes (ONLY worker 0)
         try:
             import apply_indexes
