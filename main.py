@@ -60951,6 +60951,7 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/reschedule-old-checkout-emails")
 @app.post("/api/admin/reschedule-old-checkout-emails")
 async def reschedule_old_checkout_emails(request: Request):
     """
