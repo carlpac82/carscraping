@@ -329,3 +329,69 @@ def mark_email_sent(inspection_number: str, success: bool = True, error_message:
     except Exception as e:
         logging.error(f"❌ Error marking email status: {e}")
         return False
+
+
+def reschedule_old_pending_emails():
+    """
+    Re-agenda emails pendentes que foram agendados para as 09:00 (hora antiga)
+    para as 20:00 de hoje, para serem enviados hoje à noite.
+    """
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            logging.error("❌ DATABASE_URL not set")
+            return 0
+        
+        import psycopg2
+        from datetime import datetime, timedelta
+        
+        conn = psycopg2.connect(database_url)
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Encontrar emails pendentes com scheduled_send_date no passado
+            cursor.execute("""
+                SELECT inspection_number, checkout_date, scheduled_send_date
+                FROM scheduled_checkout_emails
+                WHERE status = 'pending'
+                  AND scheduled_send_date < NOW()
+                ORDER BY scheduled_send_date ASC
+            """)
+            
+            old_emails = cursor.fetchall()
+            
+            if not old_emails:
+                logging.info("✅ No old pending emails to reschedule")
+                return 0
+            
+            logging.info(f"🔄 Found {len(old_emails)} old pending emails to reschedule")
+            
+            # Re-agendar cada um para hoje às 20:00
+            today_20h = datetime.now().replace(hour=20, minute=0, second=0, microsecond=0)
+            
+            rescheduled_count = 0
+            for inspection_number, checkout_date, old_scheduled_date in old_emails:
+                try:
+                    cursor.execute("""
+                        UPDATE scheduled_checkout_emails
+                        SET scheduled_send_date = %s
+                        WHERE inspection_number = %s
+                    """, (today_20h, inspection_number))
+                    
+                    logging.info(f"✅ Rescheduled {inspection_number}: {old_scheduled_date} → {today_20h}")
+                    rescheduled_count += 1
+                    
+                except Exception as e:
+                    logging.error(f"❌ Error rescheduling {inspection_number}: {e}")
+            
+            conn.commit()
+            logging.info(f"✅ Successfully rescheduled {rescheduled_count} emails to today at 20:00")
+            return rescheduled_count
+            
+        finally:
+            conn.close()
+    
+    except Exception as e:
+        logging.error(f"❌ Error in reschedule_old_pending_emails: {e}")
+        return 0

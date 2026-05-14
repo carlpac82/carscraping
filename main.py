@@ -60951,6 +60951,42 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/reschedule-old-checkout-emails")
+async def reschedule_old_checkout_emails(request: Request):
+    """
+    Re-agenda emails pendentes que foram agendados para as 09:00 (hora antiga)
+    para as 20:00 de hoje
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from schedule_checkout_emails import reschedule_old_pending_emails
+        
+        print("🔄 RESCHEDULE: Re-agendando emails antigos...", flush=True)
+        logging.info("🔄 RESCHEDULE: Re-agendando emails antigos...")
+        
+        count = reschedule_old_pending_emails()
+        
+        return JSONResponse({
+            "ok": True,
+            "rescheduled_count": count,
+            "message": f"Successfully rescheduled {count} emails to today at 20:00"
+        })
+        
+    except Exception as e:
+        print(f"❌ Error rescheduling: {e}", flush=True)
+        logging.error(f"❌ Error rescheduling: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/check-pending-checkout-emails")
 async def check_pending_checkout_emails(request: Request):
     """
