@@ -89,33 +89,31 @@ class DatabaseConnection:
                             self.conn = connection_pool.getconn()
                             self.conn.autocommit = True  # CRITICAL: Prevent idle-in-transaction timeouts
                             
-                            # Validate connection is alive
-                            try:
-                                cursor = self.conn.cursor()
-                                cursor.execute("SELECT 1")
-                                cursor.close()
-                            except Exception as health_err:
-                                logging.warning(f"Connection from pool is stale: {health_err}. Getting new connection...")
-                                # Return bad connection to pool and get a new one
-                                try:
-                                    connection_pool.putconn(self.conn, close=True)
-                                except:
-                                    pass
-                                self.conn = connection_pool.getconn()
-                                self.conn.autocommit = True
-                                # Validate new connection is alive
+                            # Validate connection is alive with retry logic
+                            max_health_retries = 3
+                            for health_retry in range(max_health_retries):
                                 try:
                                     cursor = self.conn.cursor()
                                     cursor.execute("SELECT 1")
                                     cursor.close()
-                                except Exception as new_health_err:
-                                    logging.warning(f"New connection from pool is also stale: {new_health_err}. Getting another one...")
+                                    break  # Connection is valid
+                                except Exception as health_err:
+                                    logging.warning(f"Connection from pool is stale: {health_err}. Getting new connection...")
+                                    # Return bad connection and close it
                                     try:
                                         connection_pool.putconn(self.conn, close=True)
                                     except:
                                         pass
-                                    self.conn = connection_pool.getconn()
-                                    self.conn.autocommit = True
+                                    
+                                    # Get new connection from pool
+                                    if health_retry < max_health_retries - 1:
+                                        self.conn = connection_pool.getconn()
+                                        self.conn.autocommit = True
+                                    else:
+                                        # Last attempt failed
+                                        logging.error(f"❌ Failed to get valid connection after {max_health_retries} health checks")
+                                        self.conn = connection_pool.getconn()
+                                        self.conn.autocommit = True
                             
                             return self.conn
                         except Exception as e:
@@ -413,19 +411,29 @@ def get_db():
             # Always use pool - never create direct connections
             conn = connection_pool.getconn()
             
-            # Health check: verify connection is alive
-            try:
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1")
-                cursor.close()
-            except Exception as health_err:
-                logging.warning(f"⚠️ Connection from pool is stale: {health_err}. Getting fresh connection...")
-                # Return bad connection and get new one
+            # Health check: verify connection is alive with retry logic
+            max_retries = 3
+            for retry_attempt in range(max_retries):
                 try:
-                    connection_pool.putconn(conn, close=True)
-                except:
-                    pass
-                conn = connection_pool.getconn()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.close()
+                    break  # Connection is valid, exit retry loop
+                except Exception as health_err:
+                    logging.warning(f"⚠️ Connection from pool is stale: {health_err}. Getting fresh connection...")
+                    # Return bad connection and close it
+                    try:
+                        connection_pool.putconn(conn, close=True)
+                    except:
+                        pass
+                    
+                    # Get new connection from pool
+                    if retry_attempt < max_retries - 1:
+                        conn = connection_pool.getconn()
+                    else:
+                        # Last attempt failed, log error and try one more time
+                        logging.error(f"❌ Failed to get valid connection after {max_retries} attempts")
+                        conn = connection_pool.getconn()
         else:
             # Fallback only if pool creation failed at startup
             conn = psycopg2.connect(**DB_CONFIG)
