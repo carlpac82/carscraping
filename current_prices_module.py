@@ -599,6 +599,11 @@ def generate_brokers_excel(location, month, year, prices_data):
 def generate_website_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Website"""
     try:
+        logging.info(f"[WEBSITE-EXCEL] Starting generation for {location}")
+        logging.info(f"[WEBSITE-EXCEL] C3 in prices_data before vans: {'C3' in prices_data}")
+        if 'C3' in prices_data:
+            logging.info(f"[WEBSITE-EXCEL] C3 day 2 before: {prices_data['C3'].get('2')}")
+        
         # Add vans pricing (C3, C4, C5) from database if not Faro Airport
         if location != 'Faro Airport' and 'Faro' not in location:
             # Load vans pricing from database
@@ -654,6 +659,11 @@ def generate_website_excel(location, month, year, prices_data):
                 base_price = prices['3'] / 3
                 for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
                     prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
+            
+            logging.info(f"[WEBSITE-EXCEL] After vans processing:")
+            logging.info(f"[WEBSITE-EXCEL] C3 day 2: {prices_data.get('C3', {}).get('2')}")
+            logging.info(f"[WEBSITE-EXCEL] C4 day 2: {prices_data.get('C4', {}).get('2')}")
+            logging.info(f"[WEBSITE-EXCEL] C5 day 2: {prices_data.get('C5', {}).get('2')}")
         
         wb = openpyxl.Workbook()
         ws = wb.active
