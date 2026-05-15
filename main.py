@@ -60991,7 +60991,7 @@ async def reschedule_old_checkout_emails(request: Request):
 @app.get("/api/admin/check-pending-checkout-emails")
 async def check_pending_checkout_emails(request: Request):
     """
-    Check how many pending checkout emails exist for today
+    Check how many pending checkout emails exist and show statistics
     """
     try:
         require_inspection_access(request)
@@ -61000,13 +61000,63 @@ async def check_pending_checkout_emails(request: Request):
     
     try:
         from schedule_checkout_emails import get_pending_emails
+        import psycopg2
+        import os
         
         pending = get_pending_emails()
+        
+        # Get statistics from database
+        database_url = os.environ.get('DATABASE_URL')
+        stats = {
+            "total_emails": 0,
+            "pending": 0,
+            "sent": 0,
+            "failed": 0,
+            "recent_sent": []
+        }
+        
+        if database_url:
+            try:
+                conn = psycopg2.connect(database_url)
+                cursor = conn.cursor()
+                
+                # Total count by status
+                cursor.execute("""
+                    SELECT status, COUNT(*) 
+                    FROM scheduled_checkout_emails 
+                    GROUP BY status
+                """)
+                for status, count in cursor.fetchall():
+                    stats[status] = count
+                    stats["total_emails"] += count
+                
+                # Recent sent emails (last 7 days)
+                cursor.execute("""
+                    SELECT inspection_number, client_email, sent_at, status
+                    FROM scheduled_checkout_emails
+                    WHERE status = 'sent' AND sent_at > NOW() - INTERVAL '7 days'
+                    ORDER BY sent_at DESC
+                    LIMIT 10
+                """)
+                stats["recent_sent"] = [
+                    {
+                        "inspection_number": row[0],
+                        "client_email": row[1],
+                        "sent_at": str(row[2]),
+                        "status": row[3]
+                    }
+                    for row in cursor.fetchall()
+                ]
+                
+                conn.close()
+            except Exception as db_error:
+                logging.error(f"Error getting stats: {db_error}")
         
         return JSONResponse({
             "ok": True,
             "pending_count": len(pending),
-            "emails": pending
+            "pending_emails": pending,
+            "statistics": stats
         })
         
     except Exception as e:
