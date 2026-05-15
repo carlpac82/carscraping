@@ -61068,27 +61068,31 @@ async def preview_todays_checkout_emails(request: Request):
         ]
         
         # Checkouts de daqui a 2 dias (que deveriam gerar emails hoje)
-        target_checkout_date = (datetime.now() + timedelta(days=2)).date()
+        # Nota: return_date é a data de devolução/checkout
+        target_checkout_date = (datetime.now() + timedelta(days=2)).strftime('%d/%m/%Y')
         
         cursor.execute("""
             SELECT 
                 rental_agreement_number,
                 client_email,
-                checkout_date,
-                checkout_location
+                return_date,
+                return_location,
+                pickup_location
             FROM rental_agreements
-            WHERE checkout_date::date = %s
+            WHERE return_date = %s
             AND client_email IS NOT NULL
             AND client_email != ''
-            ORDER BY checkout_date ASC
+            AND pickup_location ILIKE '%aeroporto%faro%'
+            ORDER BY return_date ASC
         """, (target_checkout_date,))
         
         expected_checkouts = [
             {
                 "rental_agreement_number": row[0],
                 "client_email": row[1],
-                "checkout_date": str(row[2]),
-                "checkout_location": row[3]
+                "return_date": row[2],
+                "return_location": row[3],
+                "pickup_location": row[4]
             }
             for row in cursor.fetchall()
         ]
