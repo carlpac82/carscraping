@@ -141,12 +141,23 @@ class DatabaseConnection:
         """Close database connection"""
         if self.conn:
             if self.is_postgres and connection_pool:
-                # Return connection to pool
+                # Validate connection before returning to pool
                 try:
+                    cursor = self.conn.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.close()
+                    # Connection is good, return to pool
                     connection_pool.putconn(self.conn)
                 except Exception as e:
-                    logging.error(f"Failed to return connection to pool: {e}")
-                    self.conn.close()
+                    # Connection is bad, close it instead of returning to pool
+                    logging.warning(f"⚠️ Closing stale connection instead of returning to pool: {e}")
+                    try:
+                        connection_pool.putconn(self.conn, close=True)
+                    except:
+                        try:
+                            self.conn.close()
+                        except:
+                            pass
             else:
                 self.conn.close()
             self.conn = None
@@ -443,6 +454,46 @@ def get_db():
         conn = sqlite3.connect("data.db", check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
+
+def release_db(conn):
+    """
+    Release a database connection back to the pool.
+    Validates connection health before returning to pool.
+    """
+    if not conn:
+        return
+    
+    if USE_POSTGRES and connection_pool:
+        # Unwrap if it's a PostgreSQLConnectionWrapper
+        if isinstance(conn, PostgreSQLConnectionWrapper):
+            actual_conn = conn.conn
+        else:
+            actual_conn = conn
+        
+        if actual_conn:
+            # Validate connection before returning to pool
+            try:
+                cursor = actual_conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.close()
+                # Connection is good, return to pool
+                connection_pool.putconn(actual_conn)
+            except Exception as e:
+                # Connection is bad, close it instead of returning to pool
+                logging.warning(f"⚠️ Closing stale connection instead of returning to pool: {e}")
+                try:
+                    connection_pool.putconn(actual_conn, close=True)
+                except:
+                    try:
+                        actual_conn.close()
+                    except:
+                        pass
+    else:
+        # SQLite or direct connection - just close
+        try:
+            conn.close()
+        except:
+            pass
 
 # Legacy support - keep existing _db_connect function working
 def _db_connect():

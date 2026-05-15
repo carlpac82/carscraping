@@ -912,7 +912,8 @@ def check_and_send_scheduled_checkout_emails():
         if not got_lock:
             print(f"⏭️ Worker {worker_id}: Another worker is already processing emails, skipping", flush=True)
             logging.info(f"⏭️ Worker {worker_id}: Lock already held by another worker, skipping")
-            lock_conn.close()
+            from database import release_db
+            release_db(lock_conn)
             return
         
         print(f"🔒 Worker {worker_id}: Lock acquired, processing emails...", flush=True)
@@ -1118,7 +1119,8 @@ def check_and_send_scheduled_checkout_emails():
         print(f"🔓 Worker {worker_id}: Releasing lock...", flush=True)
         logging.info(f"🔓 Worker {worker_id}: Releasing lock")
         lock_cursor.execute("SELECT pg_advisory_unlock(123456789)")
-        lock_conn.close()
+        from database import release_db
+        release_db(lock_conn)
         print(f"✅ Worker {worker_id}: Lock released successfully", flush=True)
     
     except Exception as e:
@@ -1131,7 +1133,8 @@ def check_and_send_scheduled_checkout_emails():
             if lock_conn and not lock_conn.closed:
                 lock_cursor = lock_conn.cursor()
                 lock_cursor.execute("SELECT pg_advisory_unlock(123456789)")
-                lock_conn.close()
+                from database import release_db
+                release_db(lock_conn)
                 logging.info(f"🔓 Worker {worker_id}: Lock released (after error)")
         except:
             pass
