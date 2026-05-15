@@ -427,10 +427,12 @@ def generate_brokers_excel(location, month, year, prices_data):
         print(f"[BROKERS-EXCEL] Prices data keys: {list(prices_data.keys())}", flush=True)
         
         # Add vans pricing (C3, C4, C5) from database if not Faro Airport
-        logging.info(f"[BROKERS-VANS] Location: '{location}'")
-        logging.info(f"[BROKERS-VANS] Condition check: '{location}' != 'Faro Airport' and 'Faro' not in '{location}' = {location != 'Faro Airport' and 'Faro' not in location}")
+        print(f"[BROKERS-VANS] Location: '{location}'", flush=True)
+        print(f"[BROKERS-VANS] Condition: '{location}' != 'Faro Airport' = {location != 'Faro Airport'}", flush=True)
+        print(f"[BROKERS-VANS] Condition: 'Faro' not in '{location}' = {'Faro' not in location}", flush=True)
         
         if location != 'Faro Airport' and 'Faro' not in location:
+            print(f"[BROKERS-VANS] ✅ ENTERING VANS PRICING LOGIC", flush=True)
             logging.info("[BROKERS-VANS] ✅ Loading vans pricing from database...")
             # Load vans pricing from database
             import main
@@ -478,14 +480,18 @@ def generate_brokers_excel(location, month, year, prices_data):
                 }
             
             print(f"[BROKERS-VANS] Adding to prices_data...", flush=True)
+            print(f"[BROKERS-VANS] vans_pricing_db = {vans_pricing_db}", flush=True)
+            
             for grupo, prices in vans_pricing_db.items():
                 # SEMPRE sobrescrever C3, C4, C5 com valores da BD (não confiar no frontend)
                 prices_data[grupo] = {}
+                print(f"[BROKERS-VANS] Processing {grupo}: {prices}", flush=True)
                 
                 # Add 1, 2, 3 day prices (divide by number of days to get per-day price)
                 for day, total_price in prices.items():
                     day_num = int(day)
                     per_day_price = total_price / day_num
+                    print(f"[BROKERS-VANS] {grupo} day {day}: {total_price} / {day_num} = {per_day_price}", flush=True)
                     prices_data[grupo][day] = {'net': per_day_price, 'commission': per_day_price}
                 
                 # Add 4+ day prices (3-day price / 3)
