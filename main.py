@@ -60951,6 +60951,71 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/view-all-pending-checkout-emails")
+async def view_all_pending_checkout_emails(request: Request):
+    """
+    View ALL pending checkout emails with their scheduled send dates
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        import psycopg2
+        import os
+        
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            return JSONResponse({"ok": False, "error": "No database URL"}, status_code=500)
+        
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Get ALL pending emails with their scheduled dates
+        cursor.execute("""
+            SELECT 
+                inspection_number, 
+                client_email, 
+                scheduled_send_date,
+                created_at,
+                NOW() as current_time,
+                scheduled_send_date - NOW() as time_until_send
+            FROM scheduled_checkout_emails
+            WHERE status = 'pending'
+            ORDER BY scheduled_send_date ASC
+        """)
+        
+        pending_emails = [
+            {
+                "inspection_number": row[0],
+                "client_email": row[1],
+                "scheduled_send_date": str(row[2]),
+                "created_at": str(row[3]),
+                "current_time": str(row[4]),
+                "time_until_send": str(row[5])
+            }
+            for row in cursor.fetchall()
+        ]
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "count": len(pending_emails),
+            "pending_emails": pending_emails
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error viewing pending emails: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/reschedule-old-checkout-emails")
 @app.post("/api/admin/reschedule-old-checkout-emails")
 async def reschedule_old_checkout_emails(request: Request):
