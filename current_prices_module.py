@@ -422,6 +422,10 @@ def generate_abbycar_excel(location, month, year, prices_data):
 def generate_brokers_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Brokers"""
     try:
+        logging.info(f"[BROKERS-EXCEL] ========== STARTING GENERATION ==========")
+        logging.info(f"[BROKERS-EXCEL] Location: '{location}', Month: {month}, Year: {year}")
+        logging.info(f"[BROKERS-EXCEL] Prices data keys: {list(prices_data.keys())}")
+        
         # Add vans pricing (C3, C4, C5) from database if not Faro Airport
         logging.info(f"[BROKERS-VANS] Location: '{location}'")
         logging.info(f"[BROKERS-VANS] Condition check: '{location}' != 'Faro Airport' and 'Faro' not in '{location}' = {location != 'Faro Airport' and 'Faro' not in location}")
