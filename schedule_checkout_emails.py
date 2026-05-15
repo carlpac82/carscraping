@@ -350,12 +350,12 @@ def reschedule_old_pending_emails():
         try:
             cursor = conn.cursor()
             
-            # Encontrar emails pendentes com scheduled_send_date no passado
+            # Encontrar emails pendentes agendados para as 09:00 (hora antiga)
             cursor.execute("""
                 SELECT inspection_number, checkout_date, scheduled_send_date
                 FROM scheduled_checkout_emails
                 WHERE status = 'pending'
-                  AND scheduled_send_date < NOW()
+                  AND EXTRACT(HOUR FROM scheduled_send_date) = 9
                 ORDER BY scheduled_send_date ASC
             """)
             
@@ -367,19 +367,20 @@ def reschedule_old_pending_emails():
             
             logging.info(f"🔄 Found {len(old_emails)} old pending emails to reschedule")
             
-            # Re-agendar cada um para hoje às 20:00
-            today_20h = datetime.now().replace(hour=20, minute=0, second=0, microsecond=0)
-            
+            # Re-agendar cada um mantendo a data mas mudando hora de 09:00 para 20:00
             rescheduled_count = 0
             for inspection_number, checkout_date, old_scheduled_date in old_emails:
                 try:
+                    # Manter a mesma data, apenas mudar hora de 09:00 para 20:00
+                    new_scheduled_date = old_scheduled_date.replace(hour=20, minute=0, second=0, microsecond=0)
+                    
                     cursor.execute("""
                         UPDATE scheduled_checkout_emails
                         SET scheduled_send_date = %s
                         WHERE inspection_number = %s
-                    """, (today_20h, inspection_number))
+                    """, (new_scheduled_date, inspection_number))
                     
-                    logging.info(f"✅ Rescheduled {inspection_number}: {old_scheduled_date} → {today_20h}")
+                    logging.info(f"✅ Rescheduled {inspection_number}: {old_scheduled_date} → {new_scheduled_date}")
                     rescheduled_count += 1
                     
                 except Exception as e:
