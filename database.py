@@ -141,23 +141,16 @@ class DatabaseConnection:
         """Close database connection"""
         if self.conn:
             if self.is_postgres and connection_pool:
-                # Validate connection before returning to pool
+                # Return connection to pool without validation
+                # Validation happens when getting connection from pool (in connect())
                 try:
-                    cursor = self.conn.cursor()
-                    cursor.execute("SELECT 1")
-                    cursor.close()
-                    # Connection is good, return to pool
                     connection_pool.putconn(self.conn)
                 except Exception as e:
-                    # Connection is bad, close it instead of returning to pool
-                    logging.warning(f"⚠️ Closing stale connection instead of returning to pool: {e}")
+                    logging.error(f"Failed to return connection to pool: {e}")
                     try:
-                        connection_pool.putconn(self.conn, close=True)
+                        self.conn.close()
                     except:
-                        try:
-                            self.conn.close()
-                        except:
-                            pass
+                        pass
             else:
                 self.conn.close()
             self.conn = None
@@ -455,10 +448,14 @@ def get_db():
         conn.row_factory = sqlite3.Row
         return conn
 
-def release_db(conn):
+def release_db(conn, validate=False):
     """
     Release a database connection back to the pool.
-    Validates connection health before returning to pool.
+    
+    Args:
+        conn: Database connection to release
+        validate: If True, validates connection health before returning to pool.
+                 Use this for long-lived connections (e.g., locks, scheduled tasks)
     """
     if not conn:
         return
@@ -471,19 +468,30 @@ def release_db(conn):
             actual_conn = conn
         
         if actual_conn:
-            # Validate connection before returning to pool
-            try:
-                cursor = actual_conn.cursor()
-                cursor.execute("SELECT 1")
-                cursor.close()
-                # Connection is good, return to pool
-                connection_pool.putconn(actual_conn)
-            except Exception as e:
-                # Connection is bad, close it instead of returning to pool
-                logging.warning(f"⚠️ Closing stale connection instead of returning to pool: {e}")
+            if validate:
+                # Validate connection before returning to pool (for long-lived connections)
                 try:
-                    connection_pool.putconn(actual_conn, close=True)
-                except:
+                    cursor = actual_conn.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.close()
+                    # Connection is good, return to pool
+                    connection_pool.putconn(actual_conn)
+                except Exception as e:
+                    # Connection is bad, close it instead of returning to pool
+                    logging.warning(f"⚠️ Closing stale connection instead of returning to pool: {e}")
+                    try:
+                        connection_pool.putconn(actual_conn, close=True)
+                    except:
+                        try:
+                            actual_conn.close()
+                        except:
+                            pass
+            else:
+                # Fast path: just return to pool without validation
+                try:
+                    connection_pool.putconn(actual_conn)
+                except Exception as e:
+                    logging.error(f"Failed to return connection to pool: {e}")
                     try:
                         actual_conn.close()
                     except:
