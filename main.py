@@ -50585,29 +50585,27 @@ async def download_brokers_prices(request: Request, location: str, month: int, y
     """Download de preços no formato Brokers"""
     require_auth(request)
     try:
+        logging.info(f"[DOWNLOAD BROKERS] ========== ENDPOINT CALLED ==========")
+        logging.info(f"[DOWNLOAD BROKERS] Location: {location}, Month: {month}, Year: {year}")
+        
         from current_prices_module import generate_brokers_excel
         from starlette.responses import Response
         
         data = await request.json()
         prices = data.get('prices', {})
         
-        # DEBUG: Log dados recebidos
-        logging.info(f"[DOWNLOAD BROKERS] Location: {location}, Month: {month}, Year: {year}")
         logging.info(f"[DOWNLOAD BROKERS] Grupos recebidos: {list(prices.keys())}")
-        if 'B1' in prices:
-            logging.info(f"[DOWNLOAD BROKERS] B1 dias: {list(prices['B1'].keys())}")
-            if '7' in prices['B1']:
-                logging.info(f"[DOWNLOAD BROKERS] B1 dia 7: {prices['B1']['7']}")
         
-        # DEBUG: Check C3, C4, C5
+        # DEBUG: Check C3, C4, C5 ANTES de chamar generate_brokers_excel
         for grupo in ['C3', 'C4', 'C5']:
             if grupo in prices:
-                logging.info(f"[DOWNLOAD BROKERS] {grupo} recebido com {len(prices[grupo])} dias")
-                if '1' in prices[grupo]:
-                    logging.info(f"[DOWNLOAD BROKERS] {grupo} dia 1: {prices[grupo]['1']}")
+                logging.info(f"[DOWNLOAD BROKERS] {grupo} recebido do frontend com {len(prices[grupo])} dias")
+                if '2' in prices[grupo]:
+                    logging.info(f"[DOWNLOAD BROKERS] {grupo} dia 2 FROM FRONTEND: {prices[grupo]['2']}")
             else:
-                logging.warning(f"[DOWNLOAD BROKERS] ⚠️ {grupo} NÃO recebido!")
+                logging.warning(f"[DOWNLOAD BROKERS] ⚠️ {grupo} NÃO recebido do frontend!")
         
+        logging.info(f"[DOWNLOAD BROKERS] Calling generate_brokers_excel...")
         excel_file, filename = generate_brokers_excel(location, month, year, prices)
         
         logging.info(f"[DOWNLOAD BROKERS] Excel gerado: {filename}")
