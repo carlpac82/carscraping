@@ -549,6 +549,10 @@ def generate_brokers_excel(location, month, year, prices_data):
                 net = price_data.get('net', 0) if price_data else 0
                 comm = price_data.get('commission', 0) if price_data else 0
                 
+                # DEBUG: Log C3, C4, C5 values being written to Excel
+                if is_commercial and dia in [1, 2, 3]:
+                    logging.info(f"[BROKERS-EXCEL-WRITE] {grupo} day {dia}: net={net}, comm={comm}")
+                
                 # REGRA: Grupo X sempre sem valores
                 if is_group_x:
                     net = 0
