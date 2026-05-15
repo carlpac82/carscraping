@@ -61071,7 +61071,9 @@ async def preview_todays_checkout_emails(request: Request):
         # Nota: return_date é a data de devolução/checkout
         target_checkout_date = (datetime.now() + timedelta(days=2)).strftime('%d/%m/%Y')
         
-        cursor.execute("""
+        # Criar novo cursor para segunda query
+        cursor2 = conn.cursor()
+        cursor2.execute("""
             SELECT 
                 rental_agreement_number,
                 client_email,
@@ -61094,8 +61096,9 @@ async def preview_todays_checkout_emails(request: Request):
                 "return_location": row[3],
                 "pickup_location": row[4]
             }
-            for row in cursor.fetchall()
+            for row in cursor2.fetchall()
         ]
+        cursor2.close()
         
         conn.close()
         
