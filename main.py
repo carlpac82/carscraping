@@ -61016,6 +61016,106 @@ async def view_all_pending_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/preview-todays-checkout-emails")
+async def preview_todays_checkout_emails(request: Request):
+    """
+    Preview quantos emails serão enviados hoje às 20:00
+    Mostra checkouts de daqui a 2 dias
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        import psycopg2
+        import os
+        from datetime import datetime, timedelta
+        
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            return JSONResponse({"ok": False, "error": "No database URL"}, status_code=500)
+        
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Data de hoje às 20:00
+        today_20h = datetime.now().replace(hour=20, minute=0, second=0, microsecond=0)
+        today_20h_end = today_20h + timedelta(minutes=10)  # Janela de 10 minutos
+        
+        # Emails agendados para hoje às 20:00
+        cursor.execute("""
+            SELECT 
+                inspection_number,
+                client_email,
+                scheduled_send_date,
+                created_at
+            FROM scheduled_checkout_emails
+            WHERE status = 'pending'
+            AND scheduled_send_date >= %s
+            AND scheduled_send_date < %s
+            ORDER BY scheduled_send_date ASC
+        """, (today_20h, today_20h_end))
+        
+        emails_today = [
+            {
+                "inspection_number": row[0],
+                "client_email": row[1],
+                "scheduled_send_date": str(row[2]),
+                "created_at": str(row[3])
+            }
+            for row in cursor.fetchall()
+        ]
+        
+        # Checkouts de daqui a 2 dias (que deveriam gerar emails hoje)
+        target_checkout_date = (datetime.now() + timedelta(days=2)).date()
+        
+        cursor.execute("""
+            SELECT 
+                inspection_number,
+                client_email,
+                checkout_date,
+                checkout_location
+            FROM rental_agreements
+            WHERE checkout_date::date = %s
+            AND client_email IS NOT NULL
+            AND client_email != ''
+            ORDER BY checkout_date ASC
+        """, (target_checkout_date,))
+        
+        expected_checkouts = [
+            {
+                "inspection_number": row[0],
+                "client_email": row[1],
+                "checkout_date": str(row[2]),
+                "checkout_location": row[3]
+            }
+            for row in cursor.fetchall()
+        ]
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "today_20h": str(today_20h),
+            "emails_scheduled_for_today_20h": len(emails_today),
+            "emails_list": emails_today,
+            "expected_checkouts_in_2_days": len(expected_checkouts),
+            "expected_checkouts_list": expected_checkouts,
+            "match": len(emails_today) == len(expected_checkouts),
+            "message": f"Hoje às 20:00 devem ser enviados {len(emails_today)} emails para {len(expected_checkouts)} checkouts de {target_checkout_date}"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error previewing emails: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/reschedule-old-checkout-emails")
 @app.post("/api/admin/reschedule-old-checkout-emails")
 async def reschedule_old_checkout_emails(request: Request):
