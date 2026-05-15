@@ -422,9 +422,9 @@ def generate_abbycar_excel(location, month, year, prices_data):
 def generate_brokers_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Brokers"""
     try:
-        logging.info(f"[BROKERS-EXCEL] ========== STARTING GENERATION ==========")
-        logging.info(f"[BROKERS-EXCEL] Location: '{location}', Month: {month}, Year: {year}")
-        logging.info(f"[BROKERS-EXCEL] Prices data keys: {list(prices_data.keys())}")
+        print(f"[BROKERS-EXCEL] ========== STARTING GENERATION ==========", flush=True)
+        print(f"[BROKERS-EXCEL] Location: '{location}', Month: {month}, Year: {year}", flush=True)
+        print(f"[BROKERS-EXCEL] Prices data keys: {list(prices_data.keys())}", flush=True)
         
         # Add vans pricing (C3, C4, C5) from database if not Faro Airport
         logging.info(f"[BROKERS-VANS] Location: '{location}'")
@@ -477,7 +477,7 @@ def generate_brokers_excel(location, month, year, prices_data):
                     'C5': {'1': 175, '2': 190, '3': 240}
                 }
             
-            logging.info(f"[BROKERS-VANS] Adding to prices_data...")
+            print(f"[BROKERS-VANS] Adding to prices_data...", flush=True)
             for grupo, prices in vans_pricing_db.items():
                 # SEMPRE sobrescrever C3, C4, C5 com valores da BD (não confiar no frontend)
                 prices_data[grupo] = {}
@@ -551,7 +551,7 @@ def generate_brokers_excel(location, month, year, prices_data):
                 
                 # DEBUG: Log C3, C4, C5 values being written to Excel
                 if is_commercial and dia in [1, 2, 3]:
-                    logging.info(f"[BROKERS-EXCEL-WRITE] {grupo} day {dia}: net={net}, comm={comm}")
+                    print(f"[BROKERS-EXCEL-WRITE] {grupo} day {dia}: net={net}, comm={comm}", flush=True)
                 
                 # REGRA: Grupo X sempre sem valores
                 if is_group_x:
