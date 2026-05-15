@@ -103,15 +103,15 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                                                     prices_data[grupo] = {}
                                                 
                                                 base_idx = 1 + (grupo_idx * 3)
-                                                day1_price = vans_row[base_idx]
-                                                day2_price = vans_row[base_idx + 1]
-                                                day3_price = vans_row[base_idx + 2]
+                                                day1_total = vans_row[base_idx]
+                                                day2_total = vans_row[base_idx + 1]
+                                                day3_total = vans_row[base_idx + 2]
                                                 
-                                                prices_data[grupo]['1'] = {'net': day1_price, 'commission': day1_price}
-                                                prices_data[grupo]['2'] = {'net': day2_price, 'commission': day2_price}
-                                                prices_data[grupo]['3'] = {'net': day3_price, 'commission': day3_price}
+                                                prices_data[grupo]['1'] = {'net': day1_total / 1, 'commission': day1_total / 1}
+                                                prices_data[grupo]['2'] = {'net': day2_total / 2, 'commission': day2_total / 2}
+                                                prices_data[grupo]['3'] = {'net': day3_total / 3, 'commission': day3_total / 3}
                                                 
-                                                base_price = day3_price / 3
+                                                base_price = day3_total / 3
                                                 for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
                                                     prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
                                             
@@ -154,15 +154,15 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                                                         prices_data[grupo] = {}
                                                     
                                                     base_idx = 1 + (grupo_idx * 3)
-                                                    day1_price = vans_row[base_idx]
-                                                    day2_price = vans_row[base_idx + 1]
-                                                    day3_price = vans_row[base_idx + 2]
+                                                    day1_total = vans_row[base_idx]
+                                                    day2_total = vans_row[base_idx + 1]
+                                                    day3_total = vans_row[base_idx + 2]
                                                     
-                                                    prices_data[grupo]['1'] = {'net': day1_price, 'commission': day1_price}
-                                                    prices_data[grupo]['2'] = {'net': day2_price, 'commission': day2_price}
-                                                    prices_data[grupo]['3'] = {'net': day3_price, 'commission': day3_price}
+                                                    prices_data[grupo]['1'] = {'net': day1_total / 1, 'commission': day1_total / 1}
+                                                    prices_data[grupo]['2'] = {'net': day2_total / 2, 'commission': day2_total / 2}
+                                                    prices_data[grupo]['3'] = {'net': day3_total / 3, 'commission': day3_total / 3}
                                                     
-                                                    base_price = day3_price / 3
+                                                    base_price = day3_total / 3
                                                     for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
                                                         prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
                                             
@@ -478,9 +478,11 @@ def generate_brokers_excel(location, month, year, prices_data):
                 if grupo not in prices_data:
                     prices_data[grupo] = {}
                 
-                # Add 1, 2, 3 day prices
-                for day, price in prices.items():
-                    prices_data[grupo][day] = {'net': price, 'commission': price}
+                # Add 1, 2, 3 day prices (divide by number of days to get per-day price)
+                for day, total_price in prices.items():
+                    day_num = int(day)
+                    per_day_price = total_price / day_num
+                    prices_data[grupo][day] = {'net': per_day_price, 'commission': per_day_price}
                 
                 # Add 4+ day prices (3-day price / 3)
                 base_price = prices['3'] / 3
@@ -642,9 +644,11 @@ def generate_website_excel(location, month, year, prices_data):
                 if grupo not in prices_data:
                     prices_data[grupo] = {}
                 
-                # Add 1, 2, 3 day prices
-                for day, price in prices.items():
-                    prices_data[grupo][day] = {'net': price, 'commission': price}
+                # Add 1, 2, 3 day prices (divide by number of days to get per-day price)
+                for day, total_price in prices.items():
+                    day_num = int(day)
+                    per_day_price = total_price / day_num
+                    prices_data[grupo][day] = {'net': per_day_price, 'commission': per_day_price}
                 
                 # Add 4+ day prices (3-day price / 3)
                 base_price = prices['3'] / 3
