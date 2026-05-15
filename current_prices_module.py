@@ -475,8 +475,8 @@ def generate_brokers_excel(location, month, year, prices_data):
             
             logging.info(f"[BROKERS-VANS] Adding to prices_data...")
             for grupo, prices in vans_pricing_db.items():
-                if grupo not in prices_data:
-                    prices_data[grupo] = {}
+                # SEMPRE sobrescrever C3, C4, C5 com valores da BD (não confiar no frontend)
+                prices_data[grupo] = {}
                 
                 # Add 1, 2, 3 day prices (divide by number of days to get per-day price)
                 for day, total_price in prices.items():
@@ -649,8 +649,8 @@ def generate_website_excel(location, month, year, prices_data):
                 logging.info(f"[WEBSITE-EXCEL] Loaded vans pricing from DB: {vans_pricing_db}")
             
             for grupo, prices in vans_pricing_db.items():
-                if grupo not in prices_data:
-                    prices_data[grupo] = {}
+                # SEMPRE sobrescrever C3, C4, C5 com valores da BD (não confiar no frontend)
+                prices_data[grupo] = {}
                 
                 # Add 1, 2, 3 day prices (divide by number of days to get per-day price)
                 for day, total_price in prices.items():
