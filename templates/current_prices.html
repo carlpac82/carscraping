@@ -1107,32 +1107,32 @@
                     c5_1day: 175, c5_2days: 190, c5_3days: 240
                 };
                 
-                // C3 pricing
+                // C3 pricing (divide by number of days to get per-day price)
                 if (!pricesToSend.C3) pricesToSend.C3 = {};
-                pricesToSend.C3['1'] = { net: vansPricing.c3_1day, commission: vansPricing.c3_1day };
-                pricesToSend.C3['2'] = { net: vansPricing.c3_2days, commission: vansPricing.c3_2days };
-                pricesToSend.C3['3'] = { net: vansPricing.c3_3days, commission: vansPricing.c3_3days };
+                pricesToSend.C3['1'] = { net: vansPricing.c3_1day / 1, commission: vansPricing.c3_1day / 1 };
+                pricesToSend.C3['2'] = { net: vansPricing.c3_2days / 2, commission: vansPricing.c3_2days / 2 };
+                pricesToSend.C3['3'] = { net: vansPricing.c3_3days / 3, commission: vansPricing.c3_3days / 3 };
                 // Days 4+: use 3-day price / 3
                 const c3_base = vansPricing.c3_3days / 3;
                 [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60].forEach(day => {
                     pricesToSend.C3[day.toString()] = { net: c3_base, commission: c3_base };
                 });
                 
-                // C4 pricing
+                // C4 pricing (divide by number of days to get per-day price)
                 if (!pricesToSend.C4) pricesToSend.C4 = {};
-                pricesToSend.C4['1'] = { net: vansPricing.c4_1day, commission: vansPricing.c4_1day };
-                pricesToSend.C4['2'] = { net: vansPricing.c4_2days, commission: vansPricing.c4_2days };
-                pricesToSend.C4['3'] = { net: vansPricing.c4_3days, commission: vansPricing.c4_3days };
+                pricesToSend.C4['1'] = { net: vansPricing.c4_1day / 1, commission: vansPricing.c4_1day / 1 };
+                pricesToSend.C4['2'] = { net: vansPricing.c4_2days / 2, commission: vansPricing.c4_2days / 2 };
+                pricesToSend.C4['3'] = { net: vansPricing.c4_3days / 3, commission: vansPricing.c4_3days / 3 };
                 const c4_base = vansPricing.c4_3days / 3;
                 [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60].forEach(day => {
                     pricesToSend.C4[day.toString()] = { net: c4_base, commission: c4_base };
                 });
                 
-                // C5 pricing
+                // C5 pricing (divide by number of days to get per-day price)
                 if (!pricesToSend.C5) pricesToSend.C5 = {};
-                pricesToSend.C5['1'] = { net: vansPricing.c5_1day, commission: vansPricing.c5_1day };
-                pricesToSend.C5['2'] = { net: vansPricing.c5_2days, commission: vansPricing.c5_2days };
-                pricesToSend.C5['3'] = { net: vansPricing.c5_3days, commission: vansPricing.c5_3days };
+                pricesToSend.C5['1'] = { net: vansPricing.c5_1day / 1, commission: vansPricing.c5_1day / 1 };
+                pricesToSend.C5['2'] = { net: vansPricing.c5_2days / 2, commission: vansPricing.c5_2days / 2 };
+                pricesToSend.C5['3'] = { net: vansPricing.c5_3days / 3, commission: vansPricing.c5_3days / 3 };
                 const c5_base = vansPricing.c5_3days / 3;
                 [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60].forEach(day => {
                     pricesToSend.C5[day.toString()] = { net: c5_base, commission: c5_base };
