@@ -639,11 +639,14 @@ def generate_website_excel(location, month, year, prices_data):
             
             # Fallback to default values if database load failed
             if not vans_pricing_db:
+                logging.warning("[WEBSITE-EXCEL] Using fallback vans pricing (no DB data)")
                 vans_pricing_db = {
                     'C3': {'1': 112, '2': 144, '3': 180},
                     'C4': {'1': 152, '2': 170, '3': 210},
                     'C5': {'1': 175, '2': 190, '3': 240}
                 }
+            else:
+                logging.info(f"[WEBSITE-EXCEL] Loaded vans pricing from DB: {vans_pricing_db}")
             
             for grupo, prices in vans_pricing_db.items():
                 if grupo not in prices_data:
