@@ -61072,7 +61072,7 @@ async def preview_todays_checkout_emails(request: Request):
         
         cursor.execute("""
             SELECT 
-                inspection_number,
+                rental_agreement_number,
                 client_email,
                 checkout_date,
                 checkout_location
@@ -61085,7 +61085,7 @@ async def preview_todays_checkout_emails(request: Request):
         
         expected_checkouts = [
             {
-                "inspection_number": row[0],
+                "rental_agreement_number": row[0],
                 "client_email": row[1],
                 "checkout_date": str(row[2]),
                 "checkout_location": row[3]
