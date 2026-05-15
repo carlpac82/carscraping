@@ -61070,23 +61070,30 @@ async def preview_todays_checkout_emails(request: Request):
         # Checkouts de daqui a 2 dias (que deveriam gerar emails hoje)
         # Nota: return_date é a data de devolução/checkout
         target_checkout_date = (datetime.now() + timedelta(days=2)).strftime('%d/%m/%Y')
+        logging.info(f"🔍 Looking for checkouts on: {target_checkout_date}")
         
         # Criar novo cursor para segunda query
         cursor2 = conn.cursor()
-        cursor2.execute("""
-            SELECT 
-                rental_agreement_number,
-                client_email,
-                return_date,
-                return_location,
-                pickup_location
-            FROM rental_agreements
-            WHERE return_date = %s
-            AND client_email IS NOT NULL
-            AND client_email != ''
-            AND pickup_location ILIKE '%aeroporto%faro%'
-            ORDER BY return_date ASC
-        """, (target_checkout_date,))
+        try:
+            cursor2.execute("""
+                SELECT 
+                    rental_agreement_number,
+                    client_email,
+                    return_date,
+                    return_location,
+                    pickup_location
+                FROM rental_agreements
+                WHERE return_date = %s
+                AND client_email IS NOT NULL
+                AND client_email != ''
+                AND pickup_location ILIKE %s
+                ORDER BY return_date ASC
+            """, (target_checkout_date, '%aeroporto%faro%'))
+            logging.info("✅ Second query executed successfully")
+        except Exception as query_err:
+            logging.error(f"❌ Error in second query: {query_err}")
+            logging.error(f"Parameters: target_checkout_date={target_checkout_date}")
+            raise
         
         expected_checkouts = [
             {
