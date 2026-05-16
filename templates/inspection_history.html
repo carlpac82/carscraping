@@ -8217,9 +8217,13 @@
                         // QR code está visível no modal - extrair base64 puro
                         qrImageBase64 = qrImageElement.src.split(',')[1];
                         console.log('QR code extraído do modal para reenvio');
+                    } else if (window.qrCodeImageBase64) {
+                        // Usar QR code extraído do PDF
+                        qrImageBase64 = window.qrCodeImageBase64;
+                        console.log('QR code extraído do PDF (window.qrCodeImageBase64)');
                     } else {
                         qrImageBase64 = null;
-                        console.log('QR code não encontrado no modal');
+                        console.log('QR code não encontrado no modal nem no window');
                     }
                     
                     if (!parkingNumber) {
