@@ -49116,16 +49116,16 @@ try:
     log_to_db("INFO", "✅ Backup scheduler configured (daily at 3 AM)", "main", "scheduler")
     
     # === CHECKOUT EMAILS JOB ===
-    # Check and send scheduled checkout emails every 10 minutes
+    # Check and send scheduled checkout emails daily at 20:00
     from automated_scheduler import check_and_send_scheduled_checkout_emails
     scheduler.add_job(
         check_and_send_scheduled_checkout_emails,
-        CronTrigger(minute='*/10'),  # Every 10 minutes
+        CronTrigger(hour=20, minute=0),  # Daily at 20:00
         id='checkout_emails',
         name='Check and Send Scheduled Checkout Emails',
         replace_existing=True
     )
-    log_to_db("INFO", "✅ Checkout emails scheduler configured (every 10 minutes)", "main", "scheduler")
+    log_to_db("INFO", "✅ Checkout emails scheduler configured (daily at 20:00)", "main", "scheduler")
     
     # === REPORTS JOBS ===
     # Daily search at 7 AM (2h before report)
