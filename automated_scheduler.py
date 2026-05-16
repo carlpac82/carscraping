@@ -935,8 +935,11 @@ def check_and_send_scheduled_checkout_emails():
         logging.info(f"📬 Found {len(pending)} pending email(s)")
         
         # Enviar cada email
+        print(f"🔄 Starting loop to process {len(pending)} emails...", flush=True)
         logging.info(f"🔄 Starting loop to process {len(pending)} emails...")
         for idx, email_data in enumerate(pending):
+            print(f"🔄 Processing email {idx+1}/{len(pending)}", flush=True)
+            print(f"📦 Email data: {email_data}", flush=True)
             logging.info(f"🔄 Processing email {idx+1}/{len(pending)}")
             logging.info(f"📦 Email data: {email_data}")
             
