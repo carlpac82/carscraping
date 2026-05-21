@@ -92,62 +92,71 @@ CARROS_PROBLEMATICOS = {
 
 def analyze_group_coverage():
     """Analisa a cobertura de modelos por grupo"""
-    print("=" * 80)
-    print("📊 ANÁLISE DE COBERTURA DE GRUPOS")
-    print("=" * 80)
-    print()
     
-    for grupo in GRUPOS:
-        modelos = MODELOS_ESPERADOS.get(grupo, [])
-        print(f"\n🚗 GRUPO {grupo}: {len(modelos)} modelos esperados")
-        print("-" * 60)
-        for modelo in modelos:
-            print(f"  ✓ {modelo}")
+    if 'items' in data:
+        items = data['items']
+        print(f"✅ Encontrados {len(items)} carros")
+        
+        # Contar por grupo
+        grupos = Counter()
+        grupos_detalhes = {}
+        
+        for item in items:
+            group = item.get('group', 'Unknown')
+            grupos[group] += 1
+            
+            if group not in grupos_detalhes:
+                grupos_detalhes[group] = []
+            
+            grupos_detalhes[group].append({
+                'car': item.get('car', ''),
+                'transmission': item.get('transmission', ''),
+                'category': item.get('category', ''),
+                'price': item.get('price', '')
+            })
+        
+        # Mostrar distribuição
+        print("\n📊 DISTRIBUIÇÃO POR GRUPO:")
+        print("-" * 80)
+        for group in sorted(grupos.keys()):
+            count = grupos[group]
+            print(f"{group:10} | {count:4} carros")
+        
+        # Foco em M1 e M2
+        print("\n\n🎯 FOCO: 7 LUGARES")
+        print("=" * 80)
+        
+        m1_cars = grupos_detalhes.get('M1', [])
+        m2_cars = grupos_detalhes.get('M2', [])
+        
+        print(f"\n📌 M1 (7 Seater Manual): {len(m1_cars)} carros")
+        for i, car in enumerate(m1_cars[:10], 1):
+            print(f"  {i}. {car['car'][:50]:50} | Trans: {car['transmission']:10} | Cat: {car['category']}")
+        
+        print(f"\n📌 M2 (7 Seater Auto): {len(m2_cars)} carros")
+        for i, car in enumerate(m2_cars[:10], 1):
+            print(f"  {i}. {car['car'][:50]:50} | Trans: {car['transmission']:10} | Cat: {car['category']}")
+        
+        if len(m2_cars) == 0:
+            print("\n⚠️  PROBLEMA: Nenhum carro em M2!")
+            print("   Verificando se há carros automáticos de 7 lugares em outros grupos...")
+            
+            # Procurar carros 7 lugares automáticos em outros grupos
+            for group, cars in grupos_detalhes.items():
+                if group != 'M2':
+                    auto_7_seaters = [c for c in cars if 
+                                     'Automatic' in c.get('transmission', '') and
+                                     ('7' in c.get('category', '') or '7' in c.get('car', ''))]
+                    if auto_7_seaters:
+                        print(f"\n   ❗ Encontrados {len(auto_7_seaters)} carros 7 lugares automáticos no grupo {group}:")
+                        for c in auto_7_seaters[:5]:
+                            print(f"      - {c['car'][:60]}")
     
-    print("\n" + "=" * 80)
-    print("⚠️  CARROS PROBLEMÁTICOS (podem ser classificados em múltiplos grupos)")
-    print("=" * 80)
-    print()
-    
-    for carro, regras in CARROS_PROBLEMATICOS.items():
-        print(f"\n🔍 {carro}:")
-        for regra in regras:
-            print(f"  • {regra}")
+    else:
+        print(f"❌ Resposta inesperada: {data}")
 
-def analyze_missing_patterns():
-    """Identifica padrões que podem estar faltando"""
-    print("\n" + "=" * 80)
-    print("🔎 PADRÕES QUE PODEM ESTAR FALTANDO")
-    print("=" * 80)
-    print()
-    
-    # M2 (7 lugares automáticos) - já corrigido
-    print("✅ M2 (7 Seater Automatic) - CORRIGIDO")
-    print("   Padrões adicionados: VW Caddy, Sharan, Seat Alhambra, Ford Galaxy,")
-    print("   Peugeot 5008, Dacia Jogger, Opel Zafira")
-    print()
-    
-    # Possíveis faltando
-    print("⚠️  VERIFICAR:")
-    print()
-    
-    print("1. B2 (Mini 5 Lugares):")
-    print("   • Fiat Panda - ✓ Parametrizado")
-    print("   • Hyundai i10 - ✓ Parametrizado")
-    print("   • Suzuki Ignis - ❌ PODE ESTAR FALTANDO")
-    print("   • Smart ForFour - ❌ PODE ESTAR FALTANDO")
-    print()
-    
-    print("2. E1 (Mini Automatic):")
-    print("   • Toyota Aygo Auto - ✓ Parametrizado")
-    print("   • Kia Picanto Auto - ✓ Parametrizado")
-    print("   • Fiat 500 Auto - ✓ Parametrizado")
-    print("   • Hyundai i10 Auto - ❌ VERIFICAR OVERRIDE")
-    print()
-    
-    print("3. F (SUV Manual):")
-    print("   • Todos principais SUVs - ✓ Parametrizados")
-    print("   • Dacia Duster - ✓ Parametrizado")
+except Exception as e:
+    print(f"❌ Erro: {e}")
     print()
     
     print("4. L2 (Station Wagon Auto):")

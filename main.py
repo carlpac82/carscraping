@@ -18551,6 +18551,24 @@ async def save_vehicle(request: Request):
                         car_group_id = existing[0]
                         old_code = existing[1]
                         logging.info(f"🔄 [VEHICLE-SAVE] UPDATING car_groups id={car_group_id}: '{clean_name}' | old_code={old_code} -> new_code={group} | category={category} | transmission={transmission}")
+                        
+                        # VERIFICAR: Se o novo code é diferente do antigo E já está em uso por outro carro
+                        if old_code != group:
+                            if is_postgres:
+                                with con.cursor() as cur:
+                                    cur.execute(f"SELECT id, model FROM car_groups WHERE code = {param_placeholder} AND id != {param_placeholder}", (group, car_group_id))
+                                    code_conflict = cur.fetchone()
+                            else:
+                                code_conflict = con.execute(
+                                    f"SELECT id, model FROM car_groups WHERE code = {param_placeholder} AND id != {param_placeholder}",
+                                    (group, car_group_id)
+                                ).fetchone()
+                            
+                            if code_conflict:
+                                conflict_id, conflict_model = code_conflict
+                                logging.warning(f"⚠️ [VEHICLE-SAVE] Code {group} já está em uso por '{conflict_model}' (id={conflict_id}). Não é possível atualizar '{clean_name}' para este código.")
+                                return _no_store_json({"ok": False, "error": f"Grupo {group} já está em uso por '{conflict_model}'. Escolha outro grupo ou edite o outro veículo primeiro."}, 400)
+                        
                         if is_postgres:
                             with con.cursor() as cur:
                                 cur.execute(
