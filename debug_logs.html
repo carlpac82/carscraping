@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Logs - Vehicle Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-4">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-4">🔍 Debug Logs - Vehicle Editor</h1>
+        
+        <div class="mb-4">
+            <button onclick="loadLogs()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                🔄 Carregar Logs
+            </button>
+            <button onclick="clearLogs()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded ml-2">
+                🗑️ Limpar Logs
+            </button>
+        </div>
+        
+        <div class="bg-black rounded-lg p-4 h-96 overflow-y-auto font-mono text-sm" id="logContainer">
+            <div class="text-gray-400">Clique em "Carregar Logs" para ver os logs recentes...</div>
+        </div>
+        
+        <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="bg-gray-800 rounded-lg p-4">
+                <h3 class="font-bold mb-2">📊 Estatísticas</h3>
+                <div id="stats" class="text-sm">
+                    <div>Total de logs: <span id="totalLogs">0</span></div>
+                    <div>Logs UNCATEGORIZED: <span id="uncategorizedLogs">0</span></div>
+                    <div>Logs VEHICLE-SAVE: <span id="saveLogs">0</span></div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-lg p-4">
+                <h3 class="font-bold mb-2">🔍 Filtros</h3>
+                <div class="space-y-2">
+                    <input type="text" id="filterInput" placeholder="Filtrar logs..." 
+                           class="w-full bg-gray-700 px-3 py-1 rounded text-sm">
+                    <div class="flex gap-2">
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" id="filterUncategorized" checked class="mr-1">
+                            UNCATEGORIZED
+                        </label>
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" id="filterSave" checked class="mr-1">
+                            VEHICLE-SAVE
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allLogs = [];
+        
+        async function loadLogs() {
+            try {
+                // Buscar logs do endpoint de debug
+                const response = await fetch('/api/debug/logs');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    allLogs = data.logs;
+                    displayLogs();
+                    updateStats();
+                } else {
+                    document.getElementById('logContainer').innerHTML = 
+                        `<div class="text-red-400">Erro ao carregar logs: ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('logContainer').innerHTML = 
+                    `<div class="text-red-400">Erro de conexão: ${error.message}</div>`;
+            }
+        }
+        
+        function displayLogs() {
+            const container = document.getElementById('logContainer');
+            const filterText = document.getElementById('filterInput').value.toLowerCase();
+            const showUncategorized = document.getElementById('filterUncategorized').checked;
+            const showSave = document.getElementById('filterSave').checked;
+            
+            let filteredLogs = allLogs.filter(log => {
+                const matchesText = !filterText || log.message.toLowerCase().includes(filterText);
+                const isUncategorized = log.message.includes('[UNCATEGORIZED]');
+                const isSave = log.message.includes('[VEHICLE-SAVE]');
+                const matchesType = (showUncategorized && isUncategorized) || (showSave && isSave);
+                
+                return matchesText && matchesType;
+            });
+            
+            if (filteredLogs.length === 0) {
+                container.innerHTML = '<div class="text-gray-400">Nenhum log encontrado com os filtros atuais.</div>';
+                return;
+            }
+            
+            container.innerHTML = filteredLogs.map(log => {
+                const timestamp = new Date(log.timestamp).toLocaleTimeString('pt-PT');
+                let colorClass = 'text-gray-300';
+                
+                if (log.message.includes('[UNCATEGORIZED]')) {
+                    colorClass = 'text-yellow-400';
+                } else if (log.message.includes('[VEHICLE-SAVE]')) {
+                    colorClass = 'text-green-400';
+                } else if (log.message.includes('ERROR') || log.message.includes('⚠️')) {
+                    colorClass = 'text-red-400';
+                }
+                
+                return `
+                    <div class="mb-1 ${colorClass}">
+                        <span class="text-gray-500">[${timestamp}]</span> ${log.message}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateStats() {
+            document.getElementById('totalLogs').textContent = allLogs.length;
+            document.getElementById('uncategorizedLogs').textContent = 
+                allLogs.filter(log => log.message.includes('[UNCATEGORIZED]')).length;
+            document.getElementById('saveLogs').textContent = 
+                allLogs.filter(log => log.message.includes('[VEHICLE-SAVE]')).length;
+        }
+        
+        function clearLogs() {
+            if (confirm('Tem certeza que deseja limpar os logs?')) {
+                fetch('/api/debug/logs', { method: 'DELETE' })
+                    .then(() => {
+                        allLogs = [];
+                        displayLogs();
+                        updateStats();
+                    });
+            }
+        }
+        
+        // Auto-refresh a cada 30 segundos
+        setInterval(loadLogs, 30000);
+        
+        // Event listeners
+        document.getElementById('filterInput').addEventListener('input', displayLogs);
+        document.getElementById('filterUncategorized').addEventListener('change', displayLogs);
+        document.getElementById('filterSave').addEventListener('change', displayLogs);
+    </script>
+</body>
+</html>
