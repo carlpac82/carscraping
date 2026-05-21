@@ -22881,11 +22881,14 @@ async def refresh_vehicles(request: Request):
                             transmission = car.get('transmission', '')
                             category_carjet = car.get('category', '')
                             
+                            # Usar clean_car_name para normalizar o nome
+                            clean_name = clean_car_name(original_name)
+                            
                             # Se for automático, adicionar "Auto" ao nome
-                            display_name = original_name
+                            display_name = clean_name
                             is_auto = transmission and 'auto' in transmission.lower()
-                            if is_auto and 'auto' not in original_name.lower():
-                                display_name = f"{original_name} Auto"
+                            if is_auto and 'auto' not in clean_name.lower():
+                                display_name = f"{clean_name} Auto"
                             
                             # Usar map_category_to_group para sugerir o grupo correto
                             suggested_group = map_category_to_group(
@@ -22895,7 +22898,7 @@ async def refresh_vehicles(request: Request):
                             )
                             
                             # Gerar código único para o carro (ex: "NEW-DACIASPRING")
-                            clean_name_upper = car['clean_name'].replace(' ', '').upper()
+                            clean_name_upper = display_name.replace(' ', '').upper()
                             code = f"NEW-{clean_name_upper}"
                             
                             # Verificar se já existe
@@ -22907,6 +22910,50 @@ async def refresh_vehicles(request: Request):
                                 existing = conn.execute(f"SELECT code FROM car_groups WHERE code = {param_placeholder}", (code,)).fetchone()
                             
                             if not existing:
+                                # Tentar reutilizar foto de carro similar (mesma marca/modelo base)
+                                photo_url = car.get('photo_url', '')
+                                
+                                # Extrair marca e modelo base (ex: "Seat Ibiza Hybrid" → "Seat Ibiza")
+                                # Remover: Auto, Hybrid, Electric, Diesel, Petrol, versões
+                                name_lower = display_name.lower()
+                                is_sw = 'sw' in name_lower or 'station' in name_lower or 'wagon' in name_lower
+                                
+                                if not is_sw:  # Não reutilizar fotos de SW
+                                    # Extrair marca e modelo base (primeiras 2 palavras geralmente)
+                                    words = display_name.split()
+                                    if len(words) >= 2:
+                                        base_model = f"{words[0]} {words[1]}"  # Ex: "Seat Ibiza"
+                                        
+                                        # Procurar carro similar na BD
+                                        if is_postgres:
+                                            with conn.cursor() as cur:
+                                                cur.execute(f"""
+                                                    SELECT photo_url FROM car_groups 
+                                                    WHERE model LIKE {param_placeholder} 
+                                                    AND photo_url IS NOT NULL 
+                                                    AND photo_url != ''
+                                                    AND LOWER(model) NOT LIKE '%sw%'
+                                                    AND LOWER(model) NOT LIKE '%station%'
+                                                    AND LOWER(model) NOT LIKE '%wagon%'
+                                                    LIMIT 1
+                                                """, (f"{base_model}%",))
+                                                similar_car = cur.fetchone()
+                                        else:
+                                            similar_car = conn.execute(f"""
+                                                SELECT photo_url FROM car_groups 
+                                                WHERE model LIKE {param_placeholder} 
+                                                AND photo_url IS NOT NULL 
+                                                AND photo_url != ''
+                                                AND LOWER(model) NOT LIKE '%sw%'
+                                                AND LOWER(model) NOT LIKE '%station%'
+                                                AND LOWER(model) NOT LIKE '%wagon%'
+                                                LIMIT 1
+                                            """, (f"{base_model}%",)).fetchone()
+                                        
+                                        if similar_car and similar_car[0]:
+                                            photo_url = similar_car[0]
+                                            print(f"[REFRESH] 📸 Reutilizando foto de '{base_model}' para '{display_name}'")
+                                
                                 # Inserir novo carro com grupo sugerido na coluna category
                                 if is_postgres:
                                     with conn.cursor() as cur:
@@ -22915,14 +22962,14 @@ async def refresh_vehicles(request: Request):
                                             (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
                                             VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 
                                                     {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
-                                        """, (code, '', display_name, suggested_group, transmission, car.get('photo_url', '')))
+                                        """, (code, '', display_name, suggested_group, transmission, photo_url))
                                 else:
                                     conn.execute(f"""
                                         INSERT INTO car_groups 
                                         (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
                                         VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 
                                                 {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
-                                    """, (code, '', display_name, suggested_group, transmission, car.get('photo_url', '')))
+                                    """, (code, '', display_name, suggested_group, transmission, photo_url))
                                 
                                 conn.commit()
                                 added_to_db += 1
