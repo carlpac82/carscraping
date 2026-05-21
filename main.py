@@ -14881,8 +14881,9 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                             # -> nome: "Kia Niro Auto" | transmissão: "Automático"
                             parts = alt_text.split('|')
                             alt_car_name = parts[0].split('ou similar')[0].strip()
-                            # Clean trailing fuel type markers: ", Electric", ", Hybrid", ", Diesel"
-                            alt_car_name = re.sub(r',?\s*(electric|electrico|eléctrico|hybrid|híbrido|diesel|gasolina|petrol)\s*$', '', alt_car_name, flags=re.I).strip()
+                            # Clean trailing fuel type markers: ", Electric", "Electric", ", Hybrid", "Hybrid", ", Diesel"
+                            # Remove com ou sem vírgula, e garantir que não fica colado ao nome
+                            alt_car_name = re.sub(r',?\s*(electric|electrico|eléctrico|hybrid|híbrido|diesel|gasolina|petrol|plug-in)\s*$', '', alt_car_name, flags=re.I).strip()
                             # Remove trailing commas/spaces
                             alt_car_name = alt_car_name.rstrip(', ').strip()
                             if alt_car_name:
