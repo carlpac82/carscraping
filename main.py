@@ -18538,13 +18538,17 @@ async def save_vehicle(request: Request):
                     # Verificar se já existe na car_groups (buscar por model - usar original_name)
                     if is_postgres:
                         with con.cursor() as cur:
-                            cur.execute(f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}", (original_name,))
+                            cur.execute(f"SELECT id, code, category FROM car_groups WHERE LOWER(model) = {param_placeholder}", (original_name,))
                             existing = cur.fetchone()
                     else:
                         existing = con.execute(
-                            f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}",
+                            f"SELECT id, code, category FROM car_groups WHERE LOWER(model) = {param_placeholder}",
                             (original_name,)
                         ).fetchone()
+                    
+                    logging.info(f"🔍 [VEHICLE-SAVE] Busca por '{original_name}' em car_groups: encontrado={existing is not None}")
+                    if existing:
+                        logging.info(f"🔍 [VEHICLE-SAVE] Dados atuais: id={existing[0]}, code={existing[1]}, category={existing[2]}")
                     
                     if existing:
                         # Atualizar grupo, categoria e transmissão
