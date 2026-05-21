@@ -3119,10 +3119,6 @@ def _map_category_to_group_code(category: str) -> str:
         "compact": "D",
         "compacto": "D",
         
-        # Categorias do CarJet (Custo-benefício = Economy)
-        "custo-benefício": "D",
-        "custo benefício": "D",
-        
         # E1 - Mini Automatic
         "mini automatic": "E1",
         "mini auto": "E1",
@@ -3776,10 +3772,6 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
         "compact": "D",
         "compacto": "D",
         
-        # Categorias do CarJet (Custo-benefício = Economy)
-        "custo-benefício": "D",
-        "custo benefício": "D",
-        
         # E1 - Mini Automatic (do VEHICLES: "MINI Auto")
         "mini automatic": "E1",
         "mini auto": "E1",
@@ -3948,7 +3940,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
         pass
         return grupo  # Mini 5 lugares (default)
     
-    if any(word in cat for word in ['economy', 'econom', 'compact', 'compacto', 'custo', 'benefício', 'beneficio']):
+    if any(word in cat for word in ['economy', 'econom', 'compact', 'compacto']):
         grupo = "E2" if is_auto else "D"
         pass
         return grupo  # Economy
@@ -22962,23 +22954,22 @@ async def refresh_vehicles(request: Request):
                                             photo_url = similar_car[0]
                                             print(f"[REFRESH] 📸 Reutilizando foto de '{base_model}' para '{display_name}'")
                                 
-                                # Inserir novo carro SEM categoria (NULL) para aparecer no separador "Sem Categoria"
-                                # O grupo sugerido é apenas para logging, não é guardado na BD
+                                # Inserir novo carro com grupo sugerido na coluna category
                                 if is_postgres:
                                     with conn.cursor() as cur:
                                         cur.execute(f"""
                                             INSERT INTO car_groups 
                                             (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
-                                            VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, NULL, 
+                                            VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 
                                                     {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
-                                        """, (code, '', display_name, transmission, photo_url))
+                                        """, (code, '', display_name, suggested_group, transmission, photo_url))
                                 else:
                                     conn.execute(f"""
                                         INSERT INTO car_groups 
                                         (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
-                                        VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, NULL, 
+                                        VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 
                                                 {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
-                                    """, (code, '', display_name, transmission, photo_url))
+                                    """, (code, '', display_name, suggested_group, transmission, photo_url))
                                 
                                 conn.commit()
                                 added_to_db += 1
@@ -22990,7 +22981,7 @@ async def refresh_vehicles(request: Request):
         
         message = f"Scraping completo! {total_scraped} carros encontrados, {len(unique_new_cars)} novos"
         if added_to_db > 0:
-            message += f", {added_to_db} adicionados ao vehicles-editor (Sem Categoria - aguarda categorização)"
+            message += f", {added_to_db} adicionados ao vehicles-editor (com grupo sugerido)"
         
         return _no_store_json({
             "ok": True,
