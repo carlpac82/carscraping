@@ -683,7 +683,16 @@
             const group = document.getElementById('editGroup').value;
             const transmission = document.getElementById('editTransmission').value;
             
+            console.log('🔍 [SAVE-EDIT] Dados:', {
+                cleanName: cleanName,
+                category: category,
+                group: group,
+                transmission: transmission,
+                editingVehicle: editingVehicle
+            });
+            
             if (!cleanName || !category) {
+                console.log('❌ [SAVE-EDIT] Validação falhou:', { cleanName, category });
                 showNotification('Fill in clean name and category!', 'error');
                 return;
             }
