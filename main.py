@@ -4348,7 +4348,7 @@ def init_db():
                         logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
                         time.sleep(0.5 * retry_count)  # Exponential backoff
                     else:
-                    logging.error(f"❌ Failed to add 'source' column to automated_prices_history: {e}")
+                        logging.error(f"❌ Failed to add 'source' column to automated_prices_history: {e}")
             
             # Tabela para logs do sistema (evitar perda em disco efêmero)
             conn.execute(
