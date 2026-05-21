@@ -22723,7 +22723,8 @@ async def refresh_vehicles(request: Request):
     require_auth(request)
     try:
         from datetime import datetime, timedelta
-        from carjet_batch import scrape_carjet_batch, VEHICLES
+        from carjet_batch import scrape_carjet_batch
+        from carjet_direct import VEHICLES
         import random
         
         # Datas ALEATÓRIAS para scraping (3-10 dias no futuro)
