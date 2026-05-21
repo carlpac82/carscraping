@@ -18535,15 +18535,15 @@ async def save_vehicle(request: Request):
                     is_postgres = _is_postgresql_connection(con)
                     param_placeholder = "%s" if is_postgres else "?"
                     
-                    # Verificar se já existe na car_groups (buscar por model)
+                    # Verificar se já existe na car_groups (buscar por model - usar original_name)
                     if is_postgres:
                         with con.cursor() as cur:
-                            cur.execute(f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}", (clean_name,))
+                            cur.execute(f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}", (original_name,))
                             existing = cur.fetchone()
                     else:
                         existing = con.execute(
                             f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}",
-                            (clean_name,)
+                            (original_name,)
                         ).fetchone()
                     
                     if existing:
@@ -18555,13 +18555,13 @@ async def save_vehicle(request: Request):
                         if is_postgres:
                             with con.cursor() as cur:
                                 cur.execute(
-                                    f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW() WHERE id = {param_placeholder}",
-                                    (group, category, transmission, car_group_id)
+                                    f"UPDATE car_groups SET code = {param_placeholder}, model = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW() WHERE id = {param_placeholder}",
+                                    (group, clean_name, category, transmission, car_group_id)
                                 )
                         else:
                             con.execute(
-                                f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
-                                (group, category, transmission, car_group_id)
+                                f"UPDATE car_groups SET code = {param_placeholder}, model = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
+                                (group, clean_name, category, transmission, car_group_id)
                             )
                         logging.info(f"✅ [VEHICLE-SAVE] Updated car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                     else:
