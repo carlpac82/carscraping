@@ -18575,6 +18575,12 @@ async def save_vehicle(request: Request):
                     is_postgres = _is_postgresql_connection(con)
                     param_placeholder = "%s" if is_postgres else "?"
                     
+                    # Debug: Verificar detecção PostgreSQL
+                    conn_type = type(con).__name__
+                    conn_module = con.__class__.__module__
+                    database_url = os.environ.get('DATABASE_URL', '')
+                    logging.info(f"🔍 [VEHICLE-SAVE] Database detection: conn_type={conn_type}, conn_module={conn_module}, DATABASE_URL={'***' if database_url else 'None'}, is_postgres={is_postgres}")
+                    
                     # Verificar se já existe na car_groups (buscar por model - usar original_name)
                     logging.info(f"🔍 [VEHICLE-SAVE] Parâmetros: original_name='{original_name}', clean_name='{clean_name}'")
                     
