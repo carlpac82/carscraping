@@ -21562,7 +21562,9 @@ async def get_vehicles_with_originals(request: Request):
                         # Se não existe, adicionar novo
                         if clean_name in originals_map:
                             # Atualizar categoria e grupo da tabela car_groups (tem prioridade)
-                            originals_map[clean_name]['category'] = category or originals_map[clean_name].get('category', 'Unknown')
+                            # NÃO usar fallback para Unknown - usar categoria da tabela mesmo que seja None
+                            if category is not None and category.strip():
+                                originals_map[clean_name]['category'] = category
                             originals_map[clean_name]['code'] = code
                             if transmission:
                                 originals_map[clean_name]['transmission'] = transmission
