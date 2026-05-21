@@ -21496,12 +21496,23 @@ async def get_vehicles_with_originals(request: Request):
                         code, model, category, transmission, photo_url = row
                         clean_name = model.lower().strip() if model else code.lower()
                         
-                        # Adicionar ao mapa se ainda não existe
-                        if clean_name not in originals_map:
+                        # PRIORIDADE: car_groups sobrescreve VEHICLES
+                        # Se já existe no mapa (do VEHICLES), atualizar com dados da tabela
+                        # Se não existe, adicionar novo
+                        if clean_name in originals_map:
+                            # Atualizar categoria e grupo da tabela car_groups (tem prioridade)
+                            originals_map[clean_name]['category'] = category or originals_map[clean_name].get('category', 'Unknown')
+                            originals_map[clean_name]['code'] = code
+                            if transmission:
+                                originals_map[clean_name]['transmission'] = transmission
+                            if photo_url:
+                                originals_map[clean_name]['photo_url'] = photo_url
+                        else:
+                            # Adicionar novo carro da tabela car_groups
                             originals_map[clean_name] = {
                                 'original': model or code,
                                 'clean': clean_name,
-                                'category': category,  # Pode ser NULL para uncategorized
+                                'category': category or 'Unknown',
                                 'transmission': transmission,
                                 'photo_url': photo_url,
                                 'code': code
