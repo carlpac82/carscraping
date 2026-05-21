@@ -21411,6 +21411,49 @@ async def get_vehicles_with_originals(request: Request):
                     'category': category
                 }
         
+        # Adicionar carros da tabela car_groups (incluindo uncategorized)
+        try:
+            with _db_lock:
+                conn = _db_connect()
+                try:
+                    is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
+                    
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT code, model, category, transmission, photo_url
+                                FROM car_groups
+                                WHERE enabled = 1
+                            """)
+                            db_cars = cur.fetchall()
+                    else:
+                        db_cars = conn.execute("""
+                            SELECT code, model, category, transmission, photo_url
+                            FROM car_groups
+                            WHERE enabled = 1
+                        """).fetchall()
+                    
+                    for row in db_cars:
+                        code, model, category, transmission, photo_url = row
+                        clean_name = model.lower().strip() if model else code.lower()
+                        
+                        # Adicionar ao mapa se ainda não existe
+                        if clean_name not in originals_map:
+                            originals_map[clean_name] = {
+                                'original': model or code,
+                                'clean': clean_name,
+                                'category': category,  # Pode ser NULL para uncategorized
+                                'transmission': transmission,
+                                'photo_url': photo_url,
+                                'code': code
+                            }
+                    
+                    print(f"[VEHICLES API] Adicionados {len(db_cars)} carros da tabela car_groups", file=sys.stderr, flush=True)
+                finally:
+                    conn.close()
+        except Exception as e:
+            print(f"[VEHICLES API] Aviso: Erro ao buscar car_groups: {e}", file=sys.stderr, flush=True)
+        
         print(f"[VEHICLES API] Retornando {len(originals_map)} veículos", file=sys.stderr, flush=True)
         
         return _no_store_json({
