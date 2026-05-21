@@ -21533,7 +21533,7 @@ async def get_vehicles_with_originals(request: Request):
                     
                     for row in db_cars:
                         code, model, category, transmission, photo_url = row
-                        clean_name = model.lower().strip() if model else code.lower()
+                        clean_name = model.lower().strip() if model else code.lower().strip()
                         
                         # PRIORIDADE: car_groups sobrescreve VEHICLES
                         # Se já existe no mapa (do VEHICLES), atualizar com dados da tabela
