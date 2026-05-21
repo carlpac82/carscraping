@@ -15833,10 +15833,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                         # NÃO sobrescrever final_transmission com vehicles_transmission
                         if vehicles_transmission and final_transmission:
                             if vehicles_transmission != final_transmission:
-                                logging.warning(f"⚠️  [VEHICLES-CONFLICT] {car_name}:")
-                                logging.warning(f"      VEHICLES diz: {vehicles_transmission} (grupo {vehicles_group})")
-                                logging.warning(f"      DETECTADO: {final_transmission}")
-                                logging.warning(f"      → USANDO DETECTADO (li value é mais confiável)")
+                                # Usar debug em vez de warning - isto é normal e esperado
+                                logging.debug(f"[VEHICLES-CONFLICT] {car_name}: VEHICLES={vehicles_transmission}, DETECTADO={final_transmission} → usando detectado")
                                 # NÃO sobrescrever - manter final_transmission detectado
                         break
             except Exception as e:
