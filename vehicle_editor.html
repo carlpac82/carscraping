@@ -722,9 +722,32 @@
                 console.log('🌐 [SAVE-EDIT] Response body:', data);
                 
                 if (data.ok) {
-                    showNotification('Vehicle saved successfully! Changes will appear in next search.', 'success');
+                    showNotification('Vehicle saved successfully!', 'success');
                     closeEditModal();
-                    await loadVehicles();
+                    
+                    // Atualizar o veículo localmente
+                    if (editingVehicle) {
+                        editingVehicle.clean = cleanName;
+                        editingVehicle.category = category;
+                        editingVehicle.group = group;
+                        editingVehicle.transmission = transmission;
+                        
+                        // Se estava em uncategorized e agora tem categoria, remover da lista
+                        if (currentTab === 'uncategorized' && category && category !== 'Unknown') {
+                            const index = uncategorizedVehicles.findIndex(v => v.original === editingVehicle.original);
+                            if (index > -1) {
+                                uncategorizedVehicles.splice(index, 1);
+                                updateUncategorizedCount();
+                            }
+                            // Adicionar à lista principal
+                            allVehicles.push(editingVehicle);
+                        }
+                        
+                        // Re-renderizar
+                        renderVehicles();
+                    } else {
+                        await loadVehicles();
+                    }
                 } else {
                     showNotification('Error: ' + data.error, 'error');
                 }
