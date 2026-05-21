@@ -15006,6 +15006,18 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                                 card_transmission = "Manual"
                                 logging.debug(f"✅ [ICON-TRANS] {car_name} → MANUAL (icon-transm sem auto)")
                 
+                # MÉTODO 2B: Verificar classe sc-transm-auto no <li> (CarJet mobile)
+                if not card_transmission:
+                    trans_li_auto = card.select_one("li.sc-transm-auto, li.serv.sc-transm-auto")
+                    if trans_li_auto:
+                        card_transmission = "Automatic"
+                        logging.debug(f"✅ [LI-CLASS] {car_name} → AUTOMATIC (li.sc-transm-auto encontrado)")
+                    else:
+                        trans_li_manual = card.select_one("li.sc-transm:not(.sc-transm-auto)")
+                        if trans_li_manual:
+                            card_transmission = "Manual"
+                            logging.debug(f"✅ [LI-CLASS] {car_name} → MANUAL (li.sc-transm encontrado)")
+                
                 # MÉTODO 3: Se ainda não detectou, verificar nome do carro
                 if not card_transmission and car_name:
                     name_lower = car_name.lower()
