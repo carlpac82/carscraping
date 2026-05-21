@@ -18520,6 +18520,64 @@ async def save_vehicle(request: Request):
         # Calcular grupo baseado na categoria
         group = map_category_to_group(category, clean_name)
         
+        # Salvar/atualizar na tabela car_groups para persistir o grupo
+        try:
+            with _db_lock:
+                con = _db_connect()
+                try:
+                    is_postgres = _is_postgresql_connection(con)
+                    param_placeholder = "%s" if is_postgres else "?"
+                    
+                    # Verificar se já existe na car_groups (buscar por model)
+                    if is_postgres:
+                        with con.cursor() as cur:
+                            cur.execute(f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}", (clean_name,))
+                            existing = cur.fetchone()
+                    else:
+                        existing = con.execute(
+                            f"SELECT id, code FROM car_groups WHERE LOWER(model) = {param_placeholder}",
+                            (clean_name,)
+                        ).fetchone()
+                    
+                    if existing:
+                        # Atualizar grupo e categoria
+                        car_group_id = existing[0]
+                        if is_postgres:
+                            with con.cursor() as cur:
+                                cur.execute(
+                                    f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, updated_at = NOW() WHERE id = {param_placeholder}",
+                                    (group, category, car_group_id)
+                                )
+                        else:
+                            con.execute(
+                                f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
+                                (group, category, car_group_id)
+                            )
+                        logging.info(f"[VEHICLE-SAVE] Updated car_groups: {clean_name} -> group={group}, category={category}")
+                    else:
+                        # Inserir novo registro
+                        if is_postgres:
+                            with con.cursor() as cur:
+                                cur.execute(
+                                    f"INSERT INTO car_groups (code, model, category, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, 1, NOW(), NOW())",
+                                    (group, clean_name, category)
+                                )
+                        else:
+                            con.execute(
+                                f"INSERT INTO car_groups (code, model, category, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, 1, datetime('now'), datetime('now'))",
+                                (group, clean_name, category)
+                            )
+                        logging.info(f"[VEHICLE-SAVE] Inserted into car_groups: {clean_name} -> group={group}, category={category}")
+                    
+                    con.commit()
+                except Exception as e:
+                    con.rollback()
+                    logging.error(f"[VEHICLE-SAVE] Failed to update car_groups: {e}")
+                finally:
+                    con.close()
+        except Exception as e:
+            logging.error(f"[VEHICLE-SAVE] Error accessing car_groups: {e}")
+        
         # Gerar código Python
         code = f"    '{clean_name}': '{category}',"
         
