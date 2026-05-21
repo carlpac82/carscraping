@@ -22755,7 +22755,7 @@ async def refresh_vehicles(request: Request):
         def adjust_prices(items, url):
             return items
         
-        def normalize_items(items, priority=None):
+        def normalize_items(items, supplier_priority=None):
             return items
         
         def filter_items(items):
@@ -22775,11 +22775,12 @@ async def refresh_vehicles(request: Request):
             currency='EUR'
         )
         
-        # Extrair resultados
+        # Extrair resultados (batch_results é dict com chave = days)
         all_results = []
         if batch_results and len(batch_results) > 0:
-            first_result = batch_results[0]
-            all_results = first_result.get('items', [])
+            # Pegar o primeiro (e único) resultado
+            first_key = list(batch_results.keys())[0]
+            all_results = batch_results[first_key]
         
         total_scraped = len(all_results)
         print(f"[REFRESH] Faro: {total_scraped} carros encontrados")
