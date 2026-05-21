@@ -22716,42 +22716,68 @@ async def get_vehicles_last_update():
 @app.post("/api/vehicles/refresh")
 async def refresh_vehicles(request: Request):
     """
-    Faz scraping em Albufeira + Faro para verificar carros novos/atualizados
+    Faz scraping em Aeroporto de Faro navegando por TODAS as categorias
+    Usa Selenium (scrape_carjet_batch) para encontrar todos os carros
     Retorna lista de carros novos encontrados
     """
     require_auth(request)
     try:
         from datetime import datetime, timedelta
-        from carjet_direct import scrape_carjet_direct, VEHICLES
+        from carjet_batch import scrape_carjet_batch, VEHICLES
         import random
         
         # Datas ALEATÓRIAS para scraping (3-10 dias no futuro)
         days_offset = random.randint(3, 10)
-        start_date = datetime.now() + timedelta(days=days_offset)
-        end_date = start_date + timedelta(days=7)
+        pickup_date = datetime.now() + timedelta(days=days_offset)
+        days_duration = 5
         
-        print(f"[REFRESH] Usando datas aleatórias: {start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}")
+        print(f"[REFRESH] Usando datas aleatórias: {pickup_date.strftime('%Y-%m-%d')} por {days_duration} dias")
         
-        new_cars = []
-        updated_cars = []
-        total_scraped = 0
+        # Preparar pesquisa
+        searches = [{
+            'days': days_duration,
+            'start_dt': pickup_date,
+            'end_dt': pickup_date + timedelta(days=days_duration)
+        }]
         
-        # Scraping em Albufeira (SEM quick mode para scraping completo)
-        print("[REFRESH] Fazendo scraping COMPLETO em Albufeira...")
-        albufeira_results = scrape_carjet_direct("Albufeira", start_date, end_date, quick=0)
-        total_scraped += len(albufeira_results)
-        print(f"[REFRESH] Albufeira: {len(albufeira_results)} carros encontrados")
+        # Funções auxiliares (simplificadas)
+        def convert_items(items):
+            return items
         
-        # Scraping em Faro (SEM quick mode para scraping completo)
-        print("[REFRESH] Fazendo scraping COMPLETO em Faro...")
-        faro_results = scrape_carjet_direct("Faro", start_date, end_date, quick=0)
-        total_scraped += len(faro_results)
-        print(f"[REFRESH] Faro: {len(faro_results)} carros encontrados")
+        def adjust_prices(items, url):
+            return items
         
-        # Combinar resultados
-        all_results = albufeira_results + faro_results
+        def normalize_items(items, priority=None):
+            return items
+        
+        def filter_items(items):
+            return items
+        
+        # Scraping em Aeroporto de Faro com Selenium (navega por TODAS as categorias)
+        print("[REFRESH] Fazendo scraping COMPLETO em Aeroporto de Faro (Selenium + todas categorias)...")
+        batch_results = scrape_carjet_batch(
+            location='Aeroporto de Faro',
+            searches=searches,
+            parse_prices_fn=parse_prices,
+            convert_fn=convert_items,
+            adjust_fn=adjust_prices,
+            normalize_fn=normalize_items,
+            filter_fn=filter_items,
+            lang='pt',
+            currency='EUR'
+        )
+        
+        # Extrair resultados
+        all_results = []
+        if batch_results and len(batch_results) > 0:
+            first_result = batch_results[0]
+            all_results = first_result.get('items', [])
+        
+        total_scraped = len(all_results)
+        print(f"[REFRESH] Faro: {total_scraped} carros encontrados")
         
         # Verificar carros novos
+        new_cars = []
         for item in all_results:
             car_name = item.get('car', '').strip()
             if not car_name:
@@ -22770,7 +22796,8 @@ async def refresh_vehicles(request: Request):
                     'clean_name': car_clean,
                     'category': category,
                     'photo_url': photo_url,
-                    'location': item.get('location', ''),
+                    'group': item.get('group', ''),
+                    'transmission': item.get('transmission', ''),
                     'price': item.get('price', '')
                 })
         
@@ -22782,6 +22809,8 @@ async def refresh_vehicles(request: Request):
                 seen.add(car['clean_name'])
                 unique_new_cars.append(car)
         
+        print(f"[REFRESH] ✅ Scraping completo! {total_scraped} carros, {len(unique_new_cars)} novos")
+        
         return _no_store_json({
             "ok": True,
             "total_scraped": total_scraped,
@@ -22792,6 +22821,8 @@ async def refresh_vehicles(request: Request):
         
     except Exception as e:
         import traceback
+        print(f"[REFRESH] ❌ Erro: {e}")
+        traceback.print_exc()
         return _no_store_json({
             "ok": False,
             "error": str(e),
