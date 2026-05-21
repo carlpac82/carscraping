@@ -3222,6 +3222,10 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     
     logging.debug(f"📋 [MAP] ENTRADA: car='{car_name}', category='{category}', transmission='{transmission}' | is_auto_by_name={is_auto}")
     
+    # DEBUG: Log específico para carros problemáticos
+    if 'spring' in car_lower or 'dacia' in car_lower:
+        logging.warning(f"🔍 [DACIA-SPRING-DEBUG] car='{car_name}' | category='{category}' | transmission='{transmission}' | is_auto={is_auto}")
+    
     # PRIORIDADE -1: CABRIO/CABRIOLET no NOME → SEMPRE Grupo G
     # Independente da categoria (Luxury, Mini, SUV, etc), se tem "cabrio" no nome = G
     if any(word in car_lower for word in ['cabrio', 'cabriolet', 'convertible', 'conversível']):
