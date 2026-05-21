@@ -18378,12 +18378,15 @@ async def save_vehicle(request: Request):
     # Não requer autenticação para funcionar em iframes
     try:
         body = await request.json()
+        logging.info(f"🔍 [VEHICLE-SAVE] RAW BODY: {body}")
         
         original_name = body.get('original_name', '').strip()
         clean_name = body.get('clean_name', '').lower().strip()
         category = body.get('category', '').strip()
         group = body.get('group', '').strip()  # Receber grupo do frontend
         transmission = body.get('transmission', '').strip()  # Receber transmissão do frontend
+        
+        logging.info(f"🔍 [VEHICLE-SAVE] PARSED: original='{original_name}' | clean='{clean_name}' | category='{category}' | group='{group}' | transmission='{transmission}'")
         
         if not clean_name or not category:
             return _no_store_json({"ok": False, "error": "clean_name and category are required"}, 400)
@@ -18546,6 +18549,8 @@ async def save_vehicle(request: Request):
                     if existing:
                         # Atualizar grupo, categoria e transmissão
                         car_group_id = existing[0]
+                        old_code = existing[1]
+                        logging.info(f"🔄 [VEHICLE-SAVE] UPDATING car_groups id={car_group_id}: '{clean_name}' | old_code={old_code} -> new_code={group} | category={category} | transmission={transmission}")
                         if is_postgres:
                             with con.cursor() as cur:
                                 cur.execute(
@@ -18557,7 +18562,7 @@ async def save_vehicle(request: Request):
                                 f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
                                 (group, category, transmission, car_group_id)
                             )
-                        logging.info(f"[VEHICLE-SAVE] Updated car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
+                        logging.info(f"✅ [VEHICLE-SAVE] Updated car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                     else:
                         # Inserir novo registro
                         # IMPORTANTE: Verificar se o code já existe para evitar duplicados
@@ -18574,6 +18579,7 @@ async def save_vehicle(request: Request):
                         if code_exists:
                             # Code já existe, atualizar esse registro em vez de inserir
                             code_id = code_exists[0]
+                            logging.info(f"🔄 [VEHICLE-SAVE] Code {group} already exists (id={code_id}), updating model to '{clean_name}'")
                             if is_postgres:
                                 with con.cursor() as cur:
                                     cur.execute(
@@ -18585,9 +18591,10 @@ async def save_vehicle(request: Request):
                                     f"UPDATE car_groups SET model = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
                                     (clean_name, category, transmission, code_id)
                                 )
-                            logging.info(f"[VEHICLE-SAVE] Updated existing code in car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
+                            logging.info(f"✅ [VEHICLE-SAVE] Updated existing code in car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                         else:
                             # Code não existe, inserir novo
+                            logging.info(f"➕ [VEHICLE-SAVE] INSERTING new car_groups: code={group} | model='{clean_name}' | category={category} | transmission={transmission}")
                             if is_postgres:
                                 with con.cursor() as cur:
                                     cur.execute(
@@ -18599,7 +18606,7 @@ async def save_vehicle(request: Request):
                                     f"INSERT INTO car_groups (code, model, category, transmission, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 1, datetime('now'), datetime('now'))",
                                     (group, clean_name, category, transmission)
                                 )
-                            logging.info(f"[VEHICLE-SAVE] Inserted into car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
+                            logging.info(f"✅ [VEHICLE-SAVE] Inserted into car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                     
                     con.commit()
                 except Exception as e:
