@@ -18661,8 +18661,8 @@ async def save_vehicle(request: Request):
                             if is_postgres:
                                 with con.cursor() as cur:
                                     cur.execute(
-                                        f"INSERT INTO car_groups (code, model, category, transmission, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 1, NOW(), NOW())",
-                                        (group, clean_name, category, transmission)
+                                        f"INSERT INTO car_groups (code, model, category, transmission, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 1, NOW(), NOW()) ON CONFLICT (code) DO UPDATE SET model = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW()",
+                                        (group, clean_name, category, transmission, clean_name, category, transmission)
                                     )
                             else:
                                 con.execute(
