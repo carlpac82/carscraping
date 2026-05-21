@@ -727,23 +727,34 @@
                     
                     // Atualizar o veículo localmente
                     if (editingVehicle) {
+                        console.log('🔧 [SAVE-EDIT] Atualizando veículo local:', {
+                            antes: { clean: editingVehicle.clean, category: editingVehicle.category },
+                            depois: { cleanName, category }
+                        });
+                        
                         editingVehicle.clean = cleanName;
                         editingVehicle.category = category;
                         editingVehicle.group = group;
                         editingVehicle.transmission = transmission;
                         
+                        console.log('🔧 [SAVE-EDIT] Veículo atualizado:', editingVehicle);
+                        
                         // Se estava em uncategorized e agora tem categoria, remover da lista
                         if (currentTab === 'uncategorized' && category && category !== 'Unknown') {
+                            console.log('🔧 [SAVE-EDIT] Removendo da lista uncategorized...');
                             const index = uncategorizedVehicles.findIndex(v => v.original === editingVehicle.original);
                             if (index > -1) {
+                                console.log(`🔧 [SAVE-EDIT] Removendo índice ${index} de uncategorizedVehicles`);
                                 uncategorizedVehicles.splice(index, 1);
                                 updateUncategorizedCount();
                             }
                             // Adicionar à lista principal
-                            allVehicles.push(editingVehicle);
+                            console.log('🔧 [SAVE-EDIT] Adicionando à lista principal...');
+                            allVehicles.push({...editingVehicle});
                         }
                         
                         // Re-renderizar
+                        console.log('🔧 [SAVE-EDIT] Re-renderizando vehicles...');
                         renderVehicles();
                     } else {
                         await loadVehicles();
