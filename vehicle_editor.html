@@ -514,6 +514,7 @@
                                                     <div class="flex items-center gap-3 mt-2">
                                                         <span class="px-2 py-1 text-xs font-mono rounded bg-[#f4ad0f] text-gray-900 font-bold">${group}</span>
                                                         <span class="text-sm text-gray-600">${v.category}</span>
+                                                        ${v.transmission ? `<span class="px-2 py-1 text-xs rounded ${v.transmission === 'Automatic' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${v.transmission === 'Automatic' ? '⚙️ Auto' : '🔧 Manual'}</span>` : ''}
                                                     </div>
                                                 </div>
                                                 
@@ -556,11 +557,8 @@
                 document.getElementById('editCategory').value = vehicle.category || 'Unknown';
                 document.getElementById('editGroup').value = categoryToGroup[vehicle.category] || 'D';
                 
-                // Detectar transmission baseado na categoria ou nome
-                const categoryLower = (vehicle.category || '').toLowerCase();
-                const cleanLower = (vehicle.clean || '').toLowerCase();
-                const isAuto = categoryLower.includes('auto') || cleanLower.includes('auto');
-                document.getElementById('editTransmission').value = isAuto ? 'Automatic' : 'Manual';
+                // Usar transmissão do veículo (vem do scraping/BD)
+                document.getElementById('editTransmission').value = vehicle.transmission || 'Manual';
                 
                 // Carregar foto se existir
                 loadVehiclePhoto(vehicle.clean);

@@ -22332,7 +22332,7 @@ async def get_uncategorized_vehicles(request: Request):
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute("""
-                                SELECT model, category
+                                SELECT model, category, transmission
                                 FROM car_groups
                                 WHERE enabled = 1 
                                 AND (category IS NULL OR category = 'Unknown' OR category = '')
@@ -22340,7 +22340,7 @@ async def get_uncategorized_vehicles(request: Request):
                             db_uncategorized = cur.fetchall()
                     else:
                         db_uncategorized = conn.execute("""
-                            SELECT model, category
+                            SELECT model, category, transmission
                             FROM car_groups
                             WHERE enabled = 1 
                             AND (category IS NULL OR category = 'Unknown' OR category = '')
@@ -22348,6 +22348,7 @@ async def get_uncategorized_vehicles(request: Request):
                     
                     for row in db_uncategorized:
                         model_name = row[0]
+                        transmission = row[2] if len(row) > 2 else 'Manual'
                         if model_name:
                             clean = model_name.strip()
                             parts = clean.split(' ')
@@ -22360,7 +22361,8 @@ async def get_uncategorized_vehicles(request: Request):
                                 'brand': brand,
                                 'model': model,
                                 'suggested_category': detect_category_suggestion(clean),
-                                'category': 'Unknown'
+                                'category': 'Unknown',
+                                'transmission': transmission or 'Manual'
                             })
                 finally:
                     conn.close()
