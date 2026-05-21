@@ -22307,20 +22307,54 @@ async def get_uncategorized_vehicles(request: Request):
             # VEHICLES está em lowercase, converter para comparação
             clean_lower = clean.lower()
             
-            # Se não está no VEHICLES, adicionar à lista
+            # Se não está no VEHICLES, verificar se já está categorizado em car_groups
             if clean and clean_lower not in VEHICLES:
-                # Extrair marca
-                parts = clean.split(' ')
-                brand = parts[0] if parts else ''
-                model = ' '.join(parts[1:]) if len(parts) > 1 else ''
+                # Verificar se já está categorizado na tabela car_groups
+                is_categorized = False
+                try:
+                    with _db_lock:
+                        conn = _db_connect()
+                        try:
+                            is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
+                            
+                            if is_postgres:
+                                with conn.cursor() as cur:
+                                    cur.execute("""
+                                        SELECT category 
+                                        FROM car_groups 
+                                        WHERE LOWER(model) = %s AND enabled = 1
+                                        AND category IS NOT NULL AND category != 'Unknown' AND category != ''
+                                    """, (clean_lower,))
+                                    result = cur.fetchone()
+                                    is_categorized = result is not None
+                            else:
+                                result = conn.execute("""
+                                    SELECT category 
+                                    FROM car_groups 
+                                    WHERE LOWER(model) = ? AND enabled = 1
+                                    AND category IS NOT NULL AND category != 'Unknown' AND category != ''
+                                """, (clean_lower,)).fetchone()
+                                is_categorized = result is not None
+                        finally:
+                            conn.close()
+                except Exception as e:
+                    import logging
+                    logging.warning(f"⚠️ Erro ao verificar categorização em car_groups: {e}")
                 
-                uncategorized.append({
-                    'original': original_name,
-                    'clean': clean,
-                    'brand': brand,
-                    'model': model,
-                    'suggested_category': detect_category_suggestion(clean)
-                })
+                # Só adicionar à lista se não estiver categorizado
+                if not is_categorized:
+                    # Extrair marca
+                    parts = clean.split(' ')
+                    brand = parts[0] if parts else ''
+                    model = ' '.join(parts[1:]) if len(parts) > 1 else ''
+                    
+                    uncategorized.append({
+                        'original': original_name,
+                        'clean': clean,
+                        'brand': brand,
+                        'model': model,
+                        'suggested_category': detect_category_suggestion(clean)
+                    })
         
         # ADICIONAR: Carros da tabela car_groups com categoria Unknown ou NULL
         try:
