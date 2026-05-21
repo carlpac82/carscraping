@@ -682,6 +682,8 @@
         async function saveEdit() {
             const cleanName = document.getElementById('editCleanName').value.toLowerCase().trim();
             const category = document.getElementById('editCategory').value;
+            const group = document.getElementById('editGroup').value;
+            const transmission = document.getElementById('editTransmission').value;
             
             if (!cleanName || !category) {
                 showNotification('Fill in clean name and category!', 'error');
@@ -695,7 +697,9 @@
                     body: JSON.stringify({
                         original_name: editingVehicle.original,
                         clean_name: cleanName,
-                        category: category
+                        category: category,
+                        group: group,
+                        transmission: transmission
                     })
                 });
                 

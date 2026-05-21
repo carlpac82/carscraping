@@ -18382,6 +18382,8 @@ async def save_vehicle(request: Request):
         original_name = body.get('original_name', '').strip()
         clean_name = body.get('clean_name', '').lower().strip()
         category = body.get('category', '').strip()
+        group = body.get('group', '').strip()  # Receber grupo do frontend
+        transmission = body.get('transmission', '').strip()  # Receber transmissão do frontend
         
         if not clean_name or not category:
             return _no_store_json({"ok": False, "error": "clean_name and category are required"}, 400)
@@ -18518,8 +18520,9 @@ async def save_vehicle(request: Request):
             logging.error(f"[VEHICLE-SAVE] Failed to update carjet_direct.py: {str(e)}\n{error_trace}")
             message = f"Vehicle saved but failed to update carjet_direct.py: {str(e)}\n{error_trace}"
         
-        # Calcular grupo baseado na categoria
-        group = map_category_to_group(category, clean_name)
+        # Se grupo não foi enviado pelo frontend, calcular baseado na categoria
+        if not group:
+            group = map_category_to_group(category, clean_name, transmission)
         
         # Salvar/atualizar na tabela car_groups para persistir o grupo
         try:
@@ -18541,34 +18544,62 @@ async def save_vehicle(request: Request):
                         ).fetchone()
                     
                     if existing:
-                        # Atualizar grupo e categoria
+                        # Atualizar grupo, categoria e transmissão
                         car_group_id = existing[0]
                         if is_postgres:
                             with con.cursor() as cur:
                                 cur.execute(
-                                    f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, updated_at = NOW() WHERE id = {param_placeholder}",
-                                    (group, category, car_group_id)
+                                    f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW() WHERE id = {param_placeholder}",
+                                    (group, category, transmission, car_group_id)
                                 )
                         else:
                             con.execute(
-                                f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
-                                (group, category, car_group_id)
+                                f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
+                                (group, category, transmission, car_group_id)
                             )
-                        logging.info(f"[VEHICLE-SAVE] Updated car_groups: {clean_name} -> group={group}, category={category}")
+                        logging.info(f"[VEHICLE-SAVE] Updated car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                     else:
                         # Inserir novo registro
+                        # IMPORTANTE: Verificar se o code já existe para evitar duplicados
                         if is_postgres:
                             with con.cursor() as cur:
-                                cur.execute(
-                                    f"INSERT INTO car_groups (code, model, category, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, 1, NOW(), NOW())",
-                                    (group, clean_name, category)
-                                )
+                                cur.execute(f"SELECT id FROM car_groups WHERE code = {param_placeholder}", (group,))
+                                code_exists = cur.fetchone()
                         else:
-                            con.execute(
-                                f"INSERT INTO car_groups (code, model, category, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, 1, datetime('now'), datetime('now'))",
-                                (group, clean_name, category)
-                            )
-                        logging.info(f"[VEHICLE-SAVE] Inserted into car_groups: {clean_name} -> group={group}, category={category}")
+                            code_exists = con.execute(
+                                f"SELECT id FROM car_groups WHERE code = {param_placeholder}",
+                                (group,)
+                            ).fetchone()
+                        
+                        if code_exists:
+                            # Code já existe, atualizar esse registro em vez de inserir
+                            code_id = code_exists[0]
+                            if is_postgres:
+                                with con.cursor() as cur:
+                                    cur.execute(
+                                        f"UPDATE car_groups SET model = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW() WHERE id = {param_placeholder}",
+                                        (clean_name, category, transmission, code_id)
+                                    )
+                            else:
+                                con.execute(
+                                    f"UPDATE car_groups SET model = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE id = {param_placeholder}",
+                                    (clean_name, category, transmission, code_id)
+                                )
+                            logging.info(f"[VEHICLE-SAVE] Updated existing code in car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
+                        else:
+                            # Code não existe, inserir novo
+                            if is_postgres:
+                                with con.cursor() as cur:
+                                    cur.execute(
+                                        f"INSERT INTO car_groups (code, model, category, transmission, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 1, NOW(), NOW())",
+                                        (group, clean_name, category, transmission)
+                                    )
+                            else:
+                                con.execute(
+                                    f"INSERT INTO car_groups (code, model, category, transmission, enabled, created_at, updated_at) VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 1, datetime('now'), datetime('now'))",
+                                    (group, clean_name, category, transmission)
+                                )
+                            logging.info(f"[VEHICLE-SAVE] Inserted into car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                     
                     con.commit()
                 except Exception as e:
