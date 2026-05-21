@@ -700,19 +700,26 @@
             }
             
             try {
+                const payload = {
+                    original_name: editingVehicle.original,
+                    clean_name: cleanName,
+                    category: category,
+                    group: group,
+                    transmission: transmission
+                };
+                
+                console.log('🌐 [SAVE-EDIT] Enviando requisição:', payload);
+                
                 const response = await fetch('/api/vehicles/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        original_name: editingVehicle.original,
-                        clean_name: cleanName,
-                        category: category,
-                        group: group,
-                        transmission: transmission
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
+                console.log('🌐 [SAVE-EDIT] Response status:', response.status);
+                
                 const data = await response.json();
+                console.log('🌐 [SAVE-EDIT] Response body:', data);
                 
                 if (data.ok) {
                     showNotification('Vehicle saved successfully! Changes will appear in next search.', 'success');
@@ -722,6 +729,7 @@
                     showNotification('Error: ' + data.error, 'error');
                 }
             } catch (error) {
+                console.error('❌ [SAVE-EDIT] Error saving vehicle:', error);
                 showNotification('Error: ' + error.message, 'error');
             }
         }
