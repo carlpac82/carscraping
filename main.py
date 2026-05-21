@@ -1377,14 +1377,8 @@ async def lifespan(app: FastAPI):
                 ]
                 
                 for col_name, col_type in columns_to_add:
-                    try:
-                        cursor.execute(f"ALTER TABLE rental_agreements ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
-                        logging.info(f"✅ Column {col_name} added/verified")
-                    except Exception as col_err:
-                        if "already exists" in str(col_err).lower():
-                            logging.debug(f"Column {col_name} already exists")
-                        else:
-                            logging.warning(f"Could not add column {col_name}: {col_err}")
+                    cursor.execute(f"ALTER TABLE rental_agreements ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
+                    logging.info(f"✅ Column {col_name} added/verified")
                 
                 conn.commit()
                 logging.info("✅ rental_agreements migration completed")
@@ -4332,16 +4326,28 @@ def init_db():
             
             # Add source column to automated_prices_history if it doesn't exist (migration)
             # NOTA: Esta migração só corre no worker principal (verificado em init_app com WORKER_INDEX)
-            try:
-                conn.execute("ALTER TABLE automated_prices_history ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'")
-                conn.commit()
-                logging.info("✅ Added 'source' column to automated_prices_history table")
-            except Exception as e:
-                conn.rollback()
-                error_msg = str(e).lower()
-                if 'duplicate column' in error_msg or 'already exists' in error_msg:
-                    logging.info("ℹ️ Column 'source' already exists in automated_prices_history")
-                else:
+            max_retries = 3
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    conn.execute("ALTER TABLE automated_prices_history ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'")
+                    conn.commit()
+                    logging.info("✅ Added 'source' column to automated_prices_history table")
+                    break
+                except Exception as e:
+                    conn.rollback()
+                    error_msg = str(e).lower()
+                    if 'duplicate column' in error_msg or 'already exists' in error_msg:
+                        logging.info("ℹ️ Column 'source' already exists in automated_prices_history")
+                        break
+                    elif 'deadlock' in error_msg:
+                        retry_count += 1
+                        if retry_count >= max_retries:
+                            logging.error(f"❌ Failed to add 'source' column after {max_retries} retries: {e}")
+                            raise
+                        logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
+                        time.sleep(0.5 * retry_count)  # Exponential backoff
+                    else:
                     logging.error(f"❌ Failed to add 'source' column to automated_prices_history: {e}")
             
             # Tabela para logs do sistema (evitar perda em disco efêmero)
@@ -7375,19 +7381,34 @@ async def admin_migrate_pricing_fields(request: Request):
         
         results = []
         for col_name, col_type in columns_to_add:
-            try:
-                cursor.execute(f'ALTER TABLE commission_bookings ADD COLUMN {col_name} {col_type}')
-                conn.commit()
-                results.append(f"✓ Coluna {col_name} adicionada")
-                logging.info(f"✓ Coluna {col_name} adicionada")
-            except Exception as e:
-                conn.rollback()
-                if 'already exists' in str(e) or 'duplicate column' in str(e).lower():
-                    results.append(f"⚠ Coluna {col_name} já existe")
-                    logging.info(f"⚠ Coluna {col_name} já existe")
-                else:
-                    results.append(f"❌ Erro ao adicionar {col_name}: {str(e)}")
-                    logging.error(f"❌ Erro ao adicionar {col_name}: {e}")
+            max_retries = 3
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    cursor.execute(f'ALTER TABLE commission_bookings ADD COLUMN {col_name} {col_type}')
+                    conn.commit()
+                    results.append(f"✓ Coluna {col_name} adicionada")
+                    logging.info(f"✓ Coluna {col_name} adicionada")
+                    break
+                except Exception as e:
+                    conn.rollback()
+                    error_msg = str(e).lower()
+                    if 'already exists' in error_msg or 'duplicate column' in error_msg:
+                        results.append(f"⚠ Coluna {col_name} já existe")
+                        logging.info(f"⚠ Coluna {col_name} já existe")
+                        break
+                    elif 'deadlock' in error_msg:
+                        retry_count += 1
+                        if retry_count >= max_retries:
+                            results.append(f"❌ Falha ao adicionar {col_name} após {max_retries} tentativas: {str(e)}")
+                            logging.error(f"❌ Falha ao adicionar {col_name} após {max_retries} tentativas: {e}")
+                            raise
+                        logging.warning(f"⚠️ Deadlock detectado, tentativa {retry_count}/{max_retries} para coluna {col_name}...")
+                        time.sleep(0.5 * retry_count)
+                    else:
+                        results.append(f"❌ Erro ao adicionar {col_name}: {str(e)}")
+                        logging.error(f"❌ Erro ao adicionar {col_name}: {e}")
+                        break
         
         cursor.close()
         conn.close()
@@ -7567,11 +7588,30 @@ async def admin_migrate_schedule(request: Request):
             
             results = []
             for col_name, col_type, default_value in schedule_columns:
-                try:
-                    cursor.execute(f"ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS {col_name} {col_type} DEFAULT {default_value}")
-                    results.append(f"✓ Column {col_name} migrated")
-                except Exception as col_err:
-                    results.append(f"⚠ Column {col_name}: {col_err}")
+                max_retries = 3
+                retry_count = 0
+                while retry_count < max_retries:
+                    try:
+                        cursor.execute(f"ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS {col_name} {col_type} DEFAULT {default_value}")
+                        results.append(f"✓ Column {col_name} migrated")
+                        break
+                    except Exception as col_err:
+                        conn.rollback()
+                        error_msg = str(col_err).lower()
+                        if "already exists" in error_msg or "duplicate column" in error_msg:
+                            results.append(f"⚠ Column {col_name} already exists")
+                            break
+                        elif 'deadlock' in error_msg:
+                            retry_count += 1
+                            if retry_count >= max_retries:
+                                results.append(f"❌ Failed to migrate column {col_name} after {max_retries} retries: {col_err}")
+                                logging.error(f"❌ Failed to migrate column {col_name} after {max_retries} retries: {col_err}")
+                                raise
+                            logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries} for column {col_name}...")
+                            time.sleep(0.5 * retry_count)
+                        else:
+                            results.append(f"⚠ Column {col_name}: {col_err}")
+                            break
             
             conn.commit()
             conn.close()
@@ -18635,30 +18675,7 @@ async def save_vehicle(request: Request):
                     logging.info(f"✅ [VEHICLE-SAVE] Car groups updated successfully")
                 except Exception as e:
                     con.rollback()
-                    error_msg = str(e).lower()
-                    if "deadlock" in error_msg or "lock" in error_msg:
-                        logging.warning(f"⚠️ [VEHICLE-SAVE] Deadlock detectado, tentando novamente: {e}")
-                        import time
-                        time.sleep(0.5)  # Pequena pausa e tentar uma vez
-                        try:
-                            # Tentar novamente uma vez
-                            if is_postgres:
-                                with con.cursor() as cur:
-                                    cur.execute(
-                                        f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW() WHERE LOWER(model) = {param_placeholder}",
-                                        (group, category, transmission, original_name.lower())
-                                    )
-                            else:
-                                con.execute(
-                                    f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE LOWER(model) = {param_placeholder}",
-                                    (group, category, transmission, original_name.lower())
-                                )
-                            con.commit()
-                            logging.info(f"✅ [VEHICLE-SAVE] Retry successful after deadlock")
-                        except Exception as retry_error:
-                            logging.error(f"❌ [VEHICLE-SAVE] Retry failed after deadlock: {retry_error}")
-                    else:
-                        logging.error(f"[VEHICLE-SAVE] Failed to update car_groups: {e}")
+                    logging.error(f"[VEHICLE-SAVE] Failed to update car_groups: {e}")
                 finally:
                     con.close()
         except Exception as e:
@@ -28110,7 +28127,7 @@ async def setup_car_groups_table():
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS car_groups (
                                 id SERIAL PRIMARY KEY,
-                                code TEXT UNIQUE NOT NULL,
+                                code TEXT NOT NULL,
                                 name TEXT,
                                 model TEXT,
                                 brand TEXT,
@@ -28126,6 +28143,13 @@ async def setup_car_groups_table():
                             )
                         """)
                         
+                        # Remover constraint UNIQUE se existir (para tabelas existentes)
+                        try:
+                            cur.execute("ALTER TABLE car_groups DROP CONSTRAINT IF EXISTS car_groups_code_key")
+                            logging.info("✅ [DB-INIT] Removed UNIQUE constraint from car_groups.code")
+                        except Exception as e:
+                            logging.debug(f"ℹ️ [DB-INIT] No UNIQUE constraint to remove: {e}")
+                        
                         # Criar índices
                         cur.execute("CREATE INDEX IF NOT EXISTS idx_car_groups_name ON car_groups(LOWER(name))")
                         cur.execute("CREATE INDEX IF NOT EXISTS idx_car_groups_model ON car_groups(LOWER(model))")
@@ -28136,7 +28160,7 @@ async def setup_car_groups_table():
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS car_groups (
                             id SERIAL PRIMARY KEY,
-                            code TEXT UNIQUE NOT NULL,
+                            code TEXT NOT NULL,
                             name TEXT,
                             model TEXT,
                             brand TEXT,
@@ -28151,6 +28175,34 @@ async def setup_car_groups_table():
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
                     """)
+                    
+                    # Para SQLite, precisemos recriar a tabela se existir constraint UNIQUE
+                    # Verificar se a tabela existe e tem constraint UNIQUE
+                    try:
+                        result = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='car_groups'").fetchone()
+                        if result and 'UNIQUE' in result[0]:
+                            logging.info("🔄 [DB-INIT] Recreating car_groups table to remove UNIQUE constraint")
+                            conn.execute("DROP TABLE IF EXISTS car_groups")
+                            conn.execute("""
+                                CREATE TABLE car_groups (
+                                    id SERIAL PRIMARY KEY,
+                                    code TEXT NOT NULL,
+                                    name TEXT,
+                                    model TEXT,
+                                    brand TEXT,
+                                    category TEXT,
+                                    doors INTEGER,
+                                    seats INTEGER,
+                                    transmission TEXT,
+                                    luggage INTEGER,
+                                    photo_url TEXT,
+                                    enabled INTEGER DEFAULT 1,
+                                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                )
+                            """)
+                    except Exception as e:
+                        logging.debug(f"ℹ️ [DB-INIT] No UNIQUE constraint to remove in SQLite: {e}")
                     
                     conn.execute("CREATE INDEX IF NOT EXISTS idx_car_groups_name ON car_groups(LOWER(name))")
                     conn.execute("CREATE INDEX IF NOT EXISTS idx_car_groups_model ON car_groups(LOWER(model))")
@@ -44859,72 +44911,132 @@ def _ensure_missing_tables():
                         logging.warning(f"⚠️ automated_prices_history.pickup_date: {e}")
                     
                     # 7c. Ensure automated_prices_history has 'created_at' column
-                    try:
-                        conn.execute("""
-                            DO $$ 
-                            BEGIN
-                                IF NOT EXISTS (
-                                    SELECT 1 FROM information_schema.columns 
-                                    WHERE table_name='automated_prices_history' AND column_name='created_at'
-                                ) THEN
-                                    ALTER TABLE automated_prices_history ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                                END IF;
-                            END $$;
-                        """)
-                        logging.info("✅ automated_prices_history.created_at column ensured")
-                    except Exception as e:
-                        logging.warning(f"⚠️ automated_prices_history.created_at: {e}")
+                    max_retries = 3
+                    retry_count = 0
+                    while retry_count < max_retries:
+                        try:
+                            conn.execute("""
+                                DO $$ 
+                                BEGIN
+                                    IF NOT EXISTS (
+                                        SELECT 1 FROM information_schema.columns 
+                                        WHERE table_name='automated_prices_history' AND column_name='created_at'
+                                    ) THEN
+                                        ALTER TABLE automated_prices_history ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                                    END IF;
+                                END $$;
+                            """)
+                            logging.info("✅ automated_prices_history.created_at column ensured")
+                            break
+                        except Exception as e:
+                            conn.rollback()
+                            error_msg = str(e).lower()
+                            if 'deadlock' in error_msg:
+                                retry_count += 1
+                                if retry_count >= max_retries:
+                                    logging.error(f"❌ Failed to add created_at column after {max_retries} retries: {e}")
+                                    raise
+                                logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
+                                time.sleep(0.5 * retry_count)
+                            else:
+                                logging.warning(f"⚠️ automated_prices_history.created_at: {e}")
+                                break
                     
                     # 7d. Ensure automated_prices_history has 'auto_price' column
-                    try:
-                        conn.execute("""
-                            DO $$ 
-                            BEGIN
-                                IF NOT EXISTS (
-                                    SELECT 1 FROM information_schema.columns 
-                                    WHERE table_name='automated_prices_history' AND column_name='auto_price'
-                                ) THEN
-                                    ALTER TABLE automated_prices_history ADD COLUMN auto_price DOUBLE PRECISION;
-                                END IF;
-                            END $$;
-                        """)
-                        logging.info("✅ automated_prices_history.auto_price column ensured")
-                    except Exception as e:
-                        logging.warning(f"⚠️ automated_prices_history.auto_price: {e}")
+                    max_retries = 3
+                    retry_count = 0
+                    while retry_count < max_retries:
+                        try:
+                            conn.execute("""
+                                DO $$ 
+                                BEGIN
+                                    IF NOT EXISTS (
+                                        SELECT 1 FROM information_schema.columns 
+                                        WHERE table_name='automated_prices_history' AND column_name='auto_price'
+                                    ) THEN
+                                        ALTER TABLE automated_prices_history ADD COLUMN auto_price DOUBLE PRECISION;
+                                    END IF;
+                                END $$;
+                            """)
+                            logging.info("✅ automated_prices_history.auto_price column ensured")
+                            break
+                        except Exception as e:
+                            conn.rollback()
+                            error_msg = str(e).lower()
+                            if 'deadlock' in error_msg:
+                                retry_count += 1
+                                if retry_count >= max_retries:
+                                    logging.error(f"❌ Failed to add auto_price column after {max_retries} retries: {e}")
+                                    raise
+                                logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
+                                time.sleep(0.5 * retry_count)
+                            else:
+                                logging.warning(f"⚠️ automated_prices_history.auto_price: {e}")
+                                break
                     
                     # 7e. Ensure automated_prices_history has 'real_price' column
-                    try:
-                        conn.execute("""
-                            DO $$ 
-                            BEGIN
-                                IF NOT EXISTS (
-                                    SELECT 1 FROM information_schema.columns 
-                                    WHERE table_name='automated_prices_history' AND column_name='real_price'
-                                ) THEN
-                                    ALTER TABLE automated_prices_history ADD COLUMN real_price DOUBLE PRECISION;
-                                END IF;
-                            END $$;
-                        """)
-                        logging.info("✅ automated_prices_history.real_price column ensured")
-                    except Exception as e:
-                        logging.warning(f"⚠️ automated_prices_history.real_price: {e}")
+                    max_retries = 3
+                    retry_count = 0
+                    while retry_count < max_retries:
+                        try:
+                            conn.execute("""
+                                DO $$ 
+                                BEGIN
+                                    IF NOT EXISTS (
+                                        SELECT 1 FROM information_schema.columns 
+                                        WHERE table_name='automated_prices_history' AND column_name='real_price'
+                                    ) THEN
+                                        ALTER TABLE automated_prices_history ADD COLUMN real_price DOUBLE PRECISION;
+                                    END IF;
+                                END $$;
+                            """)
+                            logging.info("✅ automated_prices_history.real_price column ensured")
+                            break
+                        except Exception as e:
+                            conn.rollback()
+                            error_msg = str(e).lower()
+                            if 'deadlock' in error_msg:
+                                retry_count += 1
+                                if retry_count >= max_retries:
+                                    logging.error(f"❌ Failed to add real_price column after {max_retries} retries: {e}")
+                                    raise
+                                logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
+                                time.sleep(0.5 * retry_count)
+                            else:
+                                logging.warning(f"⚠️ automated_prices_history.real_price: {e}")
+                                break
                     
                     # 7f. Ensure automated_prices_history has 'source' column
-                    try:
-                        conn.execute("""
-                            DO $$ 
-                            BEGIN
-                                IF NOT EXISTS (
-                                    SELECT 1 FROM information_schema.columns 
-                                    WHERE table_name='automated_prices_history' AND column_name='source'
-                                ) THEN
-                                    ALTER TABLE automated_prices_history ADD COLUMN source TEXT DEFAULT 'manual';
-                                END IF;
-                            END $$;
-                        """)
-                        logging.info("✅ automated_prices_history.source column ensured")
-                    except Exception as e:
-                        logging.warning(f"⚠️ automated_prices_history.source: {e}")
+                    max_retries = 3
+                    retry_count = 0
+                    while retry_count < max_retries:
+                        try:
+                            conn.execute("""
+                                DO $$ 
+                                BEGIN
+                                    IF NOT EXISTS (
+                                        SELECT 1 FROM information_schema.columns 
+                                        WHERE table_name='automated_prices_history' AND column_name='source'
+                                    ) THEN
+                                        ALTER TABLE automated_prices_history ADD COLUMN source TEXT DEFAULT 'manual';
+                                    END IF;
+                                END $$;
+                            """)
+                            logging.info("✅ automated_prices_history.source column ensured")
+                            break
+                        except Exception as e:
+                            conn.rollback()
+                            error_msg = str(e).lower()
+                            if 'deadlock' in error_msg:
+                                retry_count += 1
+                                if retry_count >= max_retries:
+                                    logging.error(f"❌ Failed to add source column after {max_retries} retries: {e}")
+                                    raise
+                                logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
+                                time.sleep(0.5 * retry_count)
+                            else:
+                                logging.warning(f"⚠️ automated_prices_history.source: {e}")
+                                break
                     
                     # 7g. Create index for automated_prices_history
                     try:
