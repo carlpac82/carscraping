@@ -22333,6 +22333,10 @@ async def get_uncategorized_vehicles(request: Request):
                                             category, code = result
                                             is_categorized = category and category != 'Unknown' and category != ''
                                             logging.info(f"[UNCATEGORIZED] Carro '{search_name}' encontrado em car_groups: category='{category}', code='{code}', is_categorized={is_categorized}")
+                                            
+                                            # Log adicional para debug
+                                            if not is_categorized:
+                                                logging.warning(f"[UNCATEGORIZED] ⚠️ Carro '{search_name}' encontrado mas categoria inválida: category='{category}' (deve ser diferente de 'Unknown' e vazia)")
                                             break
                                         else:
                                             logging.info(f"[UNCATEGORIZED] Carro '{search_name}' NÃO encontrado em car_groups, tentando próximo...")
