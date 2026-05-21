@@ -22283,6 +22283,52 @@ async def get_uncategorized_vehicles(request: Request):
                     'suggested_category': detect_category_suggestion(clean)
                 })
         
+        # ADICIONAR: Carros da tabela car_groups com categoria Unknown ou NULL
+        try:
+            with _db_lock:
+                conn = _db_connect()
+                try:
+                    is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
+                    
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT model, category
+                                FROM car_groups
+                                WHERE enabled = 1 
+                                AND (category IS NULL OR category = 'Unknown' OR category = '')
+                            """)
+                            db_uncategorized = cur.fetchall()
+                    else:
+                        db_uncategorized = conn.execute("""
+                            SELECT model, category
+                            FROM car_groups
+                            WHERE enabled = 1 
+                            AND (category IS NULL OR category = 'Unknown' OR category = '')
+                        """).fetchall()
+                    
+                    for row in db_uncategorized:
+                        model_name = row[0]
+                        if model_name:
+                            clean = model_name.strip()
+                            parts = clean.split(' ')
+                            brand = parts[0] if parts else ''
+                            model = ' '.join(parts[1:]) if len(parts) > 1 else ''
+                            
+                            uncategorized.append({
+                                'original': model_name,
+                                'clean': clean,
+                                'brand': brand,
+                                'model': model,
+                                'suggested_category': detect_category_suggestion(clean),
+                                'category': 'Unknown'
+                            })
+                finally:
+                    conn.close()
+        except Exception as e:
+            import logging
+            logging.warning(f"⚠️ Erro ao buscar uncategorized da car_groups: {e}")
+        
         # Remover duplicados
         seen = set()
         unique = []
