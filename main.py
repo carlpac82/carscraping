@@ -22822,12 +22822,66 @@ async def refresh_vehicles(request: Request):
         
         print(f"[REFRESH] ✅ Scraping completo! {total_scraped} carros, {len(unique_new_cars)} novos")
         
+        # Adicionar carros novos à base de dados (tabela car_groups) para aparecerem no vehicles-editor
+        added_to_db = 0
+        if unique_new_cars:
+            try:
+                with _db_lock:
+                    conn = _db_connect()
+                    try:
+                        is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
+                        param_placeholder = "%s" if is_postgres else "?"
+                        
+                        for car in unique_new_cars:
+                            # Gerar código único para o carro (ex: "NEW-DACIASPRING")
+                            clean_name_upper = car['clean_name'].replace(' ', '').upper()
+                            code = f"NEW-{clean_name_upper}"
+                            
+                            # Verificar se já existe
+                            if is_postgres:
+                                with conn.cursor() as cur:
+                                    cur.execute(f"SELECT code FROM car_groups WHERE code = {param_placeholder}", (code,))
+                                    existing = cur.fetchone()
+                            else:
+                                existing = conn.execute(f"SELECT code FROM car_groups WHERE code = {param_placeholder}", (code,)).fetchone()
+                            
+                            if not existing:
+                                # Inserir novo carro com category=NULL (aparece em "Sem Categoria")
+                                if is_postgres:
+                                    with conn.cursor() as cur:
+                                        cur.execute(f"""
+                                            INSERT INTO car_groups 
+                                            (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
+                                            VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, NULL, 
+                                                    {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
+                                        """, (code, '', car['original_name'], car.get('transmission', ''), car.get('photo_url', '')))
+                                else:
+                                    conn.execute(f"""
+                                        INSERT INTO car_groups 
+                                        (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
+                                        VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, NULL, 
+                                                {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
+                                    """, (code, '', car['original_name'], car.get('transmission', ''), car.get('photo_url', '')))
+                                
+                                conn.commit()
+                                added_to_db += 1
+                                print(f"[REFRESH] ✅ Adicionado à BD: {car['original_name']} (código: {code})")
+                    finally:
+                        conn.close()
+            except Exception as e:
+                print(f"[REFRESH] ⚠️ Erro ao adicionar carros à BD: {e}")
+        
+        message = f"Scraping completo! {total_scraped} carros encontrados, {len(unique_new_cars)} novos"
+        if added_to_db > 0:
+            message += f", {added_to_db} adicionados ao vehicles-editor (Sem Categoria)"
+        
         return _no_store_json({
             "ok": True,
             "total_scraped": total_scraped,
             "new_cars_count": len(unique_new_cars),
+            "added_to_db": added_to_db,
             "new_cars": unique_new_cars,
-            "message": f"Scraping completo! {total_scraped} carros encontrados, {len(unique_new_cars)} novos."
+            "message": message
         })
         
     except Exception as e:
