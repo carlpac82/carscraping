@@ -919,7 +919,7 @@
         
         // NOVAS FUNÇÕES - Refresh Vehicles e Download Photos
         async function refreshVehiclesFromCarjet() {
-            console.log('[REFRESH] Iniciando...');
+            console.log('[REFRESH] Função chamada! Iniciando...');
             
             // Criar modal de progresso
             const modal = document.createElement('div');
@@ -1118,6 +1118,14 @@
                 showNotification('Error: ' + error.message, 'error');
             }
         }
+        
+        // Tornar funções globais explicitamente
+        window.refreshVehiclesFromCarjet = refreshVehiclesFromCarjet;
+        window.downloadAllPhotosFromCarjet = downloadAllPhotosFromCarjet;
+        
+        console.log('✅ [VEHICLE EDITOR] Funções refresh e download definidas globalmente');
+        console.log('   - refreshVehiclesFromCarjet:', typeof window.refreshVehiclesFromCarjet);
+        console.log('   - downloadAllPhotosFromCarjet:', typeof window.downloadAllPhotosFromCarjet);
         
         // Load on start
         window.addEventListener('DOMContentLoaded', loadVehicles);
