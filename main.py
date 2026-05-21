@@ -22876,6 +22876,24 @@ async def refresh_vehicles(request: Request):
                         param_placeholder = "%s" if is_postgres else "?"
                         
                         for car in unique_new_cars:
+                            # Preparar nome do carro
+                            original_name = car['original_name']
+                            transmission = car.get('transmission', '')
+                            category_carjet = car.get('category', '')
+                            
+                            # Se for automático, adicionar "Auto" ao nome
+                            display_name = original_name
+                            is_auto = transmission and 'auto' in transmission.lower()
+                            if is_auto and 'auto' not in original_name.lower():
+                                display_name = f"{original_name} Auto"
+                            
+                            # Usar map_category_to_group para sugerir o grupo correto
+                            suggested_group = map_category_to_group(
+                                category=category_carjet,
+                                car_name=original_name,
+                                transmission=transmission
+                            )
+                            
                             # Gerar código único para o carro (ex: "NEW-DACIASPRING")
                             clean_name_upper = car['clean_name'].replace(' ', '').upper()
                             code = f"NEW-{clean_name_upper}"
@@ -22889,26 +22907,26 @@ async def refresh_vehicles(request: Request):
                                 existing = conn.execute(f"SELECT code FROM car_groups WHERE code = {param_placeholder}", (code,)).fetchone()
                             
                             if not existing:
-                                # Inserir novo carro com category=NULL (aparece em "Sem Categoria")
+                                # Inserir novo carro com grupo sugerido na coluna category
                                 if is_postgres:
                                     with conn.cursor() as cur:
                                         cur.execute(f"""
                                             INSERT INTO car_groups 
                                             (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
-                                            VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, NULL, 
+                                            VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 
                                                     {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
-                                        """, (code, '', car['original_name'], car.get('transmission', ''), car.get('photo_url', '')))
+                                        """, (code, '', display_name, suggested_group, transmission, car.get('photo_url', '')))
                                 else:
                                     conn.execute(f"""
                                         INSERT INTO car_groups 
                                         (code, brand, model, category, transmission, doors, seats, luggage, photo_url, enabled)
-                                        VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, NULL, 
+                                        VALUES ({param_placeholder}, {param_placeholder}, {param_placeholder}, {param_placeholder}, 
                                                 {param_placeholder}, 0, 0, 0, {param_placeholder}, 1)
-                                    """, (code, '', car['original_name'], car.get('transmission', ''), car.get('photo_url', '')))
+                                    """, (code, '', display_name, suggested_group, transmission, car.get('photo_url', '')))
                                 
                                 conn.commit()
                                 added_to_db += 1
-                                print(f"[REFRESH] ✅ Adicionado à BD: {car['original_name']} (código: {code})")
+                                print(f"[REFRESH] ✅ Adicionado à BD: {display_name} → Grupo {suggested_group} (código: {code})")
                     finally:
                         conn.close()
             except Exception as e:
@@ -22916,7 +22934,7 @@ async def refresh_vehicles(request: Request):
         
         message = f"Scraping completo! {total_scraped} carros encontrados, {len(unique_new_cars)} novos"
         if added_to_db > 0:
-            message += f", {added_to_db} adicionados ao vehicles-editor (Sem Categoria)"
+            message += f", {added_to_db} adicionados ao vehicles-editor (com grupo sugerido)"
         
         return _no_store_json({
             "ok": True,
