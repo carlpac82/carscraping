@@ -18632,9 +18632,33 @@ async def save_vehicle(request: Request):
                             logging.info(f"✅ [VEHICLE-SAVE] Inserted into car_groups: {clean_name} -> group={group}, category={category}, transmission={transmission}")
                     
                     con.commit()
+                    logging.info(f"✅ [VEHICLE-SAVE] Car groups updated successfully")
                 except Exception as e:
                     con.rollback()
-                    logging.error(f"[VEHICLE-SAVE] Failed to update car_groups: {e}")
+                    error_msg = str(e).lower()
+                    if "deadlock" in error_msg or "lock" in error_msg:
+                        logging.warning(f"⚠️ [VEHICLE-SAVE] Deadlock detectado, tentando novamente: {e}")
+                        import time
+                        time.sleep(0.5)  # Pequena pausa e tentar uma vez
+                        try:
+                            # Tentar novamente uma vez
+                            if is_postgres:
+                                with con.cursor() as cur:
+                                    cur.execute(
+                                        f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = NOW() WHERE LOWER(model) = {param_placeholder}",
+                                        (group, category, transmission, original_name.lower())
+                                    )
+                            else:
+                                con.execute(
+                                    f"UPDATE car_groups SET code = {param_placeholder}, category = {param_placeholder}, transmission = {param_placeholder}, updated_at = datetime('now') WHERE LOWER(model) = {param_placeholder}",
+                                    (group, category, transmission, original_name.lower())
+                                )
+                            con.commit()
+                            logging.info(f"✅ [VEHICLE-SAVE] Retry successful after deadlock")
+                        except Exception as retry_error:
+                            logging.error(f"❌ [VEHICLE-SAVE] Retry failed after deadlock: {retry_error}")
+                    else:
+                        logging.error(f"[VEHICLE-SAVE] Failed to update car_groups: {e}")
                 finally:
                     con.close()
         except Exception as e:
