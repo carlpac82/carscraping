@@ -22732,7 +22732,14 @@ async def refresh_vehicles(request: Request):
         pickup_date = datetime.now() + timedelta(days=days_offset)
         days_duration = 5
         
-        print(f"[REFRESH] Usando datas aleatórias: {pickup_date.strftime('%Y-%m-%d')} por {days_duration} dias")
+        # Rotação de horário (14:30-17:00 aleatório) - evita padrões
+        available_hours = ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
+        selected_hour = random.choice(available_hours)
+        hour_h = int(selected_hour.split(':')[0])
+        hour_m = int(selected_hour.split(':')[1])
+        pickup_date = pickup_date.replace(hour=hour_h, minute=hour_m)
+        
+        print(f"[REFRESH] Usando datas aleatórias: {pickup_date.strftime('%Y-%m-%d %H:%M')} por {days_duration} dias")
         
         # Preparar pesquisa
         searches = [{
