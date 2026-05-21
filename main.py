@@ -22317,32 +22317,38 @@ async def get_uncategorized_vehicles(request: Request):
                         try:
                             is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
                             
-                            if is_postgres:
-                                with conn.cursor() as cur:
-                                    cur.execute("""
+                            # Tentar buscar pelo nome original primeiro, depois pelo clean_name
+                            search_names = [original_name.lower(), clean_lower]
+                            
+                            for search_name in search_names:
+                                if is_postgres:
+                                    with conn.cursor() as cur:
+                                        cur.execute("""
+                                            SELECT category, code 
+                                            FROM car_groups 
+                                            WHERE LOWER(model) = %s AND enabled = 1
+                                        """, (search_name,))
+                                        result = cur.fetchone()
+                                        if result:
+                                            category, code = result
+                                            is_categorized = category and category != 'Unknown' and category != ''
+                                            logging.info(f"[UNCATEGORIZED] Carro '{search_name}' encontrado em car_groups: category='{category}', code='{code}', is_categorized={is_categorized}")
+                                            break
+                                        else:
+                                            logging.info(f"[UNCATEGORIZED] Carro '{search_name}' NÃO encontrado em car_groups, tentando próximo...")
+                                else:
+                                    result = conn.execute("""
                                         SELECT category, code 
                                         FROM car_groups 
-                                        WHERE LOWER(model) = %s AND enabled = 1
-                                    """, (clean_lower,))
-                                    result = cur.fetchone()
+                                        WHERE LOWER(model) = ? AND enabled = 1
+                                    """, (search_name,)).fetchone()
                                     if result:
                                         category, code = result
                                         is_categorized = category and category != 'Unknown' and category != ''
-                                        logging.info(f"[UNCATEGORIZED] Carro '{clean_lower}' encontrado em car_groups: category='{category}', code='{code}', is_categorized={is_categorized}")
+                                        logging.info(f"[UNCATEGORIZED] Carro '{search_name}' encontrado em car_groups: category='{category}', code='{code}', is_categorized={is_categorized}")
+                                        break
                                     else:
-                                        logging.info(f"[UNCATEGORIZED] Carro '{clean_lower}' NÃO encontrado em car_groups")
-                            else:
-                                result = conn.execute("""
-                                    SELECT category, code 
-                                    FROM car_groups 
-                                    WHERE LOWER(model) = ? AND enabled = 1
-                                """, (clean_lower,)).fetchone()
-                                if result:
-                                    category, code = result
-                                    is_categorized = category and category != 'Unknown' and category != ''
-                                    logging.info(f"[UNCATEGORIZED] Carro '{clean_lower}' encontrado em car_groups: category='{category}', code='{code}', is_categorized={is_categorized}")
-                                else:
-                                    logging.info(f"[UNCATEGORIZED] Carro '{clean_lower}' NÃO encontrado em car_groups")
+                                        logging.info(f"[UNCATEGORIZED] Carro '{search_name}' NÃO encontrado em car_groups, tentando próximo...")
                         finally:
                             conn.close()
                 except Exception as e:
