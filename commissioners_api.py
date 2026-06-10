@@ -651,25 +651,13 @@ async def get_all_commissioners():
             try: conn.rollback()
             except Exception: pass
 
-    try:
-        cursor.execute("""
-            SELECT c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
-                   c.default_location, c.commission_rate, c.is_hotel, c.public_token, c.public_slug,
-                   COUNT(cb.id) AS total_bookings
-            FROM commissioners c
-            LEFT JOIN commissioner_bookings cb ON cb.commissioner_id = c.id
-            GROUP BY c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
-                     c.default_location, c.commission_rate, c.is_hotel, c.public_token, c.public_slug
-            ORDER BY c.name
-        """)
-    except Exception:
-        conn.rollback()
-        cursor.execute("""
-            SELECT c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
-                   c.default_location, c.commission_rate, c.is_hotel, NULL, NULL, 0
-            FROM commissioners c
-            ORDER BY c.name
-        """)
+    cursor.execute("""
+        SELECT c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
+               c.default_location, c.commission_rate, c.is_hotel, c.public_token, c.public_slug,
+               (SELECT COUNT(*) FROM commissioner_bookings cb WHERE cb.commissioner_id = c.id) AS total_bookings
+        FROM commissioners c
+        ORDER BY c.name
+    """)
 
     commissioners = cursor.fetchall()
     conn.close()
