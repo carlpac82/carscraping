@@ -945,15 +945,18 @@ def get_vehicle_groups_with_photos_v2(conn):
             'N': {'seats': '9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
         }
         
+        # Grupos oficiais válidos — apenas estes aparecem no portal
+        VALID_GROUPS = {'A','B','D','E1','E2','F','G','J1','J2','L1','L2','M1','M2','N'}
+
         car_groups_data = []
         for row in rows:
             code = row[0]
             brand = row[1] or ''
             model = row[2] or ''
             photo_url = row[3] or ''
-            
-            # Filtrar B1 e B2 - manter apenas B
-            if code in ['B1', 'B2']:
+
+            # Apenas grupos oficiais — ignorar NEW-, X, B1, B2, etc.
+            if code not in VALID_GROUPS:
                 continue
             
             # Obter especificações do grupo
@@ -1107,38 +1110,32 @@ async def fix_car_groups():
         raw_conn.autocommit = False
         cur = raw_conn.cursor()
 
-        # 1. Disable all NEW- groups and X
-        cur.execute("""
-            UPDATE car_groups SET enabled = FALSE
-            WHERE code LIKE 'NEW-%' OR code = 'X' OR code IN ('B1','B2')
-        """)
-        results['disabled'] = cur.rowcount
-
-        # 2. Fix official group names/brands/models
+        # 1. Nomes e modelos CORRECTOS dos grupos oficiais (exactamente como no portal)
         official = [
-            ('A',  'KIA',      'Picanto ou similar'),
-            ('B',  'FIAT',     'Panda ou similar'),
-            ('D',  'SEAT',     'Ibiza ou similar'),
-            ('E1', 'HYUNDAI',  'i10 ou similar'),
-            ('E2', 'CITROEN',  'C3 ou similar'),
-            ('F',  'SEAT',     'Arona ou similar'),
-            ('G',  'FIAT',     '500 Cabrio'),
-            ('J1', 'PEUGEOT',  '2008 ou similar'),
-            ('J2', 'PEUGEOT',  '308 SW ou similar'),
-            ('L1', 'CITROEN',  'C3 Aircross ou similar'),
-            ('L2', 'PEUGEOT',  '308 SW ou similar'),
-            ('M1', 'DACIA',    'Jogger ou similar'),
-            ('M2', 'CITROEN',  'C4 Picasso ou similar'),
-            ('N',  'TOYOTA',   'Proace ou similar'),
+            ('A',  'KIA',      'Picanto ou similar',       '/api/vehicles/kia picanto/photo'),
+            ('B',  'FIAT',     'Panda ou similar',          '/api/vehicles/fiat panda/photo'),
+            ('D',  'SEAT',     'Ibiza ou similar',          '/api/vehicles/seat ibiza/photo'),
+            ('E1', 'HYUNDAI',  'i10 ou similar',            '/api/vehicles/hyundai i10/photo'),
+            ('E2', 'CITROEN',  'C3 ou similar',             '/api/vehicles/citroen c3/photo'),
+            ('F',  'SEAT',     'Arona ou similar',          '/api/vehicles/seat arona/photo'),
+            ('G',  'FIAT',     '500 Cabrio',                '/api/vehicles/fiat 500/photo'),
+            ('J1', 'PEUGEOT',  '2008 ou similar',           '/api/vehicles/peugeot 2008/photo'),
+            ('J2', 'PEUGEOT',  '308 SW ou similar',         '/api/vehicles/peugeot 308 sw/photo'),
+            ('L1', 'CITROEN',  'C3 Aircross ou similar',    '/api/vehicles/citroen c3 aircross/photo'),
+            ('L2', 'PEUGEOT',  '308 SW ou similar',         '/api/vehicles/peugeot 308 sw/photo'),
+            ('M1', 'DACIA',    'Jogger ou similar',         '/api/vehicles/dacia jogger/photo'),
+            ('M2', 'CITROEN',  'C4 Picasso ou similar',     '/api/vehicles/citroen c4 picasso/photo'),
+            ('N',  'TOYOTA',   'Proace ou similar',         '/api/vehicles/toyota proace/photo'),
         ]
         fixed = 0
-        for code, brand, model in official:
+        for code, brand, model, photo in official:
             cur.execute(
-                "UPDATE car_groups SET brand = %s, model = %s, enabled = TRUE WHERE code = %s",
-                (brand, model, code)
+                "UPDATE car_groups SET brand = %s, model = %s, photo_url = %s, enabled = TRUE WHERE code = %s",
+                (brand, model, photo, code)
             )
             fixed += cur.rowcount
         results['names_fixed'] = fixed
+        results['disabled'] = 0
 
         raw_conn.commit()
         cur.close()
