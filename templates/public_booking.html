@@ -341,8 +341,8 @@
             cursor: pointer; border: 1.5px solid #e5e7eb; background: white; color: #374151;
             transition: all 0.2s;
         }
-        .confirmation-btn-yes.active { background: #009cb6; border-color: #009cb6; color: white; }
-        .confirmation-btn-no.active { background: #ef4444; border-color: #ef4444; color: white; }
+        .confirmation-btn-yes.active, .confirmation-btn-yes.selected { background: #009cb6; border-color: #009cb6; color: white; }
+        .confirmation-btn-no.active, .confirmation-btn-no.selected { background: #ef4444; border-color: #ef4444; color: white; }
 
         .value-adjustment-section, .deposit-section {
             background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;
@@ -414,6 +414,10 @@
         }
 
         /* ─── INSURANCE WARNING MODAL ─── */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .insurance-modal {
             display: none;
             position: fixed;
@@ -423,41 +427,42 @@
             align-items: center; justify-content: center;
             animation: fadeIn 0.3s ease;
         }
-        .insurance-modal.show { display: flex; }
         .insurance-modal-content {
             position: relative; background: white; border-radius: 20px;
             max-width: 480px; width: 90%;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            animation: slideUp 0.3s ease;
             overflow: hidden; border: 1px solid rgba(0,156,182,0.1);
         }
-        .ins-modal-icon { text-align: center; margin: 32px 0 20px; }
-        .ins-modal-title {
+        .modal-icon { text-align: center; margin: 32px 0 20px 0; }
+        .modal-title {
             font-size: 24px; font-weight: 700; color: #1f2937;
-            margin: 0 0 8px; text-align: center;
+            margin: 0 0 8px 0; text-align: center;
         }
-        .ins-modal-subtitle {
-            font-size: 14px; color: #6b7280; margin: 0 0 32px; text-align: center;
+        .modal-subtitle {
+            font-size: 14px; color: #6b7280; margin: 0 0 32px 0; text-align: center;
         }
-        .ins-modal-body { padding: 0 32px 0 32px; }
+        .insurance-modal-content .modal-body { padding: 0 32px 32px 32px; }
         .requirement-item {
             display: flex; align-items: flex-start; gap: 16px;
             margin-bottom: 20px; padding: 16px;
             background: #f8fafc; border-radius: 12px;
-            border-left: 3px solid #f59e0b; transition: all 0.2s;
+            border-left: 3px solid #f59e0b; transition: all 0.2s ease;
         }
+        .requirement-item:hover { background: #f0f9fb; transform: translateX(2px); }
         .requirement-item:last-child { border-left-color: #ef4444; margin-bottom: 0; }
-        .requirement-icon { flex-shrink: 0; display: flex; align-items: center; }
+        .requirement-icon { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .requirement-text { font-size: 14px; color: #374151; line-height: 1.5; }
         .requirement-text strong { color: #1f2937; font-weight: 600; }
-        .ins-modal-actions { display: flex; gap: 12px; padding: 24px 32px 32px; }
-        .ins-modal-btn {
+        .insurance-modal .modal-actions { display: flex; gap: 12px; padding: 24px 32px 32px 32px; }
+        .insurance-modal .modal-btn {
             flex: 1; padding: 12px 20px; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none;
         }
-        .ins-modal-btn-cancel { background: #f59e0b; color: white; }
-        .ins-modal-btn-cancel:hover { background: #d97706; }
-        .ins-modal-btn-confirm { background: #009cb6; color: white; }
-        .ins-modal-btn-confirm:hover { background: #007a8f; }
+        .insurance-modal .modal-btn-cancel { background: #f59e0b !important; color: white !important; border: 1.5px solid #f59e0b !important; }
+        .insurance-modal .modal-btn-cancel:hover { background: #d97706; color: white; }
+        .insurance-modal .modal-btn-confirm { background: #009cb6; color: white; border: 1.5px solid #009cb6; }
+        .insurance-modal .modal-btn-confirm:hover { background: #007a8f; border-color: #007a8f; }
 
         /* ─── RESPONSIVE ─── */
         @media (max-width: 640px) {
@@ -630,6 +635,10 @@
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
                                     <span class="benefit-text">Não inclui assistência em viagem</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                                    <span class="benefit-text">Cartão de crédito obrigatório (débito não aceito)</span>
                                 </div>
                             </div>
                         </div>
@@ -852,6 +861,13 @@
                                 <span id="summaryClientPhone">-</span> &nbsp;
                                 <span id="summaryClientEmail">-</span>
                             </div>
+                            <div class="summary-client-hotel" id="summaryClientHotel" style="display: none;">
+                                <div class="summary-label">Hotel</div>
+                                <div class="summary-value">
+                                    <span id="summaryHotelName">-</span>
+                                    <span id="summaryRoomNumber"></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="summary-pricing">
                             <div class="summary-total">
@@ -909,19 +925,19 @@
     </div>
 </div>
 
-<!-- Modal de Aviso - Seguro Base (identico ao dashboard) -->
+<!-- Modal de Aviso - Seguro Base -->
 <div id="insuranceWarningModal" class="insurance-modal">
     <div class="insurance-modal-content">
-        <div class="ins-modal-icon">
+        <div class="modal-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                 <line x1="12" y1="9" x2="12" y2="13"></line>
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
         </div>
-        <div class="ins-modal-title">Seguro Base</div>
-        <div class="ins-modal-subtitle">Requisitos obrigatórios</div>
-        <div class="ins-modal-body">
+        <div class="modal-title">Seguro Base</div>
+        <div class="modal-subtitle">Requisitos obrigatórios</div>
+        <div class="modal-body">
             <div class="requirement-item">
                 <div class="requirement-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -942,7 +958,7 @@
                     </svg>
                 </div>
                 <div class="requirement-text">
-                    <strong>Pagamento:</strong> cartão de crédito obrigatório (débito não aceite)
+                    <strong>Pagamento:</strong> cartão de crédito obrigatório (débito não aceito)
                 </div>
             </div>
             <div class="requirement-item">
@@ -968,9 +984,9 @@
                 </div>
             </div>
         </div>
-        <div class="ins-modal-actions">
-            <button type="button" class="ins-modal-btn ins-modal-btn-cancel" onclick="closeInsuranceModal()">Cancelar</button>
-            <button type="button" class="ins-modal-btn ins-modal-btn-confirm" onclick="confirmBaseInsurance()">Confirmar Seguro Base</button>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeInsuranceModal()">Cancelar</button>
+            <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmBaseInsurance()">Confirmar Seguro Base</button>
         </div>
     </div>
 </div>
@@ -1490,16 +1506,18 @@
     // ─── INSURANCE ────────────────────────────────────────────
     function selectInsurance(type) {
         if (type === 'base') {
-            // Atualizar franquia no modal antes de mostrar
-            updateBaseFranchiseText();
-            document.getElementById('insuranceWarningModal').classList.add('show');
-        } else {
+            showInsuranceModal();
+        } else if (type === 'premium') {
             setInsuranceSelection('premium');
         }
     }
 
+    function showInsuranceModal() {
+        document.getElementById('insuranceWarningModal').style.display = 'flex';
+    }
+
     function closeInsuranceModal() {
-        document.getElementById('insuranceWarningModal').classList.remove('show');
+        document.getElementById('insuranceWarningModal').style.display = 'none';
     }
 
     function confirmBaseInsurance() {
@@ -1595,15 +1613,17 @@
     // ─── CONFIRMATION (step 5) ────────────────────────────────
     function confirmValue(yes) {
         valueConfirmed = yes;
-        document.getElementById('btnValueYes').classList.toggle('active', yes);
-        document.getElementById('btnValueNo').classList.toggle('active', !yes);
+        document.getElementById('btnValueYes').classList.toggle('selected', yes);
+        document.getElementById('btnValueNo').classList.toggle('selected', !yes);
         document.getElementById('valueAdjustmentSection').style.display = !yes ? 'block' : 'none';
+        if (yes) document.getElementById('valueAdjustment').value = '';
     }
     function setDeposit(yes) {
         depositConfirmed = yes;
-        document.getElementById('btnDepositYes').classList.toggle('active', yes);
-        document.getElementById('btnDepositNo').classList.toggle('active', !yes);
+        document.getElementById('btnDepositYes').classList.toggle('selected', yes);
+        document.getElementById('btnDepositNo').classList.toggle('selected', !yes);
         document.getElementById('depositSection').style.display = yes ? 'block' : 'none';
+        if (!yes) document.getElementById('depositAmount').value = '';
     }
 
     function fillStep5Summary() {
@@ -1673,6 +1693,11 @@
         document.getElementById('btnPrev').style.display = currentStep > 1 ? 'inline-flex' : 'none';
         document.getElementById('btnNext').style.display = currentStep < 5 ? 'inline-flex' : 'none';
         document.getElementById('btnSubmit').style.display = currentStep === 5 ? 'inline-flex' : 'none';
+        // Igual ao dashboard: ao entrar no step 3, atualizar preço e veículo
+        if (currentStep === 3) {
+            showVehicleSummary();
+            updateSummaryPrice();
+        }
     }
 
     async function nextStep() {
@@ -1884,16 +1909,18 @@
             finalTotal = confirmedPrice;
         }
 
+        const fn = document.getElementById('clientFirstName').value.trim();
+        const ln = document.getElementById('clientLastName').value.trim();
+
         const payload = {
             token: TOKEN,
             slug: SLUG,
             vehicle_group: selectedVehicle,
-            client_first_name: document.getElementById('clientFirstName').value.trim(),
-            client_last_name: document.getElementById('clientLastName').value.trim(),
+            client_name: `${fn} ${ln}`.trim(),
             client_email: document.getElementById('clientEmail').value.trim(),
-            client_phone: document.getElementById('clientPhone').value.trim(),
-            client_hotel: document.getElementById('clientHotel').value || null,
-            client_room: document.getElementById('clientRoom').value || null,
+            client_phone: document.getElementById('clientPhone').value.trim() || null,
+            hotel: document.getElementById('clientHotel').value || null,
+            room_number: document.getElementById('clientRoom').value || null,
             pickup_date: pickupDateVal,
             pickup_time: pickupTimeVal,
             pickup_location: document.getElementById('pickupLocation').value,
