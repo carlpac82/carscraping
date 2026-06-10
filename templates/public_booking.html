@@ -413,6 +413,52 @@
             border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: none;
         }
 
+        /* ─── INSURANCE WARNING MODAL ─── */
+        .insurance-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 10000;
+            align-items: center; justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .insurance-modal.show { display: flex; }
+        .insurance-modal-content {
+            position: relative; background: white; border-radius: 20px;
+            max-width: 480px; width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            overflow: hidden; border: 1px solid rgba(0,156,182,0.1);
+        }
+        .ins-modal-icon { text-align: center; margin: 32px 0 20px; }
+        .ins-modal-title {
+            font-size: 24px; font-weight: 700; color: #1f2937;
+            margin: 0 0 8px; text-align: center;
+        }
+        .ins-modal-subtitle {
+            font-size: 14px; color: #6b7280; margin: 0 0 32px; text-align: center;
+        }
+        .ins-modal-body { padding: 0 32px 0 32px; }
+        .requirement-item {
+            display: flex; align-items: flex-start; gap: 16px;
+            margin-bottom: 20px; padding: 16px;
+            background: #f8fafc; border-radius: 12px;
+            border-left: 3px solid #f59e0b; transition: all 0.2s;
+        }
+        .requirement-item:last-child { border-left-color: #ef4444; margin-bottom: 0; }
+        .requirement-icon { flex-shrink: 0; display: flex; align-items: center; }
+        .requirement-text { font-size: 14px; color: #374151; line-height: 1.5; }
+        .requirement-text strong { color: #1f2937; font-weight: 600; }
+        .ins-modal-actions { display: flex; gap: 12px; padding: 24px 32px 32px; }
+        .ins-modal-btn {
+            flex: 1; padding: 12px 20px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+        }
+        .ins-modal-btn-cancel { background: #f59e0b; color: white; }
+        .ins-modal-btn-cancel:hover { background: #d97706; }
+        .ins-modal-btn-confirm { background: #009cb6; color: white; }
+        .ins-modal-btn-confirm:hover { background: #007a8f; }
+
         /* ─── RESPONSIVE ─── */
         @media (max-width: 640px) {
             body { padding: 0; align-items: flex-start; }
@@ -863,6 +909,72 @@
     </div>
 </div>
 
+<!-- Modal de Aviso - Seguro Base (identico ao dashboard) -->
+<div id="insuranceWarningModal" class="insurance-modal">
+    <div class="insurance-modal-content">
+        <div class="ins-modal-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        </div>
+        <div class="ins-modal-title">Seguro Base</div>
+        <div class="ins-modal-subtitle">Requisitos obrigatórios</div>
+        <div class="ins-modal-body">
+            <div class="requirement-item">
+                <div class="requirement-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="requirement-text">
+                    <strong>Franquia:</strong> até <span id="modalFranchise">1.500€</span> em caso de danos
+                </div>
+            </div>
+            <div class="requirement-item">
+                <div class="requirement-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                </div>
+                <div class="requirement-text">
+                    <strong>Pagamento:</strong> cartão de crédito obrigatório (débito não aceite)
+                </div>
+            </div>
+            <div class="requirement-item">
+                <div class="requirement-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="requirement-text">
+                    <strong>Local:</strong> entrega e recolha apenas em Auto Prudente
+                </div>
+            </div>
+            <div class="requirement-item">
+                <div class="requirement-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                    </svg>
+                </div>
+                <div class="requirement-text">
+                    <strong>Limitações:</strong> sem assistência em viagem 24h
+                </div>
+            </div>
+        </div>
+        <div class="ins-modal-actions">
+            <button type="button" class="ins-modal-btn ins-modal-btn-cancel" onclick="closeInsuranceModal()">Cancelar</button>
+            <button type="button" class="ins-modal-btn ins-modal-btn-confirm" onclick="confirmBaseInsurance()">Confirmar Seguro Base</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const SLUG  = "{{ slug }}";
     const TOKEN = "{{ token }}";
@@ -1284,13 +1396,15 @@
     }
 
     function updateBaseFranchiseText() {
-        if (!selectedVehicle) return;
-        const fr = franchisesByGroup[selectedVehicle] || '1.500 €';
-        const clean = fr.replace(' €','€');
+        const group = selectedVehicleData ? selectedVehicleData.code : null;
+        const fr = group ? (franchisesByGroup[group] || '1.500 €') : '1.500 €';
+        const clean = fr.replace(' €', '€');
         const el1 = document.getElementById('baseFranchisePrice');
         const el2 = document.getElementById('baseFranchiseText');
+        const elModal = document.getElementById('modalFranchise');
         if (el1) el1.textContent = `Franquia até ${clean}`;
         if (el2) el2.textContent = `Franquia de ${clean}`;
+        if (elModal) elModal.textContent = clean;
     }
 
     function updatePremiumInsurancePrice() {
@@ -1306,9 +1420,30 @@
 
     // ─── INSURANCE ────────────────────────────────────────────
     function selectInsurance(type) {
+        if (type === 'base') {
+            // Atualizar franquia no modal antes de mostrar
+            updateBaseFranchiseText();
+            document.getElementById('insuranceWarningModal').classList.add('show');
+        } else {
+            setInsuranceSelection('premium');
+        }
+    }
+
+    function closeInsuranceModal() {
+        document.getElementById('insuranceWarningModal').classList.remove('show');
+    }
+
+    function confirmBaseInsurance() {
+        setInsuranceSelection('base');
+        closeInsuranceModal();
+    }
+
+    function setInsuranceSelection(type) {
         selectedInsurance = type;
-        document.getElementById('baseInsuranceCard').classList.toggle('selected', type==='base');
-        document.getElementById('premiumInsuranceCard').classList.toggle('selected', type==='premium');
+        document.getElementById('baseInsuranceCard').classList.toggle('selected', type === 'base');
+        document.getElementById('premiumInsuranceCard').classList.toggle('selected', type === 'premium');
+        updateBaseFranchiseText();
+        updateSummaryPrice();
     }
 
     // ─── EXTRAS ───────────────────────────────────────────────
