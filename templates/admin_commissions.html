@@ -2203,16 +2203,22 @@
                   
                   filteredCommissions.forEach(commission => {
                       const isChecked = selectedCommissions.has(commission.id) ? 'checked' : '';
+                      const isCancelledCard = commission.status === 'cancelled';
+                      const cardStyle = isCancelledCard ? ' style="background:#fff5f5; border-left: 3px solid #cc0000;"' : '';
+                      const cancelledTextStyle = isCancelledCard ? ' style="color:#cc0000; font-style:italic;"' : '';
+                      const mobileBadge = isCancelledCard
+                          ? '<span class="status-badge" style="background:#fecaca;color:#cc0000;">Cancelada</span>'
+                          : `<span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-pending'}">${commission.commission_paid ? 'Pago' : 'Por Pagar'}</span>`;
                       cardsHTML += `
-                          <div class="commission-card">
+                          <div class="commission-card"${cardStyle}>
                               <div class="commission-card-header">
-                                  <div class="commission-card-title">${commission.commissioner_name || '-'}</div>
-                                  <div class="commission-card-amount">€${(commission.commission_amount || 0).toFixed(2)}</div>
+                                  <div class="commission-card-title"${cancelledTextStyle}>${commission.commissioner_name || '-'}</div>
+                                  <div class="commission-card-amount"${cancelledTextStyle}>${isCancelledCard ? '-' : '€' + (commission.commission_amount || 0).toFixed(2)}</div>
                               </div>
                               <div class="commission-card-details">
                                   <div class="commission-card-row">
                                       <span class="commission-card-label">Voucher:</span>
-                                      <span class="commission-card-value">${commission.voucher_number || '-'}</span>
+                                      <span class="commission-card-value"${cancelledTextStyle}>${commission.voucher_number || '-'}</span>
                                   </div>
                                   <div class="commission-card-row">
                                       <span class="commission-card-label">Data Levant.:</span>
@@ -2220,11 +2226,11 @@
                                   </div>
                                   <div class="commission-card-row">
                                       <span class="commission-card-label">Depósito:</span>
-                                      <span class="commission-card-value">€${(commission.deposit || 0).toFixed(2)}</span>
+                                      <span class="commission-card-value">${isCancelledCard ? '-' : '€' + (commission.deposit || 0).toFixed(2)}</span>
                                   </div>
                                   <div class="commission-card-row">
                                       <span class="commission-card-label">Valor Base:</span>
-                                      <span class="commission-card-value">€${(commission.base_price || 0).toFixed(2)}</span>
+                                      <span class="commission-card-value">${isCancelledCard ? '-' : '€' + (commission.base_price || 0).toFixed(2)}</span>
                                   </div>
                                   ${commission.commission_paid_date ? `
                                   <div class="commission-card-row">
@@ -2234,9 +2240,7 @@
                                   ` : ''}
                               </div>
                               <div class="commission-card-status">
-                                  <span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-pending'}">
-                                      ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
-                                  </span>
+                                  ${mobileBadge}
                                   <div class="commission-card-actions">
                                       <input type="checkbox" ${isChecked} data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})">
                                   </div>
@@ -2257,20 +2261,24 @@
                   tbody.innerHTML = '';
                   
                   filteredCommissions.forEach(commission => {
+                      const isCancelled = commission.status === 'cancelled';
                       const row = document.createElement('tr');
+                      if (isCancelled) row.style.cssText = 'color:#cc0000; font-style:italic; background:#fff5f5;';
+                      let statusBadge;
+                      if (isCancelled) {
+                          statusBadge = '<span class="status-badge" style="background:#fecaca;color:#cc0000;">Cancelada</span>';
+                      } else {
+                          statusBadge = `<span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">${commission.commission_paid ? 'Pago' : 'Por Pagar'}</span>`;
+                      }
                       row.innerHTML = `
                           <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
                           <td>${commission.commissioner_name || '-'}</td>
                           <td style="font-size: 0.85em; white-space: nowrap;">${commission.voucher_number || '-'}</td>
                           <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
-                          <td>€${(commission.deposit || 0).toFixed(2)}</td>
-                          <td>€${(commission.base_price || 0).toFixed(2)}</td>
-                          <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
-                          <td>
-                              <span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
-                                  ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
-                              </span>
-                          </td>
+                          <td>${isCancelled ? '-' : '€' + (commission.deposit || 0).toFixed(2)}</td>
+                          <td>${isCancelled ? '-' : '€' + (commission.base_price || 0).toFixed(2)}</td>
+                          <td>${isCancelled ? '-' : '€' + (commission.commission_amount || 0).toFixed(2)}</td>
+                          <td>${statusBadge}</td>
                           <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
                       `;
                       tbody.appendChild(row);
@@ -2291,9 +2299,13 @@
               const commissionerFilter = document.getElementById('commissionerFilter').value;
               
               return allCommissions.filter(commission => {
+                  const isCancelled = commission.status === 'cancelled';
                   if (statusFilter !== 'all') {
-                      if (statusFilter === 'paid' && !commission.commission_paid) return false;
-                      if (statusFilter === 'unpaid' && commission.commission_paid) return false;
+                      if (statusFilter === 'paid') {
+                          if (isCancelled || !commission.commission_paid) return false;
+                      } else if (statusFilter === 'unpaid') {
+                          if (isCancelled || commission.commission_paid) return false;
+                      }
                   }
                   
                   if (yearFilter) {

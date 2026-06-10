@@ -8396,16 +8396,15 @@ async def admin_commissions_list(request: Request):
                         c.name as commissioner_name, cb.base_price
                     FROM commission_bookings cb
                     LEFT JOIN commissioners c ON cb.commissioner_id = c.id
-                    WHERE cb.commission_amount > 0
-                    AND cb.status != 'cancelled'
+                    WHERE (cb.commission_amount > 0 OR cb.status = 'cancelled')
                 """
                 params = []
                 
                 if status:
                     if status == "paid":
-                        query += " AND cb.commission_paid = 1"
+                        query += " AND cb.commission_paid = 1 AND cb.status != 'cancelled'"
                     elif status == "unpaid":
-                        query += " AND cb.commission_paid = 0"
+                        query += " AND cb.commission_paid = 0 AND cb.status != 'cancelled'"
                 
                 if commissioner_id:
                     query += " AND cb.commissioner_id = ?"
@@ -9224,11 +9223,11 @@ async def admin_commissions_print_pdf(request: Request):
                         SELECT 
                             cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
                             cb.commission_amount, c.name as commissioner_name,
-                            cb.commission_signature, cb.commission_receiver_name, cb.commission_paid_date
+                            cb.commission_signature, cb.commission_receiver_name, cb.commission_paid_date,
+                            cb.status
                         FROM commission_bookings cb
                         LEFT JOIN commissioners c ON cb.commissioner_id = c.id
-                        WHERE cb.commission_amount > 0
-                        AND cb.status != 'cancelled'
+                        WHERE 1=1
                     """
                     params = []
                     
@@ -9258,11 +9257,11 @@ async def admin_commissions_print_pdf(request: Request):
                         SELECT 
                             cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
                             cb.commission_amount, c.name as commissioner_name,
-                            cb.commission_signature, cb.commission_receiver_name, cb.commission_paid_date
+                            cb.commission_signature, cb.commission_receiver_name, cb.commission_paid_date,
+                            cb.status
                         FROM commission_bookings cb
                         LEFT JOIN commissioners c ON cb.commissioner_id = c.id
-                        WHERE cb.commission_amount > 0
-                        AND cb.status != 'cancelled'
+                        WHERE 1=1
                     """
                     params = []
                     
@@ -9348,11 +9347,14 @@ async def admin_commissions_print_pdf(request: Request):
                 
                 days = (dropoff_date - pickup_date).days if pickup_date and dropoff_date else 0
                 
+                booking_status = row[9] if len(row) > 9 else None
+                is_cancelled = booking_status == 'cancelled'
                 commissioners_data[commissioner_name].append({
                     'voucher': row[1] or '-',
                     'pickup_date': pickup_date,
                     'days': days,
-                    'commission': row[4] if len(row) > 4 else 0
+                    'commission': 0 if is_cancelled else (row[4] if len(row) > 4 else 0),
+                    'cancelled': is_cancelled
                 })
             except Exception as e:
                 print(f"Error processing row: {row}, error: {e}")
@@ -9410,22 +9412,31 @@ async def admin_commissions_print_pdf(request: Request):
             total_commission = 0
             for comm in commissions:
                 date_str = comm['pickup_date'].strftime('%d/%m') if comm['pickup_date'] else '-'
-                commission_rounded = round(comm['commission'])
+                is_cancelled = comm.get('cancelled', False)
+                commission_rounded = 0 if is_cancelled else round(comm['commission'])
                 total_commission += commission_rounded
                 
-                data.append([
-                    comm['voucher'],
-                    date_str,
-                    str(comm['days']),
-                    f"{commission_rounded}€"
-                ])
+                if is_cancelled:
+                    data.append([
+                        f"{comm['voucher']} (Cancelada)",
+                        date_str,
+                        str(comm['days']),
+                        '0€'
+                    ])
+                else:
+                    data.append([
+                        comm['voucher'],
+                        date_str,
+                        str(comm['days']),
+                        f"{commission_rounded}€"
+                    ])
             
             # Add total row
             data.append(['', '', 'Total:', f"{round(total_commission)}€"])
             
             # Create table with better column widths
             table = Table(data, colWidths=[5*cm, 3.5*cm, 2.5*cm, 3.5*cm])
-            table.setStyle(TableStyle([
+            base_style = [
                 # Header
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#009cb6')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -9453,7 +9464,14 @@ async def admin_commissions_print_pdf(request: Request):
                 ('LINEABOVE', (0, -1), (-1, -1), 1.5, colors.HexColor('#009cb6')),
                 ('TOPPADDING', (0, -1), (-1, -1), 10),
                 ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-            ]))
+            ]
+            # Apply red colour to cancelled rows (data starts at index 1)
+            for idx, comm in enumerate(commissions):
+                if comm.get('cancelled', False):
+                    row_idx = idx + 1
+                    base_style.append(('TEXTCOLOR', (0, row_idx), (-1, row_idx), colors.HexColor('#cc0000')))
+                    base_style.append(('FONTNAME', (0, row_idx), (-1, row_idx), 'Helvetica-Oblique'))
+            table.setStyle(TableStyle(base_style))
             
             elements.append(table)
         
@@ -9653,10 +9671,11 @@ async def admin_commissions_export_excel(request: Request):
                             cb.pickup_date,
                             (cb.dropoff_date::date - cb.pickup_date::date) as days,
                             cb.base_price,
-                            cb.commission_amount
+                            cb.commission_amount,
+                            cb.status
                         FROM commission_bookings cb
                         JOIN commissioners c ON cb.commissioner_id = c.id
-                        WHERE cb.status != 'cancelled'
+                        WHERE 1=1
                     """
                     params = []
                     
@@ -9681,10 +9700,11 @@ async def admin_commissions_export_excel(request: Request):
                             cb.pickup_date,
                             CAST((julianday(cb.dropoff_date) - julianday(cb.pickup_date)) AS INTEGER) as days,
                             cb.base_price,
-                            cb.commission_amount
+                            cb.commission_amount,
+                            cb.status
                         FROM commission_bookings cb
                         JOIN commissioners c ON cb.commissioner_id = c.id
-                        WHERE cb.status != 'cancelled'
+                        WHERE 1=1
                     """
                     params = []
                     
@@ -9710,6 +9730,9 @@ async def admin_commissions_export_excel(request: Request):
         commissioner_totals = {}  # Store totals for each commissioner
         grand_total = 0  # Store grand total of all commissions
         
+        cancelled_font = Font(color="CC0000", italic=True)
+        cancelled_fill = PatternFill(start_color="FFF0F0", end_color="FFF0F0", fill_type="solid")
+        
         for row_data in commissioners_data:
             commissioner_name = row_data[0]
             voucher = row_data[1] or ''
@@ -9717,6 +9740,13 @@ async def admin_commissions_export_excel(request: Request):
             days = row_data[3] or 1
             base_price = float(row_data[4]) if row_data[4] else 0
             commission = float(row_data[5]) if row_data[5] else 0
+            booking_status = row_data[6] if len(row_data) > 6 else None
+            is_cancelled = booking_status == 'cancelled'
+            
+            if is_cancelled:
+                voucher = f"{voucher} (Cancelada)" if voucher else 'Cancelada'
+                base_price = 0
+                commission = 0
             
             # New commissioner - add header row
             if commissioner_name != current_commissioner:
@@ -9749,7 +9779,13 @@ async def admin_commissions_export_excel(request: Request):
             ws_comm[f'D{current_row}'].number_format = '#,##0.00'
             ws_comm[f'E{current_row}'].number_format = '#,##0'
             
-            # Update totals
+            # Apply cancelled style
+            if is_cancelled:
+                for col in ['A', 'B', 'C', 'D', 'E']:
+                    ws_comm[f'{col}{current_row}'].font = cancelled_font
+                    ws_comm[f'{col}{current_row}'].fill = cancelled_fill
+            
+            # Update totals (cancelled count as 0)
             commissioner_totals[current_commissioner] += commission
             grand_total += commission
             
