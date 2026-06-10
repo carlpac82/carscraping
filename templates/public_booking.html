@@ -883,29 +883,38 @@
     // ─── INIT ─────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
         await Promise.all([loadVehicleGroups(), loadPricing(), loadLocations(), loadScheduleSettings(), loadHotels()]);
-        setTodayDates();
-        populateTimeSlotsDefault(document.getElementById('pickupTime'));
-        populateTimeSlotsDefault(document.getElementById('dropoffTime'));
-        document.getElementById('pickupDate').addEventListener('change', onDatesChange);
-        document.getElementById('dropoffDate').addEventListener('change', onDatesChange);
+
+        // Definir datas iniciais DEPOIS de carregar scheduleSettings
+        setInitialDates();
+
+        // Quando muda a data de entrega: atualizar slots e recalcular dias
+        document.getElementById('pickupDate').addEventListener('change', () => {
+            const pd = document.getElementById('pickupDate').value;
+            // Forçar dropoffDate >= pickupDate
+            const dd = document.getElementById('dropoffDate');
+            if (dd.value < pd) { dd.value = pd; dd.min = pd; }
+            else { dd.min = pd; }
+            populateTimeSelect(document.getElementById('pickupTime'), pd, true);
+            onDatesChange();
+        });
+
+        // Quando muda a data de recolha: atualizar slots e recalcular dias
+        document.getElementById('dropoffDate').addEventListener('change', () => {
+            const dd = document.getElementById('dropoffDate').value;
+            populateTimeSelect(document.getElementById('dropoffTime'), dd, false);
+            onDatesChange();
+        });
+
+        // Quando muda a hora: recalcular dias
         document.getElementById('pickupTime').addEventListener('change', onDatesChange);
         document.getElementById('dropoffTime').addEventListener('change', onDatesChange);
+
+        // Copiar local de entrega para recolha se recolha vazia
         document.getElementById('pickupLocation').addEventListener('change', () => {
             const drop = document.getElementById('dropoffLocation');
             if (!drop.value) drop.value = document.getElementById('pickupLocation').value;
         });
-        document.getElementById('pickupDate').addEventListener('change', () => updateTimeSlots('pickupDate','pickupTime'));
-        document.getElementById('dropoffDate').addEventListener('change', () => updateTimeSlots('dropoffDate','dropoffTime'));
     });
-
-    function setTodayDates() {
-        const today = new Date();
-        const fmt = d => d.toISOString().split('T')[0];
-        document.getElementById('pickupDate').value = fmt(today);
-        document.getElementById('dropoffDate').value = fmt(today);
-        document.getElementById('pickupDate').min = fmt(today);
-        document.getElementById('dropoffDate').min = fmt(today);
-    }
 
     // ─── LOAD DATA ────────────────────────────────────────────
     async function loadVehicleGroups() {
@@ -942,10 +951,26 @@
 
     async function loadScheduleSettings() {
         try {
-            const res = await fetch('/api/schedule-settings');
+            const res = await fetch('/api/commissioners/schedule-settings');
             const data = await res.json();
-            if (data) scheduleSettings = data;
-        } catch(e) {}
+            if (data.ok && data.settings) {
+                scheduleSettings = data.settings;
+            } else {
+                throw new Error('no settings');
+            }
+        } catch(e) {
+            scheduleSettings = {
+                weekday_start_morning: "09:30",
+                weekday_end_morning: "12:30",
+                weekday_start_afternoon: "15:00",
+                weekday_end_afternoon: "17:00",
+                sunday_start_morning: "09:30",
+                sunday_end_morning: "12:30",
+                sunday_start_afternoon: "15:30",
+                sunday_end_afternoon: "17:00",
+                time_interval_minutes: 15
+            };
+        }
     }
 
     async function loadHotels() {
@@ -991,68 +1016,121 @@
     }
 
     // ─── TIME SLOTS ───────────────────────────────────────────
-    function populateTimeSlotsDefault(sel) {
-        const times = generateTimeSlots();
-        sel.innerHTML = '<option value="">Selecione a hora</option>';
-        times.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
-    }
 
-    function generateTimeSlots() {
-        if (!scheduleSettings) {
-            return ['09:30','10:00','10:30','11:00','11:30','12:00','12:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
-        }
+    // Gerar slots com intervalo da API (igual ao dashboard)
+    function generateRangeSlots(startTime, endTime, interval) {
+        if (!startTime || !endTime) return [];
         const slots = [];
-        const addRange = (start, end) => {
-            if (!start || !end) return;
-            let [h,m] = start.split(':').map(Number);
-            const [eh,em] = end.split(':').map(Number);
-            while (h*60+m <= eh*60+em) {
-                slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-                m += 30; if (m >= 60) { h++; m -= 60; }
-            }
-        };
-        addRange(scheduleSettings.weekday_start_morning, scheduleSettings.weekday_end_morning);
-        addRange(scheduleSettings.weekday_start_afternoon, scheduleSettings.weekday_end_afternoon);
+        const [sh, sm] = startTime.split(':').map(Number);
+        const [eh, em] = endTime.split(':').map(Number);
+        let cur = sh * 60 + sm;
+        const end = eh * 60 + em;
+        while (cur <= end) {
+            slots.push(String(Math.floor(cur/60)).padStart(2,'0') + ':' + String(cur%60).padStart(2,'0'));
+            cur += interval;
+        }
         return slots;
     }
 
+    // Gerar todos os slots para uma data concreta
     function generateTimeSlotsForDate(date) {
-        if (!scheduleSettings) return generateTimeSlots();
-        const day = date.getDay();
-        const isWeekend = day === 0 || day === 6;
-        const slots = [];
-        const addRange = (start, end) => {
-            if (!start || !end) return;
-            let [h,m] = start.split(':').map(Number);
-            const [eh,em] = end.split(':').map(Number);
-            while (h*60+m <= eh*60+em) {
-                slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-                m += 30; if (m >= 60) { h++; m -= 60; }
-            }
-        };
-        if (isWeekend) {
-            addRange(scheduleSettings.weekend_start_morning, scheduleSettings.weekend_end_morning);
-            addRange(scheduleSettings.weekend_start_afternoon, scheduleSettings.weekend_end_afternoon);
+        const ss = scheduleSettings || {};
+        const interval = ss.time_interval_minutes || 15;
+        const isSunday = date.getDay() === 0;
+        let slots;
+        if (isSunday) {
+            slots = [
+                ...generateRangeSlots(ss.sunday_start_morning, ss.sunday_end_morning, interval),
+                ...generateRangeSlots(ss.sunday_start_afternoon, ss.sunday_end_afternoon, interval)
+            ];
         } else {
-            addRange(scheduleSettings.weekday_start_morning, scheduleSettings.weekday_end_morning);
-            addRange(scheduleSettings.weekday_start_afternoon, scheduleSettings.weekday_end_afternoon);
+            slots = [
+                ...generateRangeSlots(ss.weekday_start_morning, ss.weekday_end_morning, interval),
+                ...generateRangeSlots(ss.weekday_start_afternoon, ss.weekday_end_afternoon, interval)
+            ];
         }
-        return slots.length ? slots : generateTimeSlots();
+        // fallback se vazio
+        if (!slots.length) {
+            slots = ['09:30','09:45','10:00','10:15','10:30','10:45','11:00','11:15','11:30','11:45',
+                     '12:00','12:15','12:30','15:00','15:15','15:30','15:45','16:00','16:15','16:30',
+                     '16:45','17:00'];
+        }
+        return slots;
     }
 
-    function updateTimeSlots(dateId, timeId) {
-        const dateVal = document.getElementById(dateId).value;
-        if (!dateVal) return;
-        const date = new Date(dateVal + 'T12:00:00');
-        const timeSel = document.getElementById(timeId);
-        const prev = timeSel.value;
-        timeSel.innerHTML = '<option value="">Selecione a hora</option>';
-        generateTimeSlotsForDate(date).forEach(t => {
+    // Popular select de hora para uma data, filtrando horas passadas se for hoje
+    function populateTimeSelect(timeSelect, dateStr, isPickup) {
+        const date = new Date(dateStr + 'T00:00:00');
+        let slots = generateTimeSlotsForDate(date);
+
+        // Se data = hoje e é o campo de entrega, filtrar horas já passadas (+ 30 min)
+        if (isPickup) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selDay = new Date(date);
+            selDay.setHours(0, 0, 0, 0);
+            if (selDay.getTime() === today.getTime()) {
+                const now = new Date();
+                const minTime = new Date(now.getTime() + 30 * 60 * 1000);
+                const minMin = minTime.getHours() * 60 + minTime.getMinutes();
+                slots = slots.filter(t => {
+                    const [h, m] = t.split(':').map(Number);
+                    return h * 60 + m >= minMin;
+                });
+            }
+        }
+
+        const prev = timeSelect.value;
+        timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
+        slots.forEach(t => {
             const o = document.createElement('option');
             o.value = t; o.textContent = t;
             if (t === prev) o.selected = true;
-            timeSel.appendChild(o);
+            timeSelect.appendChild(o);
         });
+        return slots;
+    }
+
+    // Verificar se hoje ainda tem horários disponíveis; se não, avançar data mínima para amanhã
+    function setInitialDates() {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const pickupDateEl = document.getElementById('pickupDate');
+        const dropoffDateEl = document.getElementById('dropoffDate');
+        const pickupTimeEl = document.getElementById('pickupTime');
+        const dropoffTimeEl = document.getElementById('dropoffTime');
+
+        // Testar se hoje ainda tem slots disponíveis
+        const todayDate = new Date(todayStr + 'T00:00:00');
+        let todaySlots = generateTimeSlotsForDate(todayDate);
+        const now = new Date();
+        const minTime = new Date(now.getTime() + 30 * 60 * 1000);
+        const minMin = minTime.getHours() * 60 + minTime.getMinutes();
+        todaySlots = todaySlots.filter(t => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m >= minMin;
+        });
+
+        let startDate;
+        if (todaySlots.length === 0) {
+            // Hoje fechado — usar amanhã
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            startDate = tomorrow.toISOString().split('T')[0];
+        } else {
+            startDate = todayStr;
+        }
+
+        pickupDateEl.min = todayStr;
+        dropoffDateEl.min = todayStr;
+        pickupDateEl.value = startDate;
+        dropoffDateEl.value = startDate;
+
+        // Popular time slots
+        populateTimeSelect(pickupTimeEl, startDate, true);
+        populateTimeSelect(dropoffTimeEl, startDate, false);
+
+        onDatesChange();
     }
 
     // ─── DATES CHANGE ─────────────────────────────────────────
@@ -1062,9 +1140,9 @@
         if (!pd || !dd) { document.getElementById('daysDisplay').textContent = '0 dias'; rentalDays = 0; return; }
         const p = new Date(pd + 'T00:00:00');
         const d = new Date(dd + 'T00:00:00');
-        // enforce dropoff >= pickup
         if (d < p) {
             document.getElementById('dropoffDate').value = pd;
+            document.getElementById('dropoffDate').min = pd;
             return onDatesChange();
         }
         const diff = Math.round((d - p) / 86400000);
@@ -1368,6 +1446,22 @@
                 return;
             }
             if (rentalDays <= 0) { showError('A data de recolha deve ser posterior à data de entrega.'); return; }
+
+            // Validar hora mínima se reserva for para hoje (igual ao dashboard)
+            const now = new Date();
+            const pickup = new Date(pd + 'T' + pt);
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const pickupDay = new Date(pickup.getFullYear(), pickup.getMonth(), pickup.getDate());
+            if (pickupDay.getTime() === today.getTime()) {
+                const minTime = new Date(now.getTime() + 30 * 60 * 1000);
+                if (pickup < minTime) {
+                    const mh = String(minTime.getHours()).padStart(2,'0');
+                    const mm = String(minTime.getMinutes()).padStart(2,'0');
+                    showError(`Para reservas no dia de hoje, a hora de entrega deve ser pelo menos ${mh}:${mm}.`);
+                    return;
+                }
+            }
+
             await renderVehicleGrid();
         }
 
@@ -1416,9 +1510,7 @@
         document.getElementById('errorAlert').style.display = 'none';
         document.getElementById('valueAdjustmentSection').style.display = 'none';
         document.getElementById('depositSection').style.display = 'none';
-        setTodayDates();
-        populateTimeSlotsDefault(document.getElementById('pickupTime'));
-        populateTimeSlotsDefault(document.getElementById('dropoffTime'));
+        setInitialDates();
     }
 
     function resetForm() {
