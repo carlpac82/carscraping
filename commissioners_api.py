@@ -900,7 +900,7 @@ def get_vehicle_groups_with_photos_v2(conn):
             cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
-                WHERE enabled = TRUE
+                WHERE enabled = 1
                 ORDER BY code
             """)
             rows = cursor.fetchall()
@@ -1130,7 +1130,7 @@ async def fix_car_groups():
         fixed = 0
         for code, brand, model, photo in official:
             cur.execute(
-                "UPDATE car_groups SET brand = %s, model = %s, photo_url = %s, enabled = TRUE WHERE code = %s",
+                "UPDATE car_groups SET brand = %s, model = %s, photo_url = %s, enabled = 1 WHERE code = %s",
                 (brand, model, photo, code)
             )
             fixed += cur.rowcount
