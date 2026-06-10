@@ -654,7 +654,7 @@ async def get_all_commissioners():
     cursor.execute("""
         SELECT c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
                c.default_location, c.commission_rate, c.is_hotel, c.public_token, c.public_slug,
-               (SELECT COUNT(*) FROM commissioner_bookings cb WHERE cb.commissioner_id = c.id) AS total_bookings
+               (SELECT COUNT(*) FROM commission_bookings cb WHERE cb.commissioner_id = c.id) AS total_bookings
         FROM commissioners c
         ORDER BY c.name
     """)
