@@ -1387,6 +1387,41 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.error(f"Error migrating rental_agreements: {e}")
         
+        # Migrate commissioners table: add public_token and public_slug for QR code links
+        try:
+            conn = _db_connect()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_token VARCHAR(32) UNIQUE")
+                cursor.execute("ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_slug VARCHAR(100)")
+                # Generate token+slug for existing commissioners that don't have one yet
+                cursor.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL")
+                rows = cursor.fetchall()
+                if rows:
+                    import secrets, unicodedata, re as _re
+                    def _slug(name):
+                        nfkd = unicodedata.normalize('NFKD', name)
+                        ascii_str = nfkd.encode('ascii', 'ignore').decode('ascii')
+                        return _re.sub(r'[^a-zA-Z0-9]+', '-', ascii_str).strip('-').lower() or 'agente'
+                    for row in rows:
+                        cid = row[0] if isinstance(row, tuple) else row['id']
+                        cname = row[1] if isinstance(row, tuple) else row['name']
+                        token = secrets.token_hex(8)
+                        slug = _slug(cname)
+                        cursor.execute(
+                            "UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s AND public_token IS NULL",
+                            (token, slug, cid)
+                        )
+                    logging.info(f"✅ Generated public tokens for {len(rows)} existing commissioners")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_commissioners_public_token ON commissioners(public_token)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_commissioners_public_slug ON commissioners(public_slug)")
+                conn.commit()
+                logging.info("✅ commissioners public_token migration completed")
+            finally:
+                conn.close()
+        except Exception as e:
+            logging.error(f"Error migrating commissioners public_token: {e}")
+
         # Apply performance indexes (ONLY worker 0)
         try:
             import apply_indexes
