@@ -62785,6 +62785,114 @@ async def public_booking_page(slug: str, token: str, request: Request):
         return _HR("<h2>Este link está inativo.</h2>", status_code=403)
     return templates.TemplateResponse("public_booking.html", {"request": request, "slug": slug, "token": token})
 
+
+@app.get("/api/public/commissioner/{slug}/{token}")
+async def api_public_commissioner_info(slug: str, token: str):
+    """Retorna info do comissionista para a página pública (sem autenticação)"""
+    from database import get_db as _pub_db
+    conn = _pub_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT id, name, enabled, default_location FROM commissioners WHERE public_token = %s AND public_slug = %s",
+            (token, slug)
+        )
+        row = cursor.fetchone()
+        conn.close()
+    except Exception:
+        try: conn.close()
+        except Exception: pass
+        return {"ok": False, "error": "Erro interno"}
+    if not row:
+        return {"ok": False, "error": "Link inválido ou expirado"}
+    cid, cname, enabled, default_loc = (row[0], row[1], row[2], row[3]) if isinstance(row, tuple) else (row['id'], row['name'], row['enabled'], row.get('default_location'))
+    if not enabled:
+        return {"ok": False, "error": "Este link está inativo"}
+    return {"ok": True, "commissioner": {"id": cid, "name": cname, "default_location": default_loc}}
+
+
+@app.post("/api/public/booking/{slug}/{token}")
+async def api_public_create_booking(slug: str, token: str, request: Request):
+    """Cria reserva via página pública QR code (sem autenticação)"""
+    from database import get_db as _pub_db
+    import secrets as _secrets
+    conn = _pub_db()
+    cursor = conn.cursor()
+    # Validate commissioner
+    try:
+        cursor.execute(
+            "SELECT id, name, enabled, voucher_prefix FROM commissioners WHERE public_token = %s AND public_slug = %s",
+            (token, slug)
+        )
+        row = cursor.fetchone()
+    except Exception:
+        conn.close()
+        return {"ok": False, "error": "Erro ao validar link"}
+    if not row:
+        conn.close()
+        return {"ok": False, "error": "Link inválido"}
+    cid, cname, enabled, vpfx = (row[0], row[1], row[2], row[3]) if isinstance(row, tuple) else (row['id'], row['name'], row['enabled'], row.get('voucher_prefix'))
+    if not enabled:
+        conn.close()
+        return {"ok": False, "error": "Link inativo"}
+    # Parse body
+    try:
+        body = await request.json()
+    except Exception:
+        conn.close()
+        return {"ok": False, "error": "Dados inválidos"}
+    # Generate voucher
+    prefix = (vpfx or cname[:3].upper()).rstrip('-')
+    rand = _secrets.token_hex(3).upper()
+    voucher = f"{prefix}-{rand}"
+    try:
+        cursor.execute("""
+            INSERT INTO commissioner_bookings
+                (commissioner_id, voucher_number, client_name, client_email, client_phone,
+                 pickup_date, pickup_time, dropoff_date, dropoff_time,
+                 pickup_location, dropoff_location, vehicle_group,
+                 insurance_type, extras, flight_number, language,
+                 observations, deposit, price, base_price,
+                 premium_insurance, road_tax, extras_total,
+                 total_amount, value_adjustment, rental_days, status, created_at)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending', NOW())
+        """, (
+            cid,
+            voucher,
+            body.get('client_name'),
+            body.get('client_email'),
+            body.get('client_phone'),
+            body.get('pickup_date'),
+            body.get('pickup_time'),
+            body.get('dropoff_date'),
+            body.get('dropoff_time'),
+            body.get('pickup_location'),
+            body.get('dropoff_location'),
+            body.get('vehicle_group'),
+            body.get('insurance_type', 'premium'),
+            str(body.get('extras', [])),
+            body.get('flight_number'),
+            body.get('language', 'pt'),
+            body.get('observations'),
+            body.get('deposit', 0),
+            body.get('price', 0),
+            body.get('base_price', 0),
+            body.get('premium_insurance', 0),
+            body.get('road_tax', 0),
+            body.get('extras_total', 0),
+            body.get('total_amount', 0),
+            body.get('value_adjustment', 0),
+            body.get('rental_days', 1),
+        ))
+        conn.commit()
+        conn.close()
+        return {"ok": True, "voucher_number": voucher}
+    except Exception as e:
+        try: conn.rollback(); conn.close()
+        except Exception: pass
+        return {"ok": False, "error": f"Erro ao criar reserva: {str(e)}"}
+
+
 # Rotas antigas mantidas para compatibilidade
 @app.get("/commissioner-login", response_class=HTMLResponse)
 async def commissioner_login_page(request: Request):

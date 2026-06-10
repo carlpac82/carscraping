@@ -559,13 +559,29 @@ async def get_all_commissioners():
     """Get all commissioners (admin only)"""
     conn = get_db()
     cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel, public_token, public_slug
-        FROM commissioners
-        ORDER BY name
-    """)
-    
+
+    # Ensure public_token / public_slug columns exist (idempotent, safe to run every time)
+    try:
+        cursor.execute("ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_token VARCHAR(32) UNIQUE")
+        cursor.execute("ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_slug VARCHAR(100)")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+
+    try:
+        cursor.execute("""
+            SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel, public_token, public_slug
+            FROM commissioners
+            ORDER BY name
+        """)
+    except Exception:
+        conn.rollback()
+        cursor.execute("""
+            SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel
+            FROM commissioners
+            ORDER BY name
+        """)
+
     commissioners = cursor.fetchall()
     conn.close()
     
