@@ -25,6 +25,19 @@ def generate_password(length=12):
     password = ''.join(secrets.choice(alphabet) for i in range(length))
     return password
 
+def generate_public_token(length=16):
+    """Generate a permanent public token for QR code links"""
+    return secrets.token_hex(length // 2)
+
+def name_to_slug(name: str) -> str:
+    """Convert commissioner name to URL-friendly slug"""
+    import unicodedata
+    import re
+    nfkd = unicodedata.normalize('NFKD', name)
+    ascii_str = nfkd.encode('ascii', 'ignore').decode('ascii')
+    slug = re.sub(r'[^a-zA-Z0-9]+', '-', ascii_str).strip('-').lower()
+    return slug or 'agente'
+
 router = APIRouter()
 
 # ============================================================
@@ -548,7 +561,7 @@ async def get_all_commissioners():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel, public_token, public_slug
         FROM commissioners
         ORDER BY name
     """)
@@ -570,6 +583,8 @@ async def get_all_commissioners():
             'default_location': comm[8] if len(comm) > 8 else None,
             'commission_rate': float(comm[9]) if len(comm) > 9 and comm[9] else 15.0,
             'is_hotel': comm[10] if len(comm) > 10 else False,
+            'public_token': comm[11] if len(comm) > 11 else None,
+            'public_slug': comm[12] if len(comm) > 12 else None,
             'total_bookings': 0
         })
     
@@ -591,16 +606,21 @@ async def create_commissioner(commissioner: CommissionerCreate):
     
     password_hash = hash_password(password)
     
+    # Generate public token and slug
+    public_token = generate_public_token()
+    public_slug = name_to_slug(commissioner.name)
+    
     try:
         # First insert without voucher_prefix to get the ID
         cursor.execute("""
-            INSERT INTO commissioners (name, email, phone, username, password_hash, commission_rate, enabled, is_hotel, default_location)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO commissioners (name, email, phone, username, password_hash, commission_rate, enabled, is_hotel, default_location, public_token, public_slug)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             commissioner.name, commissioner.email, commissioner.phone,
             commissioner.username, password_hash, commissioner.commission_rate, 
-            commissioner.enabled, commissioner.is_hotel, commissioner.default_location
+            commissioner.enabled, commissioner.is_hotel, commissioner.default_location,
+            public_token, public_slug
         ))
         
         commissioner_id = cursor.fetchone()[0]
@@ -621,8 +641,13 @@ async def create_commissioner(commissioner: CommissionerCreate):
         conn.commit()
         conn.close()
         
-        response = {"success": True, "id": commissioner_id, "voucher_prefix": voucher_prefix}
-        # Não incluir password na resposta por segurança
+        response = {
+            "success": True,
+            "id": commissioner_id,
+            "voucher_prefix": voucher_prefix,
+            "public_token": public_token,
+            "public_slug": public_slug
+        }
         
         return response
     except Exception as e:
@@ -2115,5 +2140,168 @@ async def update_admin_schedule_settings(commissioner_id: int, settings: Schedul
     except Exception as e:
         import traceback
         print(f"Error in update_admin_schedule_settings: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+# ============================================================
+# PUBLIC BOOKING ENDPOINTS (no authentication required)
+# ============================================================
+
+@router.get("/api/public/commissioner/{slug}/{token}")
+async def get_public_commissioner(slug: str, token: str):
+    """Get commissioner info for public booking page (no auth required)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT id, name, default_location, commission_rate, enabled, voucher_prefix
+            FROM commissioners
+            WHERE public_token = %s AND public_slug = %s
+        """, (token, slug))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return JSONResponse({"ok": False, "error": "Link inválido"}, status_code=404)
+        comm = dict(row) if hasattr(row, 'keys') else {
+            'id': row[0], 'name': row[1], 'default_location': row[2],
+            'commission_rate': float(row[3]) if row[3] else 20.0,
+            'enabled': row[4], 'voucher_prefix': row[5]
+        }
+        if not comm['enabled']:
+            return JSONResponse({"ok": False, "error": "Link inativo"}, status_code=403)
+        return {"ok": True, "commissioner": {
+            "id": comm['id'],
+            "name": comm['name'],
+            "default_location": comm['default_location'],
+        }}
+    except Exception as e:
+        conn.close()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.post("/api/public/booking/{slug}/{token}")
+async def create_public_booking(slug: str, token: str, booking: BookingCreate):
+    """Create a booking from public QR code link (no auth required)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT id, name, email, voucher_prefix, commission_rate, enabled
+            FROM commissioners
+            WHERE public_token = %s AND public_slug = %s
+        """, (token, slug))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Link inválido"}, status_code=404)
+        commissioner_data = dict(row) if hasattr(row, 'keys') else {
+            'id': row[0], 'name': row[1], 'email': row[2],
+            'voucher_prefix': row[3],
+            'commission_rate': float(row[4]) if row[4] else 20.0,
+            'enabled': row[5]
+        }
+        if not commissioner_data['enabled']:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Link inativo"}, status_code=403)
+
+        commissioner_id = commissioner_data['id']
+        voucher_number = generate_voucher_number(commissioner_id, commissioner_data['voucher_prefix'])
+
+        commission_rate = float(commissioner_data.get('commission_rate', 20.0))
+        cutoff_date = date(2026, 4, 1)
+
+        pickup_date_obj = booking.pickup_date if isinstance(booking.pickup_date, date) else datetime.strptime(str(booking.pickup_date), '%Y-%m-%d').date()
+        dropoff_date_obj = booking.dropoff_date if isinstance(booking.dropoff_date, date) else datetime.strptime(str(booking.dropoff_date), '%Y-%m-%d').date()
+        pickup_time_obj = booking.pickup_time if isinstance(booking.pickup_time, time) else datetime.strptime(str(booking.pickup_time or '00:00'), '%H:%M').time() if booking.pickup_time else time(0, 0)
+        dropoff_time_obj = booking.dropoff_time if isinstance(booking.dropoff_time, time) else datetime.strptime(str(booking.dropoff_time or '00:00'), '%H:%M').time() if booking.dropoff_time else time(0, 0)
+
+        pickup_dt = datetime.combine(pickup_date_obj, pickup_time_obj)
+        dropoff_dt = datetime.combine(dropoff_date_obj, dropoff_time_obj)
+        total_minutes = (dropoff_dt - pickup_dt).total_seconds() / 60
+
+        if total_minutes <= 0:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Dropoff date must be after pickup date")
+
+        days_diff = int(total_minutes // 1440)
+        extra_minutes = total_minutes % 1440
+        correct_rental_days = max(days_diff + (1 if extra_minutes > 0 else 0), 1)
+
+        month = pickup_date_obj.month
+        if month in [11, 12, 1, 2, 3]:
+            season = 'low'
+        elif month in [4, 5, 6, 9, 10]:
+            season = 'mid'
+        else:
+            season = 'high'
+
+        if correct_rental_days <= 7:
+            price_key = f"commissioner_season_{booking.vehicle_group}_{season}_day{correct_rental_days}"
+            cursor.execute("SELECT setting_value FROM commissioner_settings WHERE setting_key = %s", (price_key,))
+            price_row = cursor.fetchone()
+            correct_base_price = float(price_row[0]) if price_row and price_row[0] else booking.base_price
+        else:
+            price_key = f"commissioner_season_{booking.vehicle_group}_{season}_day7"
+            cursor.execute("SELECT setting_value FROM commissioner_settings WHERE setting_key = %s", (price_key,))
+            price_row = cursor.fetchone()
+            if price_row and price_row[0]:
+                correct_base_price = (float(price_row[0]) / 7) * correct_rental_days
+            else:
+                correct_base_price = booking.base_price
+
+        if pickup_date_obj > cutoff_date:
+            commission_amount = correct_base_price * (commission_rate / 100.0)
+        else:
+            commission_amount = (correct_base_price / 1.23) * 0.15
+
+        cursor.execute("""
+            INSERT INTO commission_bookings (
+                commissioner_id, voucher_number,
+                client_name, client_email, client_phone, hotel, room_number,
+                pickup_date, pickup_time, dropoff_date, dropoff_time,
+                pickup_location, dropoff_location,
+                vehicle_group, insurance_type, extras,
+                flight_number, language, observations, deposit, price,
+                base_price, premium_insurance, road_tax, extras_total, rental_days,
+                total_amount, value_adjustment, commission_rate, commission_amount, status
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            ) RETURNING id
+        """, (
+            commissioner_id, voucher_number,
+            booking.client_name, booking.client_email, booking.client_phone, booking.hotel, booking.room_number,
+            booking.pickup_date, booking.pickup_time, booking.dropoff_date, booking.dropoff_time,
+            booking.pickup_location, booking.dropoff_location,
+            booking.vehicle_group, booking.insurance_type, json.dumps(booking.extras),
+            booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
+            correct_base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, correct_rental_days,
+            booking.total_amount, booking.value_adjustment, commission_rate, commission_amount, 'pending'
+        ))
+
+        booking_id = cursor.fetchone()[0]
+        conn.commit()
+        conn.close()
+
+        try:
+            from voucher_api import get_booking_data, send_new_booking_notification
+            import asyncio
+            booking_data = get_booking_data(booking_id)
+            if booking_data:
+                asyncio.create_task(send_new_booking_notification(booking_id, booking_data))
+        except Exception as e:
+            print(f"[PUBLIC BOOKING] Error sending notification: {e}")
+
+        return {
+            "ok": True,
+            "booking_id": booking_id,
+            "voucher_number": voucher_number,
+            "commissioner_name": commissioner_data['name']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.close()
+        print(f"[PUBLIC BOOKING] Error: {e}")
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

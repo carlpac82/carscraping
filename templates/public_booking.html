@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva de Viatura - Auto Prudente</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; min-height: 100vh; }
+
+        .header {
+            background: #009cb6;
+            color: white;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .header img { height: 44px; }
+        .header-title { font-size: 18px; font-weight: 600; }
+        .header-subtitle { font-size: 13px; opacity: 0.85; }
+
+        .page-container { max-width: 880px; margin: 30px auto; padding: 0 16px 60px; }
+
+        .success-screen {
+            display: none;
+            background: white;
+            border-radius: 16px;
+            padding: 50px 30px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .success-screen .check-icon {
+            width: 72px; height: 72px;
+            background: #d1fae5; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+        }
+        .success-screen h2 { font-size: 22px; color: #1f2937; margin-bottom: 10px; }
+        .success-screen p { color: #6b7280; font-size: 15px; margin-bottom: 6px; }
+        .success-screen .voucher { font-size: 20px; font-weight: 700; color: #009cb6; margin: 14px 0; }
+        .btn-new { background: #009cb6; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; cursor: pointer; margin-top: 20px; }
+        .btn-new:hover { background: #0077a3; }
+
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+            margin-bottom: 20px;
+        }
+        .form-card h3 {
+            font-size: 16px; font-weight: 600; color: #1f2937;
+            margin-bottom: 20px; padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .form-card h3::before {
+            content: ''; width: 4px; height: 20px;
+            background: #009cb6; border-radius: 2px; display: block;
+        }
+
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .vehicle-card {
+            border: 2px solid #e5e7eb; border-radius: 12px;
+            padding: 0; cursor: pointer; transition: all 0.2s;
+            background: white; overflow: hidden;
+        }
+        .vehicle-card:hover { border-color: #009cb6; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,156,182,0.12); }
+        .vehicle-card.selected { border-color: #FFA500; border-width: 3px; box-shadow: 0 4px 12px rgba(255,165,0,0.3); }
+        .vehicle-card.unavailable { border-color: #dc2626; opacity: 0.7; cursor: not-allowed; }
+        .vehicle-card.unavailable:hover { transform: none; box-shadow: none; }
+        .vehicle-card-header { background: #f8fafc; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; }
+        .vehicle-group { font-size: 13px; font-weight: 700; color: #009cb6; }
+        .vehicle-price { font-size: 12px; font-weight: 700; color: #1f2937; }
+        .vehicle-card img { width: 100%; height: 90px; object-fit: contain; padding: 8px; }
+        .vehicle-model { font-size: 11px; color: #374151; font-weight: 600; text-align: center; padding: 0 8px 4px; }
+        .vehicle-features { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px 8px 10px; justify-content: center; }
+        .vehicle-feature { font-size: 10px; background: #f1f5f9; border-radius: 4px; padding: 2px 6px; color: #64748b; }
+        .unavailable-badge { background: #dc2626; color: white; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 4px; text-align: center; margin: 0 8px 8px; display: block; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .vehicle-grid { grid-template-columns: repeat(2, 1fr); } }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #374151; }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 10px 12px; border: 1.5px solid #d1d5db; border-radius: 8px;
+            font-size: 14px; outline: none; transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #009cb6; }
+
+        .extras-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+        .extra-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 13px; }
+        .extra-item:hover { border-color: #009cb6; background: #f0fafc; }
+        .extra-item.selected { border-color: #009cb6; background: #e0f5f9; }
+        .extra-item input[type=checkbox] { accent-color: #009cb6; width: 16px; height: 16px; }
+
+        .price-summary {
+            background: linear-gradient(135deg, #009cb6, #0077a3);
+            color: white; border-radius: 12px; padding: 20px 24px;
+            margin-top: 4px;
+        }
+        .price-summary h3 { font-size: 16px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.3); }
+        .price-summary h3::before { background: white; }
+        .price-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; opacity: 0.9; }
+        .price-row.total { font-size: 18px; font-weight: 700; opacity: 1; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); }
+
+        .btn-submit {
+            width: 100%; padding: 16px; background: #009cb6; color: white;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: background 0.2s; margin-top: 4px;
+        }
+        .btn-submit:hover { background: #0077a3; }
+        .btn-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+
+        .insurance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .insurance-card { border: 2px solid #e5e7eb; border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.2s; }
+        .insurance-card:hover { border-color: #009cb6; }
+        .insurance-card.selected { border-color: #009cb6; background: #f0fafc; }
+        .insurance-card h4 { font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 4px; }
+        .insurance-card p { font-size: 12px; color: #6b7280; }
+        .insurance-card .price { font-size: 13px; font-weight: 700; color: #009cb6; margin-top: 6px; }
+
+        .alert { padding: 14px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; display: none; }
+        .alert.error { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; display: flex; }
+        .alert.info { background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; display: flex; }
+
+        .loading-spinner { display: none; text-align: center; padding: 20px; color: #009cb6; }
+
+        .days-badge { background: #009cb6; color: white; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; display: inline-block; }
+
+        .language-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+        .lang-btn { padding: 8px 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; font-weight: 600; color: #374151; transition: all 0.2s; }
+        .lang-btn.selected { border-color: #009cb6; background: #e0f5f9; color: #009cb6; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <img src="/static/ap-heather.png" alt="Auto Prudente">
+    <div>
+        <div class="header-title">Reserva de Viatura</div>
+        <div class="header-subtitle" id="commissionerSubtitle">Auto Prudente</div>
+    </div>
+</div>
+
+<div class="page-container">
+    <div class="alert error" id="errorAlert"></div>
+
+    <!-- Sucesso -->
+    <div class="success-screen" id="successScreen">
+        <div class="check-icon">✅</div>
+        <h2>Reserva Confirmada!</h2>
+        <p>A sua reserva foi criada com sucesso.</p>
+        <p>Receberá um email de confirmação em breve.</p>
+        <div class="voucher" id="successVoucher"></div>
+        <p style="font-size:13px;color:#9ca3af;">Guarde este número de voucher para referência.</p>
+        <button class="btn-new" onclick="resetForm()">Fazer Nova Reserva</button>
+    </div>
+
+    <!-- Formulário -->
+    <div id="bookingForm">
+
+        <!-- Datas e Locais -->
+        <div class="form-card">
+            <h3>Datas e Locais</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Local de Levantamento *</label>
+                    <select id="pickupLocation">
+                        <option value="">Selecionar...</option>
+                        <option value="Aeroporto de Faro">Aeroporto de Faro</option>
+                        <option value="Loja Auto Prudente - Faro">Loja Auto Prudente - Faro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Local de Devolução *</label>
+                    <select id="dropoffLocation">
+                        <option value="">Selecionar...</option>
+                        <option value="Aeroporto de Faro">Aeroporto de Faro</option>
+                        <option value="Loja Auto Prudente - Faro">Loja Auto Prudente - Faro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data de Levantamento *</label>
+                    <input type="date" id="pickupDate" onchange="onDatesChange()">
+                </div>
+                <div class="form-group">
+                    <label>Hora de Levantamento *</label>
+                    <select id="pickupTime" onchange="onDatesChange()"></select>
+                </div>
+                <div class="form-group">
+                    <label>Data de Devolução *</label>
+                    <input type="date" id="dropoffDate" onchange="onDatesChange()">
+                </div>
+                <div class="form-group">
+                    <label>Hora de Devolução *</label>
+                    <select id="dropoffTime" onchange="onDatesChange()"></select>
+                </div>
+            </div>
+            <div style="margin-top:12px;" id="daysInfo"></div>
+        </div>
+
+        <!-- Veículos -->
+        <div class="form-card" id="vehicleSection" style="display:none;">
+            <h3>Escolha a Viatura</h3>
+            <div class="loading-spinner" id="vehicleLoading">A carregar viaturas...</div>
+            <div class="vehicle-grid" id="vehicleGrid"></div>
+        </div>
+
+        <!-- Seguro -->
+        <div class="form-card" id="insuranceSection" style="display:none;">
+            <h3>Tipo de Seguro</h3>
+            <div class="insurance-grid">
+                <div class="insurance-card selected" id="ins-premium" onclick="selectInsurance('premium')">
+                    <h4>🛡️ Seguro Premium</h4>
+                    <p>Cobertura total, sem franquia</p>
+                    <div class="price" id="ins-premium-price">Incluído</div>
+                </div>
+                <div class="insurance-card" id="ins-basic" onclick="selectInsurance('basic')">
+                    <h4>☂️ Seguro Básico</h4>
+                    <p>Cobertura básica com franquia</p>
+                    <div class="price" id="ins-basic-price">Incluído</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extras -->
+        <div class="form-card" id="extrasSection" style="display:none;">
+            <h3>Extras</h3>
+            <div class="extras-grid" id="extrasGrid"></div>
+        </div>
+
+        <!-- Dados do Cliente -->
+        <div class="form-card" id="clientSection" style="display:none;">
+            <h3>Dados do Cliente</h3>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="clientName" placeholder="Nome do cliente">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="clientEmail" placeholder="email@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="tel" id="clientPhone" placeholder="+351 ...">
+                </div>
+                <div class="form-group">
+                    <label>Número de Voo</label>
+                    <input type="text" id="flightNumber" placeholder="Ex: FR1234">
+                </div>
+                <div class="form-group">
+                    <label>Depósito (€)</label>
+                    <input type="number" id="depositAmount" value="0" min="0" step="0.01">
+                </div>
+                <div class="form-group full-width">
+                    <label>Observações</label>
+                    <textarea id="observations" rows="3" placeholder="Informações adicionais..."></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <label>Idioma de Preferência</label>
+                    <div class="language-selector">
+                        <button class="lang-btn selected" onclick="selectLanguage('pt', this)">🇵🇹 PT</button>
+                        <button class="lang-btn" onclick="selectLanguage('en', this)">🇬🇧 EN</button>
+                        <button class="lang-btn" onclick="selectLanguage('es', this)">🇪🇸 ES</button>
+                        <button class="lang-btn" onclick="selectLanguage('de', this)">🇩🇪 DE</button>
+                        <button class="lang-btn" onclick="selectLanguage('fr', this)">🇫🇷 FR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumo Preço -->
+        <div class="price-summary" id="priceSummary" style="display:none;">
+            <h3 style="color:white;border-bottom:1px solid rgba(255,255,255,0.3);">Resumo da Reserva</h3>
+            <div class="price-row"><span>Aluguer (<span id="summaryDays">0</span> dias)</span><span id="summaryBase">€0.00</span></div>
+            <div class="price-row" id="summaryInsRow"><span>Seguro Premium</span><span id="summaryIns">€0.00</span></div>
+            <div class="price-row" id="summaryRoadRow"><span>Road Tax</span><span id="summaryRoad">€0.00</span></div>
+            <div class="price-row" id="summaryExtrasRow"><span>Extras</span><span id="summaryExtras">€0.00</span></div>
+            <div class="price-row total"><span>Total</span><span id="summaryTotal">€0.00</span></div>
+        </div>
+
+        <button class="btn-submit" id="submitBtn" style="display:none;" onclick="submitBooking()">
+            Confirmar Reserva
+        </button>
+
+    </div>
+</div>
+
+<script>
+    const SLUG = "{{ slug }}";
+    const TOKEN = "{{ token }}";
+    const BASE_URL = "";
+
+    let commissionerInfo = null;
+    let selectedVehicle = null;
+    let selectedInsurance = 'premium';
+    let selectedLanguage = 'pt';
+    let selectedExtras = [];
+    let pricingData = {};
+    let extrasData = [];
+    let rentalDays = 0;
+    let scheduleData = null;
+
+    // ─── Init ───────────────────────────────────────────────
+    async function init() {
+        try {
+            const res = await fetch(`/api/public/commissioner/${SLUG}/${TOKEN}`);
+            const data = await res.json();
+            if (!data.ok) { showError(data.error || 'Link inválido'); return; }
+            commissionerInfo = data.commissioner;
+            document.getElementById('commissionerSubtitle').textContent = commissionerInfo.name;
+            if (commissionerInfo.default_location) {
+                ['pickupLocation','dropoffLocation'].forEach(id => {
+                    const sel = document.getElementById(id);
+                    for (let opt of sel.options) {
+                        if (opt.value === commissionerInfo.default_location) { opt.selected = true; break; }
+                    }
+                });
+            }
+            await Promise.all([loadSchedule(), loadExtras(), loadPricing()]);
+            populateTimeslots('pickupTime');
+            populateTimeslots('dropoffTime');
+            setMinDates();
+        } catch(e) {
+            showError('Erro ao carregar. Por favor tente novamente.');
+        }
+    }
+
+    function setMinDates() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('pickupDate').min = today;
+        document.getElementById('dropoffDate').min = today;
+    }
+
+    // ─── Schedule ───────────────────────────────────────────
+    async function loadSchedule() {
+        try {
+            const res = await fetch('/api/commissioners/schedule-settings');
+            const data = await res.json();
+            if (data.ok) scheduleData = data;
+        } catch(e) {}
+    }
+
+    function populateTimeslots(selectId) {
+        const sel = document.getElementById(selectId);
+        sel.innerHTML = '<option value="">Selecionar hora...</option>';
+        for (let h = 7; h <= 21; h++) {
+            ['00','30'].forEach(m => {
+                const val = `${String(h).padStart(2,'0')}:${m}`;
+                sel.innerHTML += `<option value="${val}">${val}</option>`;
+            });
+        }
+    }
+
+    // ─── Pricing ────────────────────────────────────────────
+    async function loadPricing() {
+        try {
+            const res = await fetch('/api/commissioners/pricing');
+            const data = await res.json();
+            if (data.ok) pricingData = data.pricing || {};
+        } catch(e) {}
+    }
+
+    async function loadExtras() {
+        try {
+            const res = await fetch('/api/commissioners/extras');
+            const data = await res.json();
+            if (data.ok) { extrasData = data.extras || []; }
+        } catch(e) {}
+    }
+
+    // ─── Dates ──────────────────────────────────────────────
+    function onDatesChange() {
+        const pd = document.getElementById('pickupDate').value;
+        const dd = document.getElementById('dropoffDate').value;
+        const pt = document.getElementById('pickupTime').value;
+        const dt = document.getElementById('dropoffTime').value;
+        if (!pd || !dd || !pt || !dt) { rentalDays = 0; document.getElementById('daysInfo').innerHTML = ''; return; }
+
+        const pickupDt = new Date(`${pd}T${pt}`);
+        const dropoffDt = new Date(`${dd}T${dt}`);
+        const diffMin = (dropoffDt - pickupDt) / 60000;
+        if (diffMin <= 0) { document.getElementById('daysInfo').innerHTML = '<span style="color:#dc2626;font-size:13px;">A data de devolução deve ser posterior à de levantamento.</span>'; rentalDays = 0; return; }
+
+        const fullDays = Math.floor(diffMin / 1440);
+        const extra = diffMin % 1440;
+        rentalDays = Math.max(fullDays + (extra > 0 ? 1 : 0), 1);
+
+        const season = getSeason(pickupDt.getMonth() + 1);
+        document.getElementById('daysInfo').innerHTML = `<span class="days-badge">${rentalDays} dia${rentalDays !== 1 ? 's' : ''}</span> <span style="font-size:12px;color:#6b7280;margin-left:6px;">Época: ${season === 'low' ? 'Baixa' : season === 'mid' ? 'Média' : 'Alta'}</span>`;
+
+        document.getElementById('vehicleSection').style.display = 'block';
+        loadVehicles(season);
+    }
+
+    function getSeason(month) {
+        if ([11,12,1,2,3].includes(month)) return 'low';
+        if ([4,5,6,9,10].includes(month)) return 'mid';
+        return 'high';
+    }
+
+    // ─── Vehicles ───────────────────────────────────────────
+    async function loadVehicles(season) {
+        const grid = document.getElementById('vehicleGrid');
+        const loading = document.getElementById('vehicleLoading');
+        grid.innerHTML = '';
+        loading.style.display = 'block';
+        try {
+            const pd = document.getElementById('pickupDate').value;
+            const pt = document.getElementById('pickupTime').value;
+            const dd = document.getElementById('dropoffDate').value;
+            const dt = document.getElementById('dropoffTime').value;
+            const res = await fetch(`/api/commissioners/vehicles?pickup_date=${pd}&pickup_time=${pt}&dropoff_date=${dd}&dropoff_time=${dt}`);
+            const data = await res.json();
+            loading.style.display = 'none';
+            const groups = data.ok ? (data.vehicle_groups || []) : [];
+            if (groups.length === 0) { grid.innerHTML = '<p style="color:#6b7280;font-size:14px;">Nenhuma viatura disponível para estas datas.</p>'; return; }
+            groups.forEach(g => {
+                const price = getPrice(g.code, season);
+                const available = g.available !== false;
+                const card = document.createElement('div');
+                card.className = 'vehicle-card' + (!available ? ' unavailable' : '');
+                card.innerHTML = `
+                    <div class="vehicle-card-header">
+                        <span class="vehicle-group">${g.code}</span>
+                        <span class="vehicle-price">${price ? '€' + price.toFixed(0) : ''}</span>
+                    </div>
+                    <img src="${g.image || '/static/car-placeholder.png'}" alt="${g.name}" onerror="this.src='/static/car-placeholder.png'">
+                    <div class="vehicle-model">${g.name}</div>
+                    <div class="vehicle-features">
+                        <span class="vehicle-feature">👤 ${g.seats}</span>
+                        <span class="vehicle-feature">🚪 ${g.doors}</span>
+                        ${g.ac ? '<span class="vehicle-feature">❄️ AC</span>' : ''}
+                        <span class="vehicle-feature">${g.transmission === 'automatic' ? '⚙️ Auto' : '🔧 Manual'}</span>
+                    </div>
+                    ${!available ? '<span class="unavailable-badge">Indisponível</span>' : ''}
+                `;
+                if (available) card.onclick = () => selectVehicle(g.code, card, price, season);
+                grid.appendChild(card);
+            });
+        } catch(e) { loading.style.display = 'none'; }
+    }
+
+    function getPrice(code, season) {
+        const days = Math.min(rentalDays, 7);
+        const key = `commissioner_season_${code}_${season}_day${days}`;
+        return pricingData[key] ? parseFloat(pricingData[key]) : null;
+    }
+
+    function selectVehicle(code, card, price, season) {
+        document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedVehicle = code;
+        document.getElementById('insuranceSection').style.display = 'block';
+        document.getElementById('extrasSection').style.display = 'block';
+        document.getElementById('clientSection').style.display = 'block';
+        renderExtras();
+        updatePriceSummary();
+    }
+
+    function selectInsurance(type) {
+        selectedInsurance = type;
+        document.getElementById('ins-premium').classList.toggle('selected', type === 'premium');
+        document.getElementById('ins-basic').classList.toggle('selected', type === 'basic');
+        updatePriceSummary();
+    }
+
+    // ─── Extras ─────────────────────────────────────────────
+    function renderExtras() {
+        const grid = document.getElementById('extrasGrid');
+        grid.innerHTML = '';
+        extrasData.forEach(ex => {
+            const div = document.createElement('div');
+            div.className = 'extra-item';
+            div.innerHTML = `<input type="checkbox" id="ex-${ex.id}" onchange="toggleExtra('${ex.id}', ${ex.price || 0})"><label for="ex-${ex.id}" style="cursor:pointer;">${ex.name} ${ex.price ? '(+€' + parseFloat(ex.price).toFixed(2) + ')' : ''}</label>`;
+            grid.appendChild(div);
+        });
+    }
+
+    function toggleExtra(id, price) {
+        const cb = document.getElementById(`ex-${id}`);
+        const div = cb.closest('.extra-item');
+        if (cb.checked) {
+            div.classList.add('selected');
+            selectedExtras.push({ id, price: parseFloat(price) });
+        } else {
+            div.classList.remove('selected');
+            selectedExtras = selectedExtras.filter(e => e.id !== id);
+        }
+        updatePriceSummary();
+    }
+
+    // ─── Price ──────────────────────────────────────────────
+    function updatePriceSummary() {
+        if (!selectedVehicle || !rentalDays) return;
+        const pd = document.getElementById('pickupDate').value;
+        const season = pd ? getSeason(new Date(pd).getMonth() + 1) : 'mid';
+        const basePrice = getPrice(selectedVehicle, season) || 0;
+        const extrasTotal = selectedExtras.reduce((s, e) => s + e.price, 0);
+        const roadTax = 0;
+        const premiumIns = selectedInsurance === 'premium' ? parseFloat(pricingData['commissioner_premium_insurance'] || 0) : 0;
+        const total = basePrice + extrasTotal + roadTax + premiumIns;
+
+        document.getElementById('summaryDays').textContent = rentalDays;
+        document.getElementById('summaryBase').textContent = '€' + basePrice.toFixed(2);
+        document.getElementById('summaryIns').textContent = '€' + premiumIns.toFixed(2);
+        document.getElementById('summaryExtras').textContent = '€' + extrasTotal.toFixed(2);
+        document.getElementById('summaryTotal').textContent = '€' + total.toFixed(2);
+        document.getElementById('summaryInsRow').style.display = premiumIns > 0 ? 'flex' : 'none';
+        document.getElementById('summaryExtrasRow').style.display = extrasTotal > 0 ? 'flex' : 'none';
+        document.getElementById('summaryRoadRow').style.display = 'none';
+        document.getElementById('priceSummary').style.display = 'block';
+        document.getElementById('submitBtn').style.display = 'block';
+    }
+
+    // ─── Language ────────────────────────────────────────────
+    function selectLanguage(lang, btn) {
+        selectedLanguage = lang;
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    }
+
+    // ─── Submit ─────────────────────────────────────────────
+    async function submitBooking() {
+        const name = document.getElementById('clientName').value.trim();
+        const email = document.getElementById('clientEmail').value.trim();
+        const pickupDate = document.getElementById('pickupDate').value;
+        const pickupTime = document.getElementById('pickupTime').value;
+        const dropoffDate = document.getElementById('dropoffDate').value;
+        const dropoffTime = document.getElementById('dropoffTime').value;
+        const pickupLocation = document.getElementById('pickupLocation').value;
+        const dropoffLocation = document.getElementById('dropoffLocation').value;
+
+        if (!name) { showError('Por favor insira o nome do cliente.'); return; }
+        if (!email) { showError('Por favor insira o email do cliente.'); return; }
+        if (!selectedVehicle) { showError('Por favor selecione uma viatura.'); return; }
+        if (!pickupDate || !pickupTime || !dropoffDate || !dropoffTime) { showError('Por favor preencha as datas e horas.'); return; }
+        if (!pickupLocation || !dropoffLocation) { showError('Por favor selecione os locais.'); return; }
+
+        const season = getSeason(new Date(pickupDate).getMonth() + 1);
+        const basePrice = getPrice(selectedVehicle, season) || 0;
+        const extrasTotal = selectedExtras.reduce((s, e) => s + e.price, 0);
+        const premiumIns = selectedInsurance === 'premium' ? parseFloat(pricingData['commissioner_premium_insurance'] || 0) : 0;
+        const total = basePrice + extrasTotal + premiumIns;
+        const deposit = parseFloat(document.getElementById('depositAmount').value) || 0;
+
+        const extrasPayload = selectedExtras.map(e => ({ id: e.id, price: e.price, quantity: 1 }));
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = 'A processar...';
+
+        try {
+            const res = await fetch(`/api/public/booking/${SLUG}/${TOKEN}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    client_name: name,
+                    client_email: email,
+                    client_phone: document.getElementById('clientPhone').value.trim() || null,
+                    hotel: null,
+                    room_number: null,
+                    pickup_date: pickupDate,
+                    pickup_time: pickupTime,
+                    dropoff_date: dropoffDate,
+                    dropoff_time: dropoffTime,
+                    pickup_location: pickupLocation,
+                    dropoff_location: dropoffLocation,
+                    vehicle_group: selectedVehicle,
+                    insurance_type: selectedInsurance,
+                    extras: extrasPayload,
+                    flight_number: document.getElementById('flightNumber').value.trim() || null,
+                    language: selectedLanguage,
+                    observations: document.getElementById('observations').value.trim() || null,
+                    deposit: deposit,
+                    price: total,
+                    base_price: basePrice,
+                    premium_insurance: premiumIns,
+                    road_tax: 0,
+                    extras_total: extrasTotal,
+                    rental_days: rentalDays,
+                    total_amount: total,
+                    value_adjustment: 0
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                document.getElementById('bookingForm').style.display = 'none';
+                document.getElementById('successVoucher').textContent = data.voucher_number || '';
+                document.getElementById('successScreen').style.display = 'block';
+            } else {
+                showError(data.error || 'Erro ao criar reserva. Tente novamente.');
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Reserva';
+            }
+        } catch(e) {
+            showError('Erro de ligação. Verifique a sua internet e tente novamente.');
+            btn.disabled = false;
+            btn.textContent = 'Confirmar Reserva';
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('successScreen').style.display = 'none';
+        document.getElementById('bookingForm').style.display = 'block';
+        document.getElementById('bookingForm').querySelectorAll('input,select,textarea').forEach(el => {
+            if (el.type === 'checkbox') el.checked = false;
+            else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+            else el.value = el.id === 'depositAmount' ? '0' : '';
+        });
+        selectedVehicle = null; selectedExtras = []; selectedInsurance = 'premium'; rentalDays = 0;
+        ['insuranceSection','extrasSection','clientSection','vehicleSection','priceSummary'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('daysInfo').innerHTML = '';
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('errorAlert');
+        el.textContent = msg;
+        el.className = 'alert error';
+        el.style.display = 'flex';
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    init();
+</script>
+</body>
+</html>

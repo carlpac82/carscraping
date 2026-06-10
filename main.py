@@ -62722,6 +62722,34 @@ async def agentes_dashboard_page(request: Request):
         return RedirectResponse(url="/agentes", status_code=303)
     return templates.TemplateResponse("commissioner_dashboard.html", {"request": request})
 
+@app.get("/reservar/{slug}/{token}", response_class=HTMLResponse)
+async def public_booking_page(slug: str, token: str, request: Request):
+    """Página pública de reserva por QR code - sem autenticação"""
+    from database import get_db as _get_commissioner_db
+    conn = _get_commissioner_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT id, name, enabled FROM commissioners WHERE public_token = %s AND public_slug = %s",
+            (token, slug)
+        )
+        row = cursor.fetchone()
+        conn.close()
+    except Exception:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        row = None
+    if not row:
+        from fastapi.responses import HTMLResponse as _HR
+        return _HR("<h2>Link inválido ou expirado.</h2>", status_code=404)
+    enabled = row[2] if not hasattr(row, 'keys') else row['enabled']
+    if not enabled:
+        from fastapi.responses import HTMLResponse as _HR
+        return _HR("<h2>Este link está inativo.</h2>", status_code=403)
+    return templates.TemplateResponse("public_booking.html", {"request": request, "slug": slug, "token": token})
+
 # Rotas antigas mantidas para compatibilidade
 @app.get("/commissioner-login", response_class=HTMLResponse)
 async def commissioner_login_page(request: Request):
