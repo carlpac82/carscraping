@@ -570,40 +570,51 @@ async def get_all_commissioners():
 
     try:
         cursor.execute("""
-            SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel, public_token, public_slug
-            FROM commissioners
-            ORDER BY name
+            SELECT c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
+                   c.default_location, c.commission_rate, c.is_hotel, c.public_token, c.public_slug,
+                   COUNT(cb.id) AS total_bookings
+            FROM commissioners c
+            LEFT JOIN commissioner_bookings cb ON cb.commissioner_id = c.id
+            GROUP BY c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
+                     c.default_location, c.commission_rate, c.is_hotel, c.public_token, c.public_slug
+            ORDER BY c.name
         """)
     except Exception:
         conn.rollback()
         cursor.execute("""
-            SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel
-            FROM commissioners
-            ORDER BY name
+            SELECT c.id, c.name, c.email, c.phone, c.voucher_prefix, c.username, c.enabled, c.created_at,
+                   c.default_location, c.commission_rate, c.is_hotel, NULL, NULL, 0
+            FROM commissioners c
+            ORDER BY c.name
         """)
 
     commissioners = cursor.fetchall()
     conn.close()
-    
+
     result = []
     for comm in commissioners:
-        result.append(dict(comm) if hasattr(comm, 'keys') else {
-            'id': comm[0],
-            'name': comm[1],
-            'email': comm[2],
-            'phone': comm[3],
-            'voucher_prefix': comm[4],
-            'username': comm[5],
-            'enabled': comm[6],
-            'created_at': str(comm[7]),
-            'default_location': comm[8] if len(comm) > 8 else None,
-            'commission_rate': float(comm[9]) if len(comm) > 9 and comm[9] else 15.0,
-            'is_hotel': comm[10] if len(comm) > 10 else False,
-            'public_token': comm[11] if len(comm) > 11 else None,
-            'public_slug': comm[12] if len(comm) > 12 else None,
-            'total_bookings': 0
-        })
-    
+        if hasattr(comm, 'keys'):
+            row = dict(comm)
+            row.setdefault('total_bookings', 0)
+            result.append(row)
+        else:
+            result.append({
+                'id': comm[0],
+                'name': comm[1],
+                'email': comm[2],
+                'phone': comm[3],
+                'voucher_prefix': comm[4],
+                'username': comm[5],
+                'enabled': comm[6],
+                'created_at': str(comm[7]),
+                'default_location': comm[8] if len(comm) > 8 else None,
+                'commission_rate': float(comm[9]) if len(comm) > 9 and comm[9] else 15.0,
+                'is_hotel': comm[10] if len(comm) > 10 else False,
+                'public_token': comm[11] if len(comm) > 11 else None,
+                'public_slug': comm[12] if len(comm) > 12 else None,
+                'total_bookings': int(comm[13]) if len(comm) > 13 and comm[13] else 0,
+            })
+
     return {"ok": True, "commissioners": result}
 
 @router.post("/api/admin/commissioners")
