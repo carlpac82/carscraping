@@ -8397,6 +8397,7 @@ async def admin_commissions_list(request: Request):
                     FROM commission_bookings cb
                     LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                     WHERE cb.commission_amount > 0
+                    AND cb.status != 'cancelled'
                 """
                 params = []
                 
@@ -9227,6 +9228,7 @@ async def admin_commissions_print_pdf(request: Request):
                         FROM commission_bookings cb
                         LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                         WHERE cb.commission_amount > 0
+                        AND cb.status != 'cancelled'
                     """
                     params = []
                     
@@ -9260,6 +9262,7 @@ async def admin_commissions_print_pdf(request: Request):
                         FROM commission_bookings cb
                         LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                         WHERE cb.commission_amount > 0
+                        AND cb.status != 'cancelled'
                     """
                     params = []
                     
@@ -9653,7 +9656,7 @@ async def admin_commissions_export_excel(request: Request):
                             cb.commission_amount
                         FROM commission_bookings cb
                         JOIN commissioners c ON cb.commissioner_id = c.id
-                        WHERE 1=1
+                        WHERE cb.status != 'cancelled'
                     """
                     params = []
                     
@@ -9681,7 +9684,7 @@ async def admin_commissions_export_excel(request: Request):
                             cb.commission_amount
                         FROM commission_bookings cb
                         JOIN commissioners c ON cb.commissioner_id = c.id
-                        WHERE 1=1
+                        WHERE cb.status != 'cancelled'
                     """
                     params = []
                     
