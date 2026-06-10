@@ -788,7 +788,7 @@
                                 <td style="padding:9px 8px;text-align:center;white-space:nowrap;">
                                     <div style="display:inline-flex;gap:4px;align-items:center;">
                                         <!-- Email -->
-                                        <button onclick="sendInstructionsEmail(${c.id}, '${c.name}', '${c.username}')" title="Enviar instruções por email" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all 0.15s;" onmouseover="this.style.borderColor='#009cb6';this.style.color='#009cb6'" onmouseout="this.style.borderColor='#d1d5db';this.style.color='#6b7280'">
+                                        <button class="email-btn" data-id="${c.id}" data-name="${encodeURIComponent(c.name)}" data-username="${encodeURIComponent(c.username)}" title="Enviar instruções por email" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all 0.15s;" onmouseover="this.style.borderColor='#009cb6';this.style.color='#009cb6'" onmouseout="this.style.borderColor='#d1d5db';this.style.color='#6b7280'">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                                         </button>
                                         <!-- QR -->
@@ -1027,11 +1027,20 @@
         // Delegated click for QR buttons (avoids quote conflicts with commissioner names)
         document.addEventListener('click', function(e) {
             const btn = e.target.closest('.qr-btn');
-            if (!btn) return;
-            const slug = btn.dataset.slug;
-            const token = btn.dataset.token;
-            const name = decodeURIComponent(btn.dataset.name);
-            showQrModal(slug, token, name);
+            if (btn) {
+                const slug = btn.dataset.slug;
+                const token = btn.dataset.token;
+                const name = decodeURIComponent(btn.dataset.name);
+                showQrModal(slug, token, name);
+                return;
+            }
+            const emailBtn = e.target.closest('.email-btn');
+            if (emailBtn) {
+                const id = emailBtn.dataset.id;
+                const name = decodeURIComponent(emailBtn.dataset.name);
+                const username = decodeURIComponent(emailBtn.dataset.username);
+                sendInstructionsEmail(id, name, username);
+            }
         });
 
         function showQrModal(slug, token, name) {

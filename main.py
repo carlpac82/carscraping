@@ -63493,9 +63493,14 @@ async def api_get_commissioners(request: Request):
             con = _db_connect()
             try:
                 cur = con.execute("""
-                    SELECT id, username, name, email, commission_rate, enabled, created_at
-                    FROM commissioners
-                    ORDER BY name
+                    SELECT c.id, c.username, c.name, c.email, c.commission_rate, c.enabled,
+                           c.created_at, c.public_token, c.public_slug,
+                           COUNT(b.id) as total_bookings
+                    FROM commissioners c
+                    LEFT JOIN commissioner_bookings b ON b.commissioner_id = c.id
+                    GROUP BY c.id, c.username, c.name, c.email, c.commission_rate,
+                             c.enabled, c.created_at, c.public_token, c.public_slug
+                    ORDER BY c.name
                 """)
                 rows = cur.fetchall()
                 
@@ -63508,7 +63513,10 @@ async def api_get_commissioners(request: Request):
                         "email": row[3] or "",
                         "commission_rate": float(row[4]) if row[4] is not None else 0.0,
                         "enabled": bool(row[5]),
-                        "created_at": str(row[6]) if row[6] else ""
+                        "created_at": str(row[6]) if row[6] else "",
+                        "public_token": row[7] or "",
+                        "public_slug": row[8] or "",
+                        "total_bookings": int(row[9]) if row[9] else 0
                     })
                 
                 return JSONResponse({"ok": True, "commissioners": commissioners})
