@@ -793,7 +793,7 @@
                                         </button>
                                         <!-- QR -->
                                         ${c.public_token && c.public_slug
-                                            ? `<button onclick="showQrModal('${c.public_slug}', '${c.public_token}', '${c.name}')" title="Ver link e QR Code" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all 0.15s;" onmouseover="this.style.borderColor='#009cb6';this.style.color='#009cb6'" onmouseout="this.style.borderColor='#d1d5db';this.style.color='#6b7280'">
+                                            ? `<button class="icon-btn qr-btn" data-slug="${c.public_slug}" data-token="${c.public_token}" data-name="${encodeURIComponent(c.name)}" title="Ver link e QR Code" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;">
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="19" y="19" width="2" height="2"/></svg>
                                             </button>`
                                             : `<button disabled title="Sem token QR" style="background:none;border:1px solid #e5e7eb;border-radius:6px;padding:5px;display:flex;align-items:center;justify-content:center;color:#d1d5db;cursor:not-allowed;">
@@ -1023,6 +1023,16 @@
                 alert('Erro ao enviar instruções');
             }
         }
+
+        // Delegated click for QR buttons (avoids quote conflicts with commissioner names)
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.qr-btn');
+            if (!btn) return;
+            const slug = btn.dataset.slug;
+            const token = btn.dataset.token;
+            const name = decodeURIComponent(btn.dataset.name);
+            showQrModal(slug, token, name);
+        });
 
         function showQrModal(slug, token, name) {
             const url = `${window.location.origin}/reservar/${slug}/${token}`;

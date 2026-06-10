@@ -994,12 +994,8 @@ def get_vehicle_groups_with_photos(db_config: dict):
 
 @router.get("/api/commissioners/vehicle-groups")
 async def get_vehicle_groups_endpoint(request: Request):
-    """Get vehicle groups with photos for commissioners"""
+    """Get vehicle groups with photos - public read access"""
     try:
-        # Verificar se há sessão ativa
-        commissioner_id = request.session.get('commissioner_id')
-        if not commissioner_id:
-            return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
         
         conn = get_db()
         groups = get_vehicle_groups_with_photos_v2(conn)
@@ -1026,12 +1022,8 @@ async def get_vehicle_groups_endpoint(request: Request):
 
 @router.get("/api/commissioners/locations")
 async def get_commissioner_locations(request: Request):
-    """Get all commissioner locations (names) for dropdowns"""
+    """Get all commissioner locations - public read access"""
     try:
-        # Verificar se há sessão ativa
-        commissioner_id = request.session.get('commissioner_id')
-        if not commissioner_id:
-            return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
         
         conn = get_db()
         cursor = conn.cursor()
