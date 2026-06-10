@@ -557,6 +557,8 @@ CASE
 @router.get("/api/admin/commissioners")
 async def get_all_commissioners():
     """Get all commissioners (admin only)"""
+    import secrets as _sec
+    import re as _re
     conn = get_db()
     cursor = conn.cursor()
 
@@ -567,6 +569,25 @@ async def get_all_commissioners():
         conn.commit()
     except Exception:
         conn.rollback()
+
+    # Generate tokens for commissioners that don't have one yet
+    try:
+        cursor.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL OR public_token = ''")
+        missing = cursor.fetchall()
+        for row in missing:
+            rid = row[0] if not hasattr(row, 'keys') else row['id']
+            rname = row[1] if not hasattr(row, 'keys') else row['name']
+            slug = _re.sub(r'[^a-z0-9]+', '-', rname.lower()).strip('-')[:50]
+            token = _sec.token_hex(16)
+            cursor.execute(
+                "UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s AND (public_token IS NULL OR public_token = '')",
+                (token, slug, rid)
+            )
+        if missing:
+            conn.commit()
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
 
     try:
         cursor.execute("""
