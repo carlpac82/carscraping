@@ -554,6 +554,49 @@ CASE
 # ADMIN ENDPOINTS
 # ============================================================
 
+@router.get("/api/admin/commissioners/migrate-tokens")
+async def migrate_commissioner_tokens():
+    """Force generate public_token and public_slug for all commissioners missing them"""
+    import secrets as _sec
+    import re as _re
+    conn = get_db()
+    cursor = conn.cursor()
+    updated = 0
+    errors = []
+    try:
+        for col_sql in [
+            "ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+            "ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_slug VARCHAR(100)",
+        ]:
+            try:
+                cursor.execute(col_sql)
+                conn.commit()
+            except Exception as e:
+                try: conn.rollback()
+                except Exception: pass
+                errors.append(str(e))
+
+        cursor.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL OR public_token = ''")
+        rows = cursor.fetchall()
+        for row in rows:
+            rid = row[0] if not hasattr(row, 'keys') else row['id']
+            rname = row[1] if not hasattr(row, 'keys') else row['name']
+            slug = _re.sub(r'[^a-z0-9]+', '-', rname.lower()).strip('-')[:50]
+            token = _sec.token_hex(16)
+            cursor.execute(
+                "UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s",
+                (token, slug, rid)
+            )
+            updated += 1
+        conn.commit()
+    except Exception as e:
+        try: conn.rollback()
+        except Exception: pass
+        errors.append(str(e))
+    finally:
+        conn.close()
+    return {"ok": True, "updated": updated, "errors": errors}
+
 @router.get("/api/admin/commissioners")
 async def get_all_commissioners():
     """Get all commissioners (admin only)"""
@@ -562,32 +605,47 @@ async def get_all_commissioners():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Ensure public_token / public_slug columns exist (idempotent, safe to run every time)
-    try:
-        cursor.execute("ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_token VARCHAR(32) UNIQUE")
-        cursor.execute("ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_slug VARCHAR(100)")
-        conn.commit()
-    except Exception:
-        conn.rollback()
-
-    # Generate tokens for commissioners that don't have one yet
-    try:
-        cursor.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL OR public_token = ''")
-        missing = cursor.fetchall()
-        for row in missing:
-            rid = row[0] if not hasattr(row, 'keys') else row['id']
-            rname = row[1] if not hasattr(row, 'keys') else row['name']
-            slug = _re.sub(r'[^a-z0-9]+', '-', rname.lower()).strip('-')[:50]
-            token = _sec.token_hex(16)
-            cursor.execute(
-                "UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s AND (public_token IS NULL OR public_token = '')",
-                (token, slug, rid)
-            )
-        if missing:
+    # Step 1: Ensure columns exist — each DDL in its own transaction
+    for col_sql in [
+        "ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+        "ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_slug VARCHAR(100)",
+    ]:
+        try:
+            cursor.execute(col_sql)
             conn.commit()
+        except Exception:
+            try: conn.rollback()
+            except Exception: pass
+
+    # Step 2: Check if columns exist now before using them
+    cols_exist = False
+    try:
+        cursor.execute("SELECT public_token FROM commissioners LIMIT 1")
+        conn.commit()
+        cols_exist = True
     except Exception:
         try: conn.rollback()
         except Exception: pass
+
+    # Step 3: Generate tokens for commissioners missing one
+    if cols_exist:
+        try:
+            cursor.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL OR public_token = ''")
+            missing = cursor.fetchall()
+            for row in missing:
+                rid = row[0] if not hasattr(row, 'keys') else row['id']
+                rname = row[1] if not hasattr(row, 'keys') else row['name']
+                slug = _re.sub(r'[^a-z0-9]+', '-', rname.lower()).strip('-')[:50]
+                token = _sec.token_hex(16)
+                cursor.execute(
+                    "UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s",
+                    (token, slug, rid)
+                )
+            if missing:
+                conn.commit()
+        except Exception:
+            try: conn.rollback()
+            except Exception: pass
 
     try:
         cursor.execute("""
