@@ -999,32 +999,55 @@
         // Definir datas iniciais DEPOIS de carregar scheduleSettings
         setInitialDates();
 
-        // Quando muda a data de entrega: atualizar slots e recalcular dias
+        // Quando muda a data de entrega: atualizar slots, dropoffDate min=pickup+1 dia, recalcular
         document.getElementById('pickupDate').addEventListener('change', () => {
             const pd = document.getElementById('pickupDate').value;
-            // Forçar dropoffDate >= pickupDate
-            const dd = document.getElementById('dropoffDate');
-            if (dd.value < pd) { dd.value = pd; dd.min = pd; }
-            else { dd.min = pd; }
-            populateTimeSelect(document.getElementById('pickupTime'), pd, true);
+            const pickupTime = document.getElementById('pickupTime');
+            const dropoffDate = document.getElementById('dropoffDate');
+
+            populateTimeSelect(pickupTime, pd, true);
+
+            // dropoffDate min = pickupDate + 1 dia (igual ao dashboard)
+            const minDropoff = new Date(pd + 'T00:00:00');
+            minDropoff.setDate(minDropoff.getDate() + 1);
+            const minDropoffStr = minDropoff.toISOString().split('T')[0];
+            dropoffDate.min = minDropoffStr;
+
+            // Se dropoff já está definido e é anterior ao novo mínimo, limpar
+            if (dropoffDate.value && dropoffDate.value < minDropoffStr) {
+                dropoffDate.value = '';
+                populateTimeSelect(document.getElementById('dropoffTime'), minDropoffStr, false);
+            }
             onDatesChange();
         });
 
-        // Quando muda a data de recolha: atualizar slots e recalcular dias
+        // Quando muda a data de recolha: atualizar slots e recalcular
         document.getElementById('dropoffDate').addEventListener('change', () => {
             const dd = document.getElementById('dropoffDate').value;
             populateTimeSelect(document.getElementById('dropoffTime'), dd, false);
             onDatesChange();
+            updatePremiumInsurancePrice();
         });
 
-        // Quando muda a hora: recalcular dias
-        document.getElementById('pickupTime').addEventListener('change', onDatesChange);
+        // Quando muda a hora: recalcular (igual ao dashboard)
+        document.getElementById('pickupTime').addEventListener('change', () => {
+            // Copiar hora de entrega para recolha se recolha vazia (igual ao dashboard)
+            const dropoffTime = document.getElementById('dropoffTime');
+            if (!dropoffTime.value) dropoffTime.value = document.getElementById('pickupTime').value;
+            onDatesChange();
+        });
         document.getElementById('dropoffTime').addEventListener('change', onDatesChange);
 
         // Copiar local de entrega para recolha se recolha vazia
         document.getElementById('pickupLocation').addEventListener('change', () => {
             const drop = document.getElementById('dropoffLocation');
             if (!drop.value) drop.value = document.getElementById('pickupLocation').value;
+        });
+
+        // Fechar insurance modal ao clicar fora
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('insuranceWarningModal');
+            if (e.target === modal) closeInsuranceModal();
         });
     });
 
@@ -1248,18 +1271,30 @@
     // ─── DATES CHANGE ─────────────────────────────────────────
     function onDatesChange() {
         const pd = document.getElementById('pickupDate').value;
+        const pt = document.getElementById('pickupTime').value || '00:00';
         const dd = document.getElementById('dropoffDate').value;
-        if (!pd || !dd) { document.getElementById('daysDisplay').textContent = '0 dias'; rentalDays = 0; return; }
-        const p = new Date(pd + 'T00:00:00');
-        const d = new Date(dd + 'T00:00:00');
-        if (d < p) {
-            document.getElementById('dropoffDate').value = pd;
-            document.getElementById('dropoffDate').min = pd;
-            return onDatesChange();
+        const dt = document.getElementById('dropoffTime').value || '00:00';
+        if (!pd || !dd) { document.getElementById('daysDisplay').textContent = '0 dias'; rentalDays = 0; updateSummaryPrice(); return; }
+
+        const pickup = new Date(pd + 'T' + pt);
+        const dropoff = new Date(dd + 'T' + dt);
+        const diffMs = dropoff - pickup;
+
+        if (diffMs <= 0) {
+            document.getElementById('daysDisplay').textContent = '0 dias';
+            rentalDays = 0;
+            updateSummaryPrice();
+            return;
         }
-        const diff = Math.round((d - p) / 86400000);
-        rentalDays = diff;
-        document.getElementById('daysDisplay').textContent = diff === 1 ? '1 dia' : `${diff} dias`;
+
+        // Mesma lógica do dashboard: 24h+1min = novo dia
+        const msPerDay = 24 * 60 * 60 * 1000;
+        let days = Math.floor(diffMs / msPerDay);
+        if (diffMs % msPerDay > 0) days += 1;
+
+        rentalDays = days;
+        document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
+        updateSummaryPrice();
     }
 
     // ─── SEASON ───────────────────────────────────────────────
@@ -1279,7 +1314,33 @@
     }
 
     // ─── PRICING ─────────────────────────────────────────────
-    function getBasePrice(group, season, days) {
+    // Preço BASE do aluguer (igual ao dashboard: commissionerPricing.seasons[group][season].dayN)
+    function getBasePriceForDays(group, season, days) {
+        if (!commissionerPricing?.seasons?.[group]?.[season]) return 0;
+        const sp = commissionerPricing.seasons[group][season];
+        if (days <= 7) {
+            return sp[`day${days}`] || 0;
+        } else {
+            const day7 = sp.day7 || 0;
+            return day7 > 0 ? (day7 / 7) * days : 0;
+        }
+    }
+
+    // Preço diário do seguro PREMIUM (commissionerPricing.extras.insurance.seasons[group][season][range])
+    function getPremiumInsuranceTotal(group, season, days) {
+        if (!commissionerPricing?.extras?.insurance?.seasons?.[group]?.[season]) return 0;
+        const sp = commissionerPricing.extras.insurance.seasons[group][season];
+        let range = null;
+        if (days>=1&&days<=2) range='1_2';
+        else if (days>=3&&days<=7) range='3_7';
+        else if (days>=8&&days<=14) range='8_14';
+        else if (days>=15&&days<=21) range='15_21';
+        else if (days>=22&&days<=31) range='22_31';
+        return range && sp[range] ? sp[range] * days : 0;
+    }
+
+    // Apenas para mostrar preço/dia no card do seguro premium
+    function getPremiumDailyRate(group, season, days) {
         if (!commissionerPricing?.extras?.insurance?.seasons?.[group]?.[season]) return null;
         const sp = commissionerPricing.extras.insurance.seasons[group][season];
         let range = null;
@@ -1291,47 +1352,55 @@
         return range ? (sp[range]||null) : null;
     }
 
-    function getPremiumDailyRate(group, season, days) {
-        return getBasePrice(group, season, days);
-    }
-
     function calculateTotal() {
         const pd = document.getElementById('pickupDate').value;
-        if (!pd || !selectedVehicle || !rentalDays) return 0;
-        const pickup = new Date(pd + 'T12:00:00');
-        const season = getSeasonForDate(pickup);
-        const basePerDay = getBasePrice(selectedVehicle, season, rentalDays) || 0;
-        let total = basePerDay * rentalDays;
+        const pt = document.getElementById('pickupTime').value || '00:00';
+        const dd = document.getElementById('dropoffDate').value;
+        const dt = document.getElementById('dropoffTime').value || '00:00';
+        if (!pd || !dd || !selectedVehicle) return 0;
 
+        // Dias — mesma lógica do dashboard: ceil com remainder
+        const pickup = new Date(pd + 'T' + pt);
+        const dropoff = new Date(dd + 'T' + dt);
+        const diffMs = dropoff - pickup;
+        if (diffMs <= 0) return 0;
+        const msPerDay = 24 * 60 * 60 * 1000;
+        let days = Math.floor(diffMs / msPerDay);
+        if (diffMs % msPerDay > 0) days += 1;
+
+        const season = getSeasonForDate(pickup);
+
+        // Preço base (igual ao dashboard)
+        let total = getBasePriceForDays(selectedVehicle, season, days);
+
+        // Seguro premium
         if (selectedInsurance === 'premium') {
-            const premRate = getPremiumDailyRate(selectedVehicle, season, rentalDays) || 0;
-            total += premRate * rentalDays;
+            total += getPremiumInsuranceTotal(selectedVehicle, season, days);
         }
 
-        // Road tax
-        const roadTaxDays = Math.min(rentalDays, 10);
-        total += 2.23 * roadTaxDays;
+        // Road tax — cap 22.30€ (igual ao dashboard: Math.min(2.23*days, 22.30))
+        total += Math.min(2.23 * days, 22.30);
 
         // GPS
         if (document.getElementById('extraGPS')?.checked)
-            total += (commissionerPricing?.extras?.gps?.per_day || 5) * rentalDays;
+            total += (commissionerPricing?.extras?.gps?.per_day || 5) * days;
         // Child seats
         const cs = parseInt(document.getElementById('extraChildSeat')?.value || 0);
-        if (cs > 0) total += (commissionerPricing?.extras?.child_seat?.per_day || 12) * rentalDays * cs;
+        if (cs > 0) total += (commissionerPricing?.extras?.child_seat?.per_day || 12) * days * cs;
         // Booster
         const bs = parseInt(document.getElementById('extraBoosterSeat')?.value || 0);
-        if (bs > 0) total += (commissionerPricing?.extras?.booster_seat?.per_day || 6) * rentalDays * bs;
+        if (bs > 0) total += (commissionerPricing?.extras?.booster_seat?.per_day || 6) * days * bs;
         // Young driver
         if (document.getElementById('extraYoungDriver')?.checked)
-            total += (commissionerPricing?.extras?.young_driver?.per_day || 12) * rentalDays;
+            total += (commissionerPricing?.extras?.young_driver?.per_day || 12) * days;
         // Senior driver
         if (document.getElementById('extraSeniorDriver')?.checked)
-            total += (commissionerPricing?.extras?.senior_driver?.per_day || 10) * rentalDays;
+            total += (commissionerPricing?.extras?.senior_driver?.per_day || 10) * days;
         // Additional driver
         const ad = parseInt(document.getElementById('extraAdditionalDriver')?.value || 0);
-        if (ad > 0) total += (commissionerPricing?.extras?.additional_driver?.per_day || 10) * rentalDays * ad;
+        if (ad > 0) total += (commissionerPricing?.extras?.additional_driver?.per_day || 10) * days * ad;
         // Airport
-        if (document.getElementById('extraAirport')?.checked && rentalDays >= 5)
+        if (document.getElementById('extraAirport')?.checked)
             total += commissionerPricing?.extras?.airport_fee?.min || 20;
         // Spain
         if (document.getElementById('extraTripToSpain')?.checked)
@@ -1449,9 +1518,20 @@
     // ─── EXTRAS ───────────────────────────────────────────────
     function toggleExtra(cbId) {
         const item = document.getElementById(cbId)?.closest('.extra-item');
-        if (!item || item.style.cursor === 'default') return;
+        if (!item) return;
+        // Verificar se está desabilitado (igual ao dashboard)
+        if (item.classList.contains('disabled')) return;
         const cb = document.getElementById(cbId);
         if (!cb) return;
+
+        // Validação especial taxa aeroporto: mínimo 5 dias (igual ao dashboard)
+        if (cbId === 'extraAirport' && !cb.checked) {
+            if (rentalDays < 5) {
+                showError('A Taxa Aeroporto só está disponível para reservas com mínimo de 5 dias.');
+                return;
+            }
+        }
+
         cb.checked = !cb.checked;
         item.classList.toggle('selected', cb.checked);
         updateSummaryPrice();
@@ -1476,6 +1556,21 @@
         if (el) el.textContent = `${total.toFixed(2)}€`;
         const el2 = document.getElementById('summaryTotalAmount');
         if (el2) el2.textContent = `€${total.toFixed(2)}`;
+
+        // Habilitar/desabilitar taxa aeroporto com base nos dias (igual ao dashboard)
+        const airportItem = document.getElementById('extraAirportItem');
+        const airportCb = document.getElementById('extraAirport');
+        if (airportItem) {
+            if (rentalDays < 5) {
+                airportItem.classList.add('disabled');
+                if (airportCb && airportCb.checked) {
+                    airportCb.checked = false;
+                    airportItem.classList.remove('selected');
+                }
+            } else {
+                airportItem.classList.remove('disabled');
+            }
+        }
     }
 
     // ─── VEHICLE SUMMARY (step 3) ─────────────────────────────
@@ -1539,6 +1634,21 @@
         document.getElementById('summaryClientName').textContent = `${fn} ${ln}`.trim() || '-';
         document.getElementById('summaryClientPhone').textContent = document.getElementById('clientPhone').value || '';
         document.getElementById('summaryClientEmail').textContent = document.getElementById('clientEmail').value || '';
+        // Hotel (igual ao dashboard)
+        const hotel = document.getElementById('clientHotel').value;
+        const room = document.getElementById('clientRoom').value;
+        const hotelEl = document.getElementById('summaryClientHotel');
+        if (hotelEl) {
+            if (hotel) {
+                hotelEl.style.display = 'block';
+                const hn = document.getElementById('summaryHotelName');
+                const rn = document.getElementById('summaryRoomNumber');
+                if (hn) hn.textContent = hotel;
+                if (rn) rn.textContent = room ? ` - Quarto ${room}` : '';
+            } else {
+                hotelEl.style.display = 'none';
+            }
+        }
         // Total
         updateSummaryPrice();
     }
@@ -1609,7 +1719,13 @@
             const fn = document.getElementById('clientFirstName').value.trim();
             const ln = document.getElementById('clientLastName').value.trim();
             const em = document.getElementById('clientEmail').value.trim();
-            if (!fn || !ln || !em) { showError('Preencha pelo menos o nome e email do cliente.'); return; }
+            if (!fn || !ln || !em) {
+                showError('Preencha todos os campos obrigatórios do cliente (Primeiro Nome, Último Nome e Email).');
+                return;
+            }
+            // Validar formato do email (igual ao dashboard)
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(em)) { showError('Por favor, insira um email válido.'); return; }
             fillStep5Summary();
         }
 
@@ -1664,47 +1780,140 @@
 
     // ─── SUBMIT ───────────────────────────────────────────────
     async function submitBooking() {
+        // Validações finais (igual ao dashboard)
+        if (valueConfirmed === null) { showError('Por favor, confirme se o valor está correto (Sim ou Não).'); return; }
+        if (depositConfirmed === null) { showError('Por favor, defina se há depósito do cliente (Sim ou Não).'); return; }
+        if (depositConfirmed && !(parseFloat(document.getElementById('depositAmount').value) > 0)) {
+            showError('Por favor, insira um valor de depósito válido.'); return;
+        }
+
         const btn = document.getElementById('btnSubmit');
         btn.disabled = true;
         btn.textContent = 'A processar...';
 
-        const total = calculateTotal();
+        // Calcular dias (mesma lógica do dashboard)
+        const pickupDateVal = document.getElementById('pickupDate').value;
+        const pickupTimeVal = document.getElementById('pickupTime').value || '00:00';
+        const dropoffDateVal = document.getElementById('dropoffDate').value;
+        const dropoffTimeVal = document.getElementById('dropoffTime').value || '00:00';
+        const pickup = new Date(pickupDateVal + 'T' + pickupTimeVal);
+        const dropoff = new Date(dropoffDateVal + 'T' + dropoffTimeVal);
+        const diffMs = Math.abs(dropoff - pickup);
+        const msPerDay = 24 * 60 * 60 * 1000;
+        let calcDays = Math.floor(diffMs / msPerDay);
+        if (diffMs % msPerDay > 0) calcDays += 1;
+
+        const season = getSeasonForDate(pickup);
+
+        // Preço base
+        const basePrice = getBasePriceForDays(selectedVehicle, season, calcDays);
+
+        // Seguro premium
+        const premiumInsurance = selectedInsurance === 'premium'
+            ? getPremiumInsuranceTotal(selectedVehicle, season, calcDays) : 0;
+
+        // Road tax
+        const roadTax = Math.min(2.23 * calcDays, 22.30);
+
+        // Extras — array detalhado (igual ao dashboard)
+        let extrasTotal = 0;
+        const extrasArray = [];
+
+        const gpsEl = document.getElementById('extraGPS');
+        if (gpsEl?.checked) {
+            const p = commissionerPricing?.extras?.gps?.per_day || 5;
+            extrasTotal += p * calcDays;
+            extrasArray.push({ name: 'GPS', price: p * calcDays, quantity: 1 });
+        }
+        const youngEl = document.getElementById('extraYoungDriver');
+        if (youngEl?.checked) {
+            const p = commissionerPricing?.extras?.young_driver?.per_day || 12;
+            extrasTotal += p * calcDays;
+            extrasArray.push({ name: 'Young Driver', price: p * calcDays, quantity: 1 });
+        }
+        const seniorEl = document.getElementById('extraSeniorDriver');
+        if (seniorEl?.checked) {
+            const p = commissionerPricing?.extras?.senior_driver?.per_day || 10;
+            extrasTotal += p * calcDays;
+            extrasArray.push({ name: 'Senior Driver', price: p * calcDays, quantity: 1 });
+        }
+        const csQty = parseInt(document.getElementById('extraChildSeat')?.value || 0);
+        if (csQty > 0) {
+            const p = commissionerPricing?.extras?.child_seat?.per_day || 12;
+            extrasTotal += p * calcDays * csQty;
+            extrasArray.push({ name: 'Baby Seat', price: p * calcDays, quantity: csQty });
+        }
+        const bsQty = parseInt(document.getElementById('extraBoosterSeat')?.value || 0);
+        if (bsQty > 0) {
+            const p = commissionerPricing?.extras?.booster_seat?.per_day || 6;
+            extrasTotal += p * calcDays * bsQty;
+            extrasArray.push({ name: 'Booster Seat', price: p * calcDays, quantity: bsQty });
+        }
+        const adQty = parseInt(document.getElementById('extraAdditionalDriver')?.value || 0);
+        if (adQty > 0) {
+            const p = commissionerPricing?.extras?.additional_driver?.per_day || 10;
+            extrasTotal += p * calcDays * adQty;
+            extrasArray.push({ name: 'Additional Driver', price: p * calcDays, quantity: adQty });
+        }
+        const airportEl = document.getElementById('extraAirport');
+        if (airportEl?.checked) {
+            const p = commissionerPricing?.extras?.airport_fee?.min || 20;
+            extrasTotal += p;
+            extrasArray.push({ name: 'Airport Fee', price: p, quantity: 1 });
+        }
+        const spainEl = document.getElementById('extraTripToSpain');
+        if (spainEl?.checked) {
+            const p = commissionerPricing?.extras?.trip_to_spain?.min || 100;
+            extrasTotal += p;
+            extrasArray.push({ name: 'Spain Fee', price: p, quantity: 1 });
+        }
+
+        const originalTotal = basePrice + premiumInsurance + roadTax + extrasTotal;
         const adjustedVal = document.getElementById('valueAdjustment').value;
         const depositVal = document.getElementById('depositAmount').value;
+
+        let finalTotal = originalTotal;
+        let adjustedPremiumInsurance = premiumInsurance;
+        let priceAdjustment = 0;
+
+        // Se valor não confirmado, usar valor ajustado (igual ao dashboard)
+        if (valueConfirmed === false && adjustedVal && parseFloat(adjustedVal) > 0) {
+            const confirmedPrice = parseFloat(adjustedVal);
+            priceAdjustment = confirmedPrice - originalTotal;
+            adjustedPremiumInsurance = premiumInsurance + priceAdjustment;
+            finalTotal = confirmedPrice;
+        }
 
         const payload = {
             token: TOKEN,
             slug: SLUG,
-            pickup_date: document.getElementById('pickupDate').value,
-            pickup_time: document.getElementById('pickupTime').value,
-            pickup_location: document.getElementById('pickupLocation').value,
-            dropoff_date: document.getElementById('dropoffDate').value,
-            dropoff_time: document.getElementById('dropoffTime').value,
-            dropoff_location: document.getElementById('dropoffLocation').value,
             vehicle_group: selectedVehicle,
-            insurance_type: selectedInsurance,
-            extras: {
-                gps: document.getElementById('extraGPS').checked,
-                child_seat: parseInt(document.getElementById('extraChildSeat').value)||0,
-                booster_seat: parseInt(document.getElementById('extraBoosterSeat').value)||0,
-                airport_fee: document.getElementById('extraAirport').checked,
-                young_driver: document.getElementById('extraYoungDriver').checked,
-                senior_driver: document.getElementById('extraSeniorDriver').checked,
-                additional_driver: parseInt(document.getElementById('extraAdditionalDriver').value)||0,
-                trip_to_spain: document.getElementById('extraTripToSpain').checked,
-            },
             client_first_name: document.getElementById('clientFirstName').value.trim(),
             client_last_name: document.getElementById('clientLastName').value.trim(),
             client_email: document.getElementById('clientEmail').value.trim(),
             client_phone: document.getElementById('clientPhone').value.trim(),
-            client_hotel: document.getElementById('clientHotel').value,
-            client_room: document.getElementById('clientRoom').value,
-            flight_number: document.getElementById('flightNumber').value,
-            language: document.getElementById('language').value,
-            observations: document.getElementById('observations').value,
-            total_amount: adjustedVal ? parseFloat(adjustedVal) : total,
-            deposit: depositVal ? parseFloat(depositVal) : null,
-            rental_days: rentalDays,
+            client_hotel: document.getElementById('clientHotel').value || null,
+            client_room: document.getElementById('clientRoom').value || null,
+            pickup_date: pickupDateVal,
+            pickup_time: pickupTimeVal,
+            pickup_location: document.getElementById('pickupLocation').value,
+            dropoff_date: dropoffDateVal,
+            dropoff_time: dropoffTimeVal,
+            dropoff_location: document.getElementById('dropoffLocation').value,
+            flight_number: document.getElementById('flightNumber').value || null,
+            language: document.getElementById('language').value || 'pt',
+            observations: document.getElementById('observations').value || null,
+            insurance_type: selectedInsurance,
+            base_price: basePrice,
+            premium_insurance: adjustedPremiumInsurance,
+            road_tax: roadTax,
+            extras_total: extrasTotal,
+            rental_days: calcDays,
+            extras: extrasArray,
+            total_amount: finalTotal,
+            price: finalTotal,
+            value_adjustment: priceAdjustment,
+            deposit: depositConfirmed ? (parseFloat(depositVal) || 0) : 0,
         };
 
         try {
