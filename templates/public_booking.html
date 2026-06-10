@@ -317,13 +317,8 @@
             background: #f0f9fb; border: 1px solid #009cb6; border-radius: 10px; padding: 14px 16px;
             display: flex; justify-content: space-between; align-items: center;
         }
-        .contact-title { font-size: 14px; font-weight: 700; color: #1f2937; }
-        .contact-subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }
-        .contact-phone-overlay {
-            background: #009cb6; color: white; border-radius: 8px;
-            padding: 8px 14px; font-size: 14px; font-weight: 700;
-            display: flex; align-items: center; gap: 7px;
-        }
+        .contact-title { font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 2px; }
+        .contact-subtitle { font-size: 12px; color: #6b7280; }
 
         .summary-client-info { flex: 1; }
         .summary-value { font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 3px; }
@@ -411,6 +406,51 @@
         .alert-err {
             background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626;
             border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: none;
+        }
+
+        /* ─── EXCLUSIONS / TOOLTIPS ─── */
+        .exclusions {
+            padding: 16px; background: #f8fafc; border-radius: 8px;
+            border-left: 3px solid #ef4444; position: relative;
+        }
+        .exclusions-title {
+            font-size: 14px; font-weight: 600; color: #ef4444;
+            margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+        }
+        .info-icon {
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #f0f9fb; transition: all 0.2s ease;
+        }
+        .info-icon:hover { background: #e6f7fa; }
+        .info-tooltip {
+            position: absolute; bottom: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #e5e7eb; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-bottom: 8px;
+        }
+        .tooltip-content { padding: 16px; position: relative; }
+        .tooltip-content h4 { margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #1f2937; }
+        .tooltip-content ul { margin: 0; padding: 0 0 0 16px; list-style: none; }
+        .tooltip-content li { margin-bottom: 8px; font-size: 13px; color: #6b7280; position: relative; }
+        .tooltip-content li:before { content: "•"; color: #009cb6; font-weight: bold; position: absolute; left: -16px; }
+        .tooltip-close {
+            position: absolute; top: 8px; right: 8px; background: none; border: none;
+            color: #6b7280; cursor: pointer; font-size: 16px; width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; transition: all 0.2s ease;
+        }
+        .tooltip-close:hover { background: #f3f4f6; color: #374151; }
+
+        /* ─── EXTRAS SECTION ─── */
+        .extras-section { margin-bottom: 30px; }
+
+        /* ─── CONTACT INFO ─── */
+        .contact-info { position: relative; }
+        .contact-phone-overlay {
+            position: absolute; top: 50%; right: 20px; transform: translateY(-50%);
+            display: flex; align-items: center; gap: 6px;
+            font-size: 14px; font-weight: 700; color: white;
+            padding: 8px 12px; background: #f59e0b; border-radius: 6px; z-index: 10;
         }
 
         /* ─── INSURANCE WARNING MODAL ─── */
@@ -591,7 +631,7 @@
                         <img id="summaryVehicleImage" src="" alt="Veículo">
                     </div>
                     <div class="vehicle-summary-info">
-                        <div class="vehicle-summary-group">GROUP <span id="summaryVehicleGroup" style="color:#FFA500;"></span></div>
+                        <div class="vehicle-summary-group">GROUP <span id="summaryVehicleGroup" class="group-letter"></span></div>
                         <div class="vehicle-summary-name" id="summaryVehicleName"></div>
                         <div class="vehicle-summary-features" id="summaryVehicleFeatures"></div>
                     </div>
@@ -642,6 +682,29 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="exclusions">
+                            <div class="exclusions-title">
+                                Não incluído
+                                <span class="info-icon" onclick="event.stopPropagation(); toggleInfoTooltip('base-exclusions')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="info-tooltip" id="base-exclusions" style="display: none;">
+                                <div class="tooltip-content">
+                                    <h4>Cobertura Danos, Perda e Roubo</h4>
+                                    <ul>
+                                        <li>Assistência em viagem 24h</li>
+                                        <li>Cobertura de danos em rodas/chaves</li>
+                                        <li>Proteção contra roubo</li>
+                                    </ul>
+                                    <button type="button" class="tooltip-close" onclick="toggleInfoTooltip('base-exclusions')">&#x2715;</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <!-- Premium -->
                     <div class="protection-card featured selected" id="premiumInsuranceCard" onclick="selectInsurance('premium')">
@@ -668,6 +731,34 @@
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
                                     <span class="benefit-text">Assistência 24h em todo o país</span>
                                 </div>
+                                <div class="benefit-item">
+                                    <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                    <span class="benefit-text">Depósito reduzido: apenas 200€</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="exclusions">
+                            <div class="exclusions-title">
+                                Não incluído
+                                <span class="info-icon" onclick="event.stopPropagation(); toggleInfoTooltip('premium-exclusions')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="info-tooltip" id="premium-exclusions" style="display: none;">
+                                <div class="tooltip-content">
+                                    <h4>Proteção Adicional Limitada</h4>
+                                    <ul>
+                                        <li>Perda de chaves do veículo</li>
+                                        <li>Danos nas rodas e pneus</li>
+                                        <li>Parte inferior do carro</li>
+                                        <li>Interior do veículo (estofos, painéis)</li>
+                                    </ul>
+                                    <button class="tooltip-close" onclick="toggleInfoTooltip('premium-exclusions')">&#x2715;</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -685,6 +776,7 @@
             </div>
 
             <!-- Extras grid -->
+            <div class="extras-section">
             <div class="extras-grid">
                 <div class="extra-item" onclick="toggleExtra('extraGPS')">
                     <input type="checkbox" id="extraGPS" value="gps" style="display:none;">
@@ -748,9 +840,10 @@
                 </div>
                 <div class="extra-item" onclick="toggleExtra('extraTripToSpain')">
                     <input type="checkbox" id="extraTripToSpain" value="trip_to_spain" style="display:none;">
-                    <div class="extra-icon"><img src="/static/extras/spain.png" alt="Espanha"></div>
-                    <div class="extra-info"><strong>Espanha (máx. Sevilha)</strong><span class="extra-price" id="price_trip_to_spain">+100€ (taxa única)</span></div>
+                    <div class="extra-icon"><img src="/static/extras/spain.png" alt="Trip to Spain"></div>
+                    <div class="extra-info"><strong>Espanha (máximo Sevila)</strong><span class="extra-price" id="price_trip_to_spain">+100€ (taxa única)</span></div>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -818,9 +911,9 @@
                     <div class="summary-layout">
                         <div class="summary-vehicle-card">
                             <div class="summary-vehicle-image">
-                                <img id="summaryVehicleImageStep5" src="" alt="Veículo">
+                                <img id="summaryVehicleImageStep5" src="" alt="Veículo selecionado" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2260%22><rect fill=%22%23f3f4f6%22 width=%2280%22 height=%2260%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22>Carro</text></svg>'">
                             </div>
-                            <div>
+                            <div class="summary-vehicle-details">
                                 <div class="summary-vehicle-group" id="summaryVehicleGroupStep5">-</div>
                                 <div class="summary-vehicle-name" id="summaryVehicleNameStep5">-</div>
                                 <div class="summary-vehicle-features" id="summaryVehicleFeaturesStep5"></div>
@@ -841,13 +934,17 @@
 
                 <!-- Contacto -->
                 <div class="confirmation-contact">
-                    <div>
+                    <div class="contact-info">
+                    <div class="contact-text">
                         <div class="contact-title">Confirme com Auto Prudente</div>
                         <div class="contact-subtitle">Ligue para verificar disponibilidade e valores</div>
                     </div>
                     <div class="contact-phone-overlay">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
                         289 542 150
+                    </div>
                     </div>
                 </div>
 
@@ -858,14 +955,14 @@
                             <div class="summary-label">Cliente</div>
                             <div class="summary-value" id="summaryClientName">-</div>
                             <div class="summary-contact-details">
-                                <span id="summaryClientPhone">-</span> &nbsp;
+                                <span id="summaryClientPhone">-</span>
                                 <span id="summaryClientEmail">-</span>
                             </div>
                             <div class="summary-client-hotel" id="summaryClientHotel" style="display: none;">
                                 <div class="summary-label">Hotel</div>
                                 <div class="summary-value">
                                     <span id="summaryHotelName">-</span>
-                                    <span id="summaryRoomNumber"></span>
+                                    <span id="summaryRoomNumber">-</span>
                                 </div>
                             </div>
                         </div>
@@ -1532,6 +1629,27 @@
         updateBaseFranchiseText();
         updateSummaryPrice();
     }
+
+    function toggleInfoTooltip(tooltipId) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            const isVisible = tooltip.style.display !== 'none';
+            tooltip.style.display = isVisible ? 'none' : 'block';
+            document.querySelectorAll('.info-tooltip').forEach(otherTooltip => {
+                if (otherTooltip.id !== tooltipId) {
+                    otherTooltip.style.display = 'none';
+                }
+            });
+        }
+    }
+
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.info-icon') && !event.target.closest('.info-tooltip')) {
+            document.querySelectorAll('.info-tooltip').forEach(tooltip => {
+                tooltip.style.display = 'none';
+            });
+        }
+    });
 
     // ─── EXTRAS ───────────────────────────────────────────────
     function toggleExtra(cbId) {
