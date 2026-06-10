@@ -347,6 +347,7 @@
     let commissionerLocations = [];  // /api/commissioners/locations
     let vehicleGroups = [];          // /api/commissioners/vehicle-groups
     let franchisesByGroup = {};
+    let scheduleSettings = null;     // loaded from commissioner info endpoint
 
     let selectedVehicle = null;
     let selectedVehicleData = null;
@@ -361,19 +362,234 @@
             if (!data.ok) { showError(data.error || 'Link inválido'); return; }
             document.getElementById('commissionerName').textContent = data.commissioner.name;
 
+            // Guardar schedule settings do comissionista (vem no mesmo endpoint)
+            if (data.commissioner.schedule) {
+                scheduleSettings = data.commissioner.schedule;
+            } else {
+                scheduleSettings = {
+                    weekday_start_morning: '09:30', weekday_end_morning: '12:30',
+                    weekday_start_afternoon: '15:00', weekday_end_afternoon: '17:00',
+                    sunday_start_morning: '09:30', sunday_end_morning: '12:30',
+                    sunday_start_afternoon: '15:30', sunday_end_afternoon: '17:00',
+                    time_interval_minutes: 15
+                };
+            }
+
             await Promise.all([
                 loadLocations(data.commissioner.default_location),
                 loadVehicleGroups(),
                 loadPricing()
             ]);
-            populateTimeslots('pickupTime');
-            populateTimeslots('dropoffTime');
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('pickupDate').min = today;
-            document.getElementById('dropoffDate').min = today;
+
+            // Definir data default — IDENTICO ao dashboard (setDefaultPickupDate)
+            setDefaultPickupDate();
+
+            // Popular horas com base na data definida
+            const pickupTime = document.getElementById('pickupTime');
+            const dropoffTime = document.getElementById('dropoffTime');
+            populateTimeSelectsForDate(document.getElementById('pickupDate'), pickupTime);
+            populateTimeSelectsForDate(document.getElementById('dropoffDate'), dropoffTime);
+
+            // Event listeners para datas — IDENTICOS ao dashboard
+            setupDateListeners();
         } catch(e) {
             showError('Erro ao carregar. Por favor tente novamente.');
         }
+    }
+
+    // ─── generateTimeSlots — EXACT COPY from dashboard ───────
+    function generateTimeSlots(startTime, endTime, interval) {
+        interval = interval || 15;
+        const slots = [];
+        const [sh, sm] = startTime.split(':').map(Number);
+        const [eh, em] = endTime.split(':').map(Number);
+        let cur = sh * 60 + sm;
+        const end = eh * 60 + em;
+        while (cur <= end) {
+            slots.push(`${String(Math.floor(cur/60)).padStart(2,'0')}:${String(cur%60).padStart(2,'0')}`);
+            cur += interval;
+        }
+        return slots;
+    }
+
+    // ─── populateTimeSelectsForDate — EXACT COPY from dashboard ─
+    function populateTimeSelectsForDate(dateInput, timeSelect) {
+        if (!scheduleSettings) return;
+        const selectedDate = new Date(dateInput.value + 'T00:00:00');
+        const isSunday = selectedDate.getDay() === 0;
+        const interval = scheduleSettings.time_interval_minutes || 15;
+        let slots = [];
+        if (isSunday) {
+            slots = [
+                ...generateTimeSlots(scheduleSettings.sunday_start_morning, scheduleSettings.sunday_end_morning, interval),
+                ...generateTimeSlots(scheduleSettings.sunday_start_afternoon, scheduleSettings.sunday_end_afternoon, interval)
+            ];
+        } else {
+            slots = [
+                ...generateTimeSlots(scheduleSettings.weekday_start_morning, scheduleSettings.weekday_end_morning, interval),
+                ...generateTimeSlots(scheduleSettings.weekday_start_afternoon, scheduleSettings.weekday_end_afternoon, interval)
+            ];
+        }
+        // Filtrar horas passadas se for pickupTime e data = hoje
+        if (timeSelect.id === 'pickupTime') {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const selDay = new Date(selectedDate); selDay.setHours(0,0,0,0);
+            if (selDay.getTime() === today.getTime()) {
+                const now = new Date();
+                const minTime = new Date(now.getTime() + 30*60*1000);
+                const minH = minTime.getHours(), minM = minTime.getMinutes();
+                slots = slots.filter(t => {
+                    const [h,m] = t.split(':').map(Number);
+                    return (h*60+m) >= (minH*60+minM);
+                });
+            }
+        }
+        const cur = timeSelect.value;
+        timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
+        slots.forEach(t => {
+            const o = document.createElement('option');
+            o.value = t; o.textContent = t;
+            timeSelect.appendChild(o);
+        });
+        if (cur && slots.includes(cur)) timeSelect.value = cur;
+    }
+
+    // ─── setDefaultPickupDate — EXACT COPY from dashboard ────
+    function setDefaultPickupDate() {
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const curMins = now.getHours()*60 + now.getMinutes();
+
+        // Ler horario real do scheduleSettings
+        const mStart = scheduleSettings ? timeToMins(scheduleSettings.weekday_start_morning) : 570;
+        const mEnd   = scheduleSettings ? timeToMins(scheduleSettings.weekday_end_morning)   : 750;
+        const aStart = scheduleSettings ? timeToMins(scheduleSettings.weekday_start_afternoon): 900;
+        const aEnd   = scheduleSettings ? timeToMins(scheduleSettings.weekday_end_afternoon)  : 1020;
+
+        const pickupDate  = document.getElementById('pickupDate');
+        const dropoffDate = document.getElementById('dropoffDate');
+
+        // SEMPRE bloquear datas anteriores a hoje
+        pickupDate.min  = todayStr;
+        dropoffDate.min = todayStr;
+
+        const outside = curMins < mStart || (curMins > mEnd && curMins < aStart) || curMins >= aEnd;
+
+        if (outside) {
+            // Fora de horario -> forcara amanha
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            pickupDate.value  = tomorrowStr;
+            dropoffDate.min   = tomorrowStr;
+        } else {
+            pickupDate.value = todayStr;
+        }
+    }
+
+    function timeToMins(t) {
+        if (!t) return 0;
+        const [h,m] = String(t).split(':').map(Number);
+        return h*60 + (m||0);
+    }
+
+    // ─── setupDateListeners — EXACT COPY from dashboard ──────
+    function setupDateListeners() {
+        const pickupDate  = document.getElementById('pickupDate');
+        const dropoffDate = document.getElementById('dropoffDate');
+        const pickupTime  = document.getElementById('pickupTime');
+        const dropoffTime = document.getElementById('dropoffTime');
+
+        // Bloquear selecao de datas invalidas em tempo real
+        pickupDate.addEventListener('input', function() {
+            const minDate = this.getAttribute('min');
+            if (minDate && this.value && this.value < minDate) this.value = minDate;
+        });
+
+        pickupDate.addEventListener('change', function() {
+            const now = new Date();
+            const curMins = now.getHours()*60 + now.getMinutes();
+            const mStart = scheduleSettings ? timeToMins(scheduleSettings.weekday_start_morning) : 570;
+            const mEnd   = scheduleSettings ? timeToMins(scheduleSettings.weekday_end_morning)   : 750;
+            const aStart = scheduleSettings ? timeToMins(scheduleSettings.weekday_start_afternoon): 900;
+            const aEnd   = scheduleSettings ? timeToMins(scheduleSettings.weekday_end_afternoon)  : 1020;
+            const outside = curMins < mStart || (curMins > mEnd && curMins < aStart) || curMins >= aEnd;
+
+            if (this.value) {
+                const sel = new Date(this.value + 'T00:00:00');
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                // Fora de horario e tentou selecionar hoje -> forcar amanha
+                if (outside && sel.getTime() === today.getTime()) {
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    this.value = tomorrow.toISOString().split('T')[0];
+                }
+                // Popular horas com base na data
+                populateTimeSelectsForDate(this, pickupTime);
+                // dropoff min = pickup + 1 dia
+                const minDrop = new Date(this.value);
+                minDrop.setDate(minDrop.getDate() + 1);
+                dropoffDate.min = minDrop.toISOString().split('T')[0];
+                if (dropoffDate.value && new Date(dropoffDate.value) < minDrop) dropoffDate.value = '';
+            }
+            calculateDays();
+        });
+
+        dropoffDate.addEventListener('change', function() {
+            if (this.value) populateTimeSelectsForDate(this, dropoffTime);
+            calculateDays();
+        });
+
+        pickupTime.addEventListener('change',  calculateDays);
+        dropoffTime.addEventListener('change', calculateDays);
+
+        // Auto-fill dropoff location quando pickup location muda
+        const plo = document.getElementById('pickupLocation');
+        const dlo = document.getElementById('dropoffLocation');
+        if (plo && dlo) {
+            plo.addEventListener('change', function() {
+                if (this.value && !dlo.value) dlo.value = this.value;
+            });
+        }
+    }
+
+    // ─── calculateDays — EXACT COPY from dashboard ───────────
+    function calculateDays() {
+        const pd = document.getElementById('pickupDate').value;
+        const pt = document.getElementById('pickupTime').value;
+        const dd = document.getElementById('dropoffDate').value;
+        const dt = document.getElementById('dropoffTime').value;
+        if (!pd || !dd) { rentalDays = 0; document.getElementById('daysInfo').innerHTML = ''; return; }
+        const pickup  = new Date(pd + 'T' + (pt  || '00:00'));
+        const dropoff = new Date(dd + 'T' + (dt || '00:00'));
+        const diffMs  = dropoff - pickup;
+        if (diffMs <= 0) {
+            document.getElementById('daysInfo').innerHTML = '<span style="color:#dc2626;font-size:13px;">A data de devolucao deve ser posterior ao levantamento.</span>';
+            rentalDays = 0; return;
+        }
+        const msPerDay = 24*60*60*1000;
+        rentalDays = Math.floor(diffMs / msPerDay);
+        if (diffMs % msPerDay > 0) rentalDays++;
+
+        const season = getSeasonForDate(pickup);
+        const seasonLabel = season === 'low' ? 'Epoca Baixa' : season === 'mid' ? 'Epoca Media' : 'Epoca Alta';
+        document.getElementById('daysInfo').innerHTML = `<span class="days-badge">${rentalDays} dia${rentalDays!==1?'s':''}</span><span style="font-size:12px;color:#6b7280;">${seasonLabel}</span>`;
+
+        // Airport fee: disable if < 5 days
+        const airportItem = document.getElementById('extraAirportItem');
+        const airportCb   = document.getElementById('extraAirport');
+        if (airportItem) {
+            if (rentalDays < 5) {
+                airportItem.classList.add('disabled');
+                if (airportCb && airportCb.checked) { airportCb.checked = false; airportItem.classList.remove('selected'); }
+            } else {
+                airportItem.classList.remove('disabled');
+            }
+        }
+
+        document.getElementById('vehicleSection').classList.remove('hidden');
+        loadVehicles(pickup, rentalDays);
+        calculatePrice();
     }
 
     // ─── Locations ───────────────────────────────────────────
@@ -404,18 +620,6 @@
         const pu = document.getElementById('pickupLocation').value;
         const drop = document.getElementById('dropoffLocation');
         if (pu && !drop.value) drop.value = pu;
-    }
-
-    // ─── Timeslots ───────────────────────────────────────────
-    function populateTimeslots(selId) {
-        const sel = document.getElementById(selId);
-        sel.innerHTML = '<option value="">Hora...</option>';
-        for (let h = 7; h <= 21; h++) {
-            ['00','30'].forEach(m => {
-                const v = `${String(h).padStart(2,'0')}:${m}`;
-                sel.innerHTML += `<option value="${v}">${v}</option>`;
-            });
-        }
     }
 
     // ─── Vehicle Groups ──────────────────────────────────────
@@ -485,91 +689,53 @@
         return 'mid';
     }
 
-    // ─── Dates ───────────────────────────────────────────────
-    function onDatesChange() {
-        const pd = document.getElementById('pickupDate').value;
-        const dd = document.getElementById('dropoffDate').value;
-        const pt = document.getElementById('pickupTime').value;
-        const dt = document.getElementById('dropoffTime').value;
-        if (!pd || !dd || !pt || !dt) { rentalDays = 0; document.getElementById('daysInfo').innerHTML = ''; return; }
-
-        const pickup = new Date(`${pd}T${pt}`);
-        const dropoff = new Date(`${dd}T${dt}`);
-        const diffMs = dropoff - pickup;
-        if (diffMs <= 0) {
-            document.getElementById('daysInfo').innerHTML = '<span style="color:#dc2626;font-size:13px;">A data de devolução deve ser posterior ao levantamento.</span>';
-            rentalDays = 0; return;
+    // ─── checkGroupAAvailability — EXACT COPY from dashboard ─
+    async function checkGroupAAvailability() {
+        try {
+            const res = await fetch('/api/commissioners/group-a-status');
+            if (!res.ok) return true;
+            const data = await res.json();
+            return data.disabled === true;
+        } catch(e) {
+            return true;
         }
-        const msPerDay = 24*60*60*1000;
-        rentalDays = Math.floor(diffMs / msPerDay);
-        if (diffMs % msPerDay > 0) rentalDays += 1;
-
-        const season = getSeasonForDate(pickup);
-        const seasonLabel = season === 'low' ? 'Época Baixa' : season === 'mid' ? 'Época Média' : 'Época Alta';
-        document.getElementById('daysInfo').innerHTML = `<span class="days-badge">${rentalDays} dia${rentalDays !== 1 ? 's' : ''}</span><span style="font-size:12px;color:#6b7280;">${seasonLabel}</span>`;
-
-        // Airport fee: disable if < 5 days
-        const airportItem = document.getElementById('extraAirportItem');
-        const airportCb = document.getElementById('extraAirport');
-        if (airportItem) {
-            if (rentalDays < 5) {
-                airportItem.classList.add('disabled');
-                if (airportCb && airportCb.checked) { airportCb.checked = false; airportItem.classList.remove('selected'); }
-            } else {
-                airportItem.classList.remove('disabled');
-            }
-        }
-
-        document.getElementById('vehicleSection').classList.remove('hidden');
-        loadVehicles(pickup, rentalDays);
-        calculatePrice();
     }
 
     // ─── Vehicles ────────────────────────────────────────────
     async function loadVehicles(pickup, days) {
-        const pd = document.getElementById('pickupDate').value;
-        const pt = document.getElementById('pickupTime').value;
-        const dd = document.getElementById('dropoffDate').value;
-        const dt = document.getElementById('dropoffTime').value;
-
+        const season = getSeasonForDate(pickup);
         const grid = document.getElementById('vehicleGrid');
         const loading = document.getElementById('vehicleLoading');
         grid.innerHTML = '';
         loading.style.display = 'block';
 
-        try {
-            const res = await fetch(`/api/commissioners/vehicles?pickup_date=${pd}&pickup_time=${pt}&dropoff_date=${dd}&dropoff_time=${dt}`);
-            const data = await res.json();
-            loading.style.display = 'none';
-            const groups = data.ok ? (data.vehicle_groups || []) : vehicleGroups;
+        const isGroupADisabled = await checkGroupAAvailability();
+        loading.style.display = 'none';
 
-            groups.forEach(g => {
-                const season = getSeasonForDate(pickup);
-                const price = getBasePrice(g.code, season, days);
-                const available = g.available !== false;
-                const card = document.createElement('div');
-                card.className = 'vehicle-card' + (!available ? ' unavailable' : '');
-                card.innerHTML = `
-                    <div class="vc-header">
-                        <span class="vc-code">${g.code}</span>
-                        <span class="vc-price">${price ? '€' + price.toFixed(0) : ''}</span>
-                    </div>
-                    <img class="vc-img" src="${g.image || '/static/images/car-placeholder.jpg'}" alt="${g.name}" onerror="this.src='/static/images/car-placeholder.jpg'">
-                    <div class="vc-name">${g.name || g.code}</div>
-                    <div class="vc-feats">
-                        ${g.seats ? `<span class="vc-feat">👤 ${g.seats}</span>` : ''}
-                        ${g.doors ? `<span class="vc-feat">🚪 ${g.doors}</span>` : ''}
-                        ${g.ac ? '<span class="vc-feat">❄️ AC</span>' : ''}
-                        ${g.transmission ? `<span class="vc-feat">${g.transmission === 'automatic' ? '⚙️ Auto' : '🔧 Manual'}</span>` : ''}
-                    </div>
-                    ${!available ? '<span class="unavail-badge">Indisponível</span>' : ''}
-                `;
-                if (available) card.onclick = () => selectVehicle(g, card);
-                grid.appendChild(card);
-            });
-        } catch(e) {
-            loading.style.display = 'none';
-        }
+        vehicleGroups.forEach(g => {
+            const isUnavailable = (g.code === 'A' && isGroupADisabled) || g.available === false;
+            const price = getBasePrice(g.code, season, days);
+            const card = document.createElement('div');
+            card.className = 'vehicle-card' + (isUnavailable ? ' unavailable' : '');
+            card.innerHTML = `
+                <div class="vc-header">
+                    <span class="vc-code">${g.code}</span>
+                    <span class="vc-price">${price ? '€' + price.toFixed(0) : ''}</span>
+                </div>
+                <img class="vc-img" src="${g.image || '/static/images/car-placeholder.jpg'}" alt="${g.name}"
+                     onerror="this.src='/static/images/car-placeholder.jpg'">
+                <div class="vc-name">${g.name || g.code}</div>
+                <div class="vc-feats">
+                    ${g.ac ? '<img src="/static/Icones-Caracteristicas/AC.png" alt="A/C" style="height:18px">' : ''}
+                    ${g.seats ? `<img src="/static/Icones-Caracteristicas/${String(g.seats).includes('-') ? g.seats+' L' : g.seats+'L'}.png" alt="${g.seats} lugares" style="height:18px">` : ''}
+                    ${g.doors ? `<img src="/static/Icones-Caracteristicas/${g.doors}P.png" alt="${g.doors} portas" style="height:18px">` : ''}
+                    ${g.transmission === 'automatic' ? '<img src="/static/Icones-Caracteristicas/automatico.png" alt="Automatico" style="height:18px">' : ''}
+                </div>
+                ${isUnavailable ? '<span class="unavail-badge">SEM DISPONIBILIDADE</span>' : ''}
+            `;
+            if (!isUnavailable) card.onclick = () => selectVehicle(g, card);
+            grid.appendChild(card);
+        });
     }
 
     // ─── Base price — EXACT COPY from dashboard ──────────────

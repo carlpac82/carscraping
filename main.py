@@ -7210,14 +7210,7 @@ async def api_get_group_a_status(request: Request):
 
 @app.get("/api/commissioners/group-a-status")
 async def api_commissioners_get_group_a_status(request: Request):
-    """Get Group A availability status - for commissioners"""
-    try:
-        # Verificar se está autenticado como comissionista
-        if not request.session.get("commissioner_id"):
-            return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
-    except:
-        return JSONResponse({"ok": False, "error": "Authentication failed"}, status_code=401)
-    
+    """Get Group A availability status - public read access"""
     try:
         # Verificar disponibilidade automática baseada no número de carros disponíveis
         auto_disabled = False
@@ -62788,7 +62781,13 @@ async def api_public_commissioner_info(slug: str, token: str):
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "SELECT id, name, enabled, default_location FROM commissioners WHERE public_token = %s AND public_slug = %s",
+            """SELECT id, name, enabled, default_location,
+                      weekday_start_morning, weekday_end_morning,
+                      weekday_start_afternoon, weekday_end_afternoon,
+                      sunday_start_morning, sunday_end_morning,
+                      sunday_start_afternoon, sunday_end_afternoon,
+                      time_interval_minutes
+               FROM commissioners WHERE public_token = %s AND public_slug = %s""",
             (token, slug)
         )
         row = cursor.fetchone()
@@ -62799,10 +62798,35 @@ async def api_public_commissioner_info(slug: str, token: str):
         return {"ok": False, "error": "Erro interno"}
     if not row:
         return {"ok": False, "error": "Link inválido ou expirado"}
-    cid, cname, enabled, default_loc = (row[0], row[1], row[2], row[3]) if isinstance(row, tuple) else (row['id'], row['name'], row['enabled'], row.get('default_location'))
+    if isinstance(row, tuple):
+        cid, cname, enabled, default_loc = row[0], row[1], row[2], row[3]
+        schedule = {
+            "weekday_start_morning": str(row[4]) if row[4] else "09:30",
+            "weekday_end_morning": str(row[5]) if row[5] else "12:30",
+            "weekday_start_afternoon": str(row[6]) if row[6] else "15:00",
+            "weekday_end_afternoon": str(row[7]) if row[7] else "17:00",
+            "sunday_start_morning": str(row[8]) if row[8] else "09:30",
+            "sunday_end_morning": str(row[9]) if row[9] else "12:30",
+            "sunday_start_afternoon": str(row[10]) if row[10] else "15:30",
+            "sunday_end_afternoon": str(row[11]) if row[11] else "17:00",
+            "time_interval_minutes": row[12] if row[12] else 15
+        }
+    else:
+        cid, cname, enabled, default_loc = row['id'], row['name'], row['enabled'], row.get('default_location')
+        schedule = {
+            "weekday_start_morning": str(row.get('weekday_start_morning') or "09:30"),
+            "weekday_end_morning": str(row.get('weekday_end_morning') or "12:30"),
+            "weekday_start_afternoon": str(row.get('weekday_start_afternoon') or "15:00"),
+            "weekday_end_afternoon": str(row.get('weekday_end_afternoon') or "17:00"),
+            "sunday_start_morning": str(row.get('sunday_start_morning') or "09:30"),
+            "sunday_end_morning": str(row.get('sunday_end_morning') or "12:30"),
+            "sunday_start_afternoon": str(row.get('sunday_start_afternoon') or "15:30"),
+            "sunday_end_afternoon": str(row.get('sunday_end_afternoon') or "17:00"),
+            "time_interval_minutes": row.get('time_interval_minutes') or 15
+        }
     if not enabled:
         return {"ok": False, "error": "Este link está inativo"}
-    return {"ok": True, "commissioner": {"id": cid, "name": cname, "default_location": default_loc}}
+    return {"ok": True, "commissioner": {"id": cid, "name": cname, "default_location": default_loc, "schedule": schedule}}
 
 
 @app.post("/api/public/booking/{slug}/{token}")
