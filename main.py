@@ -5673,14 +5673,19 @@ def _send_self_checkin_confirmation_email(
         
         # Formatar data e hora
         import datetime
+        import zoneinfo
         created_at = inspection_data.get('created_at')
         if isinstance(created_at, str):
             try:
                 created_at = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
             except:
-                created_at = datetime.datetime.now()
+                created_at = datetime.datetime.now(datetime.timezone.utc)
         elif not isinstance(created_at, datetime.datetime):
-            created_at = datetime.datetime.now()
+            created_at = datetime.datetime.now(datetime.timezone.utc)
+        
+        lisbon_tz = zoneinfo.ZoneInfo('Europe/Lisbon')
+        if created_at.tzinfo is not None:
+            created_at = created_at.astimezone(lisbon_tz)
         
         pickup_date = created_at.strftime('%d/%m/%Y')
         pickup_time = created_at.strftime('%H:%M')
@@ -5762,14 +5767,19 @@ def _send_self_checkout_warning_email(
         
         # Formatar data e hora
         import datetime
+        import zoneinfo
         created_at = inspection_data.get('created_at')
         if isinstance(created_at, str):
             try:
                 created_at = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
             except:
-                created_at = datetime.datetime.now()
+                created_at = datetime.datetime.now(datetime.timezone.utc)
         elif not isinstance(created_at, datetime.datetime):
-            created_at = datetime.datetime.now()
+            created_at = datetime.datetime.now(datetime.timezone.utc)
+        
+        lisbon_tz = zoneinfo.ZoneInfo('Europe/Lisbon')
+        if created_at.tzinfo is not None:
+            created_at = created_at.astimezone(lisbon_tz)
         
         pickup_date = created_at.strftime('%d/%m/%Y')
         pickup_time = created_at.strftime('%H:%M')
@@ -6035,14 +6045,19 @@ def _send_self_checkout_submitted_email(
         
         # Formatar data e hora
         import datetime
+        import zoneinfo
         created_at = inspection_data.get('created_at')
         if isinstance(created_at, str):
             try:
                 created_at = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
             except:
-                created_at = datetime.datetime.now()
+                created_at = datetime.datetime.now(datetime.timezone.utc)
         elif not isinstance(created_at, datetime.datetime):
-            created_at = datetime.datetime.now()
+            created_at = datetime.datetime.now(datetime.timezone.utc)
+        
+        lisbon_tz = zoneinfo.ZoneInfo('Europe/Lisbon')
+        if created_at.tzinfo is not None:
+            created_at = created_at.astimezone(lisbon_tz)
         
         pickup_date = created_at.strftime('%d/%m/%Y')
         pickup_time = created_at.strftime('%H:%M')
