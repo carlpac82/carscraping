@@ -559,43 +559,47 @@ async def migrate_commissioner_tokens():
     """Force generate public_token and public_slug for all commissioners missing them"""
     import secrets as _sec
     import re as _re
-    conn = get_db()
-    cursor = conn.cursor()
+    import psycopg2
+    import os
     updated = 0
     errors = []
+    total_found = 0
     try:
+        database_url = os.environ.get("DATABASE_URL", "")
+        if not database_url:
+            return {"ok": False, "error": "No DATABASE_URL"}
+        raw_conn = psycopg2.connect(database_url)
+        raw_conn.autocommit = False
+        cur = raw_conn.cursor()
+        # Add columns if missing
         for col_sql in [
             "ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
             "ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS public_slug VARCHAR(100)",
         ]:
             try:
-                cursor.execute(col_sql)
-                conn.commit()
+                cur.execute(col_sql)
+                raw_conn.commit()
             except Exception as e:
-                try: conn.rollback()
-                except Exception: pass
-                errors.append(str(e))
-
-        cursor.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL OR public_token = ''")
-        rows = cursor.fetchall()
+                raw_conn.rollback()
+                errors.append(f"DDL: {e}")
+        # Count total
+        cur.execute("SELECT COUNT(*) FROM commissioners")
+        total_found = cur.fetchone()[0]
+        # Find missing
+        cur.execute("SELECT id, name FROM commissioners WHERE public_token IS NULL")
+        rows = cur.fetchall()
         for row in rows:
-            rid = row[0] if not hasattr(row, 'keys') else row['id']
-            rname = row[1] if not hasattr(row, 'keys') else row['name']
+            rid, rname = row[0], row[1]
             slug = _re.sub(r'[^a-z0-9]+', '-', rname.lower()).strip('-')[:50]
             token = _sec.token_hex(16)
-            cursor.execute(
-                "UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s",
-                (token, slug, rid)
-            )
+            cur.execute("UPDATE commissioners SET public_token = %s, public_slug = %s WHERE id = %s", (token, slug, rid))
             updated += 1
-        conn.commit()
+        raw_conn.commit()
+        cur.close()
+        raw_conn.close()
     except Exception as e:
-        try: conn.rollback()
-        except Exception: pass
         errors.append(str(e))
-    finally:
-        conn.close()
-    return {"ok": True, "updated": updated, "errors": errors}
+    return {"ok": True, "updated": updated, "total": total_found, "errors": errors}
 
 @router.get("/api/admin/commissioners")
 async def get_all_commissioners():
