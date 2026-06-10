@@ -1740,6 +1740,7 @@
                   <option value="all">Todas</option>
                   <option value="paid">Pagas</option>
                   <option value="unpaid">Por Pagar</option>
+                  <option value="cancelled">Canceladas</option>
               </select>
           </div>
           <div class="filter-group">
@@ -2305,6 +2306,8 @@
                           if (isCancelled || !commission.commission_paid) return false;
                       } else if (statusFilter === 'unpaid') {
                           if (isCancelled || commission.commission_paid) return false;
+                      } else if (statusFilter === 'cancelled') {
+                          if (!isCancelled) return false;
                       }
                   }
                   
