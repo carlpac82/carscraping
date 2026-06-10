@@ -894,34 +894,38 @@ def get_vehicle_groups_with_photos_v2(conn):
     try:
         cursor = conn.cursor()
         
-        # Buscar todos os grupos da tabela car_groups
-        # Tentar com filtro enabled primeiro (coluna é INTEGER, não BOOLEAN)
+        # Buscar todos os grupos da tabela car_groups - apenas activos
+        # enabled pode ser BOOLEAN (PostgreSQL) ou INTEGER (SQLite)
         try:
             cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
-                WHERE enabled = 1
+                WHERE enabled = TRUE
                 ORDER BY code
             """)
             rows = cursor.fetchall()
-            if len(rows) == 0:
-                # Se não houver resultados, tentar sem filtro
+        except Exception as e:
+            print(f"Error with enabled=TRUE filter: {e}, trying enabled=1")
+            try: conn.rollback()
+            except Exception: pass
+            try:
+                cursor.execute("""
+                    SELECT code, brand, model, photo_url 
+                    FROM car_groups 
+                    WHERE enabled = 1
+                    ORDER BY code
+                """)
+                rows = cursor.fetchall()
+            except Exception as e2:
+                print(f"Error with enabled=1 filter: {e2}, loading all")
+                try: conn.rollback()
+                except Exception: pass
                 cursor.execute("""
                     SELECT code, brand, model, photo_url 
                     FROM car_groups 
                     ORDER BY code
                 """)
                 rows = cursor.fetchall()
-        except Exception as e:
-            print(f"Error with enabled filter: {e}, trying without filter")
-            # Fazer rollback da transação falhada
-            conn.rollback()
-            cursor.execute("""
-                SELECT code, brand, model, photo_url 
-                FROM car_groups 
-                ORDER BY code
-            """)
-            rows = cursor.fetchall()
         
         # Dados específicos de cada grupo (baseado na imagem Auto Prudente)
         group_specs = {
@@ -1090,6 +1094,58 @@ async def get_vehicle_groups_endpoint(request: Request):
             "ok": False,
             "error": str(e)
         }, status_code=500)
+
+@router.get("/api/admin/fix-car-groups")
+async def fix_car_groups():
+    """Disable NEW- and X groups and fix official group names"""
+    import psycopg2, os
+    errors = []
+    results = {}
+    try:
+        database_url = os.environ.get("DATABASE_URL", "")
+        raw_conn = psycopg2.connect(database_url)
+        raw_conn.autocommit = False
+        cur = raw_conn.cursor()
+
+        # 1. Disable all NEW- groups and X
+        cur.execute("""
+            UPDATE car_groups SET enabled = FALSE
+            WHERE code LIKE 'NEW-%' OR code = 'X' OR code IN ('B1','B2')
+        """)
+        results['disabled'] = cur.rowcount
+
+        # 2. Fix official group names/brands/models
+        official = [
+            ('A',  'KIA',      'Picanto ou similar'),
+            ('B',  'FIAT',     'Panda ou similar'),
+            ('D',  'SEAT',     'Ibiza ou similar'),
+            ('E1', 'HYUNDAI',  'i10 ou similar'),
+            ('E2', 'CITROEN',  'C3 ou similar'),
+            ('F',  'SEAT',     'Arona ou similar'),
+            ('G',  'FIAT',     '500 Cabrio'),
+            ('J1', 'PEUGEOT',  '2008 ou similar'),
+            ('J2', 'PEUGEOT',  '308 SW ou similar'),
+            ('L1', 'CITROEN',  'C3 Aircross ou similar'),
+            ('L2', 'PEUGEOT',  '308 SW ou similar'),
+            ('M1', 'DACIA',    'Jogger ou similar'),
+            ('M2', 'CITROEN',  'C4 Picasso ou similar'),
+            ('N',  'TOYOTA',   'Proace ou similar'),
+        ]
+        fixed = 0
+        for code, brand, model in official:
+            cur.execute(
+                "UPDATE car_groups SET brand = %s, model = %s, enabled = TRUE WHERE code = %s",
+                (brand, model, code)
+            )
+            fixed += cur.rowcount
+        results['names_fixed'] = fixed
+
+        raw_conn.commit()
+        cur.close()
+        raw_conn.close()
+    except Exception as e:
+        errors.append(str(e))
+    return {"ok": True, "results": results, "errors": errors}
 
 @router.get("/api/commissioners/locations")
 async def get_commissioner_locations(request: Request):
