@@ -2637,11 +2637,11 @@
     function closeTC() {
         const modal = document.getElementById('tcModal');
         applyMacOSMinimizeAnimationTC(modal, _tcTriggerBtn, () => {
-            modal.classList.add('hidden');
             document.getElementById('tcIframe').src = '';
             const card = document.getElementById('tcCard');
             card.style.cssText = '';
-            modal.style.cssText = 'display:none!important';
+            modal.style.transition = '';
+            modal.style.opacity = '';
             modal.classList.add('hidden');
         });
     }
