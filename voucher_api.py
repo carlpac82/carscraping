@@ -285,10 +285,40 @@ async def send_new_booking_notification(booking_id: int, booking_data: dict):
         print(f"[NOTIFICATION] Sending email via Gmail API")
         try:
             service = build('gmail', 'v1', credentials=credentials)
-            result = service.users().messages().send(userId='me', body=message).execute()
-            
-            print(f"[NOTIFICATION] Email sent successfully to info@auto-prudente.com")
-            print(f"[NOTIFICATION] Message ID: {result.get('id')}")
+            voucher_num = booking_data.get('voucher_number', '')
+            subject = f"Nova Reserva - {voucher_num}"
+
+            # Collect recipients: Auto Prudente + commissioner + client
+            recipients = ['info@auto-prudente.com']
+            agent_email = booking_data.get('agent_email', '')
+            client_email = booking_data.get('client_email', '')
+            if agent_email and agent_email != 'N/A' and agent_email not in recipients:
+                recipients.append(agent_email)
+            if client_email and client_email != 'N/A' and client_email not in recipients:
+                recipients.append(client_email)
+
+            for recipient in recipients:
+                if pdf_content:
+                    msg = create_message_with_attachment(
+                        credentials,
+                        recipient,
+                        subject,
+                        html_content,
+                        pdf_content,
+                        f"voucher_{voucher_num}.pdf"
+                    )
+                else:
+                    from email.mime.multipart import MIMEMultipart as _MM
+                    from email.mime.text import MIMEText as _MT
+                    import base64 as _b64
+                    mo = _MM()
+                    mo['to'] = recipient
+                    mo['subject'] = subject
+                    mo.attach(_MT(html_content, 'html'))
+                    msg = {'raw': _b64.urlsafe_b64encode(mo.as_bytes()).decode()}
+                result = service.users().messages().send(userId='me', body=msg).execute()
+                print(f"[NOTIFICATION] Email sent to {recipient}, ID: {result.get('id')}")
+
             return True
             
         except Exception as e:
