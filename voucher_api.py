@@ -297,14 +297,50 @@ async def send_new_booking_notification(booking_id: int, booking_data: dict):
             if client_email and client_email != 'N/A' and client_email not in recipients:
                 recipients.append(client_email)
 
+            # Generate client-language PDF for client email
+            client_lang = booking_data.get('language', 'pt') or 'pt'
+            client_pdf_content = pdf_content  # fallback to PT
+            if client_lang != 'pt' and client_email and client_email != 'N/A':
+                try:
+                    lang_template_path = os.path.join(os.path.dirname(__file__), 'templates', f'voucher_template_{client_lang}.html')
+                    if not os.path.exists(lang_template_path):
+                        lang_template_path = os.path.join(os.path.dirname(__file__), 'templates', 'voucher_template_en.html')
+                    with open(lang_template_path, 'r', encoding='utf-8') as f:
+                        lang_template_content = f.read()
+                    from jinja2 import Template as _T
+                    lang_voucher_html = _T(lang_template_content).render(**{**booking_data, 'language': client_lang})
+                    lang_voucher_html = lang_voucher_html.replace('src="/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
+                    async with async_playwright() as _p:
+                        _browser = await _p.chromium.launch()
+                        _page = await _browser.new_page()
+                        await _page.set_content(lang_voucher_html)
+                        await _page.wait_for_timeout(2000)
+                        client_pdf_content = await _page.pdf(format='A4', print_background=True, margin={'top':'20px','right':'20px','bottom':'20px','left':'20px'})
+                        await _browser.close()
+                    print(f"[NOTIFICATION] Client PDF generated in '{client_lang}'")
+                except Exception as e:
+                    print(f"[NOTIFICATION] Error generating client-lang PDF, using PT fallback: {e}")
+
+            # Client subject in client language
+            client_subjects = {
+                'pt': f"Confirmação de Reserva - {voucher_num}",
+                'en': f"Booking Confirmation - {voucher_num}",
+                'fr': f"Confirmation de Réservation - {voucher_num}",
+                'de': f"Buchungsbestätigung - {voucher_num}",
+            }
+            client_subject = client_subjects.get(client_lang, f"Booking Confirmation - {voucher_num}")
+
             for recipient in recipients:
-                if pdf_content:
+                is_client = recipient == client_email
+                use_pdf = client_pdf_content if is_client else pdf_content
+                use_subject = client_subject if is_client else subject
+                if use_pdf:
                     msg = create_message_with_attachment(
                         credentials,
                         recipient,
-                        subject,
+                        use_subject,
                         html_content,
-                        pdf_content,
+                        use_pdf,
                         f"voucher_{voucher_num}.pdf"
                     )
                 else:
@@ -313,11 +349,11 @@ async def send_new_booking_notification(booking_id: int, booking_data: dict):
                     import base64 as _b64
                     mo = _MM()
                     mo['to'] = recipient
-                    mo['subject'] = subject
+                    mo['subject'] = use_subject
                     mo.attach(_MT(html_content, 'html'))
                     msg = {'raw': _b64.urlsafe_b64encode(mo.as_bytes()).decode()}
                 result = service.users().messages().send(userId='me', body=msg).execute()
-                print(f"[NOTIFICATION] Email sent to {recipient}, ID: {result.get('id')}")
+                print(f"[NOTIFICATION] Email sent to {recipient} (lang={client_lang if is_client else 'pt'}), ID: {result.get('id')}")
 
             return True
             
