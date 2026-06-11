@@ -687,19 +687,20 @@
         @media (max-width: 640px) {
             body { padding: 0; align-items: flex-start; }
 
-            /* Modal ocupa ecrã completo - iOS Safari usa dvh para excluir barra do browser */
-            #mainModal { padding: 0; align-items: flex-start; }
+            /* Modal com margens laterais e topo/fundo em mobile */
+            #mainModal { padding: 12px 10px; align-items: flex-start; padding-top: max(12px, env(safe-area-inset-top)); }
             .modal-content {
-                border-radius: 0;
+                border-radius: 16px;
                 width: 100%;
                 max-width: 100%;
-                height: 100vh;
-                height: 100dvh;
-                max-height: 100vh;
-                max-height: 100dvh;
+                height: calc(100vh - 24px);
+                height: calc(100dvh - 24px);
+                max-height: calc(100vh - 24px);
+                max-height: calc(100dvh - 24px);
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             }
 
             /* Header compacto */
