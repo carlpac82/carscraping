@@ -511,6 +511,25 @@
         .insurance-modal .modal-btn-confirm { background: #009cb6; color: white; border: 1.5px solid #009cb6; }
         .insurance-modal .modal-btn-confirm:hover { background: #007a8f; border-color: #007a8f; }
 
+        /* ─── MODAL CLOSE ─── */
+        .modal-close {
+            background: #ef4444;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .modal-close:hover { background: #dc2626; transform: scale(1.1); }
+
         /* ─── LANGUAGE LANDING PAGE ─── */
         .lang-landing {
             display: flex;
@@ -693,8 +712,8 @@
 <div class="modal-content hidden" id="mainModal">
     <!-- Header -->
     <div class="modal-header">
-        <h2>Nova Reserva</h2>
-        <div style="font-size:13px;opacity:0.85;" id="commissionerNameHeader">Auto Prudente</div>
+        <h2 id="headerTitle">Nova Reserva</h2>
+        <button class="modal-close" onclick="goBackToLanding()">&times;</button>
     </div>
 
     <!-- Progress -->
@@ -2498,6 +2517,12 @@
         document.body.classList.remove('landing-active');
         applyLanguage(lang);
         init();
+    }
+
+    function goBackToLanding() {
+        document.getElementById('mainModal').classList.add('hidden');
+        document.getElementById('langLanding').classList.remove('hidden');
+        document.body.classList.add('landing-active');
     }
 
     function t(key) {
