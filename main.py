@@ -63790,10 +63790,21 @@ async def update_commission_booking_status(booking_id: int, request: Request):
                     return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
                 
                 con.commit()
-                return JSONResponse({"ok": True, "message": f"Booking status updated to {new_status}"})
-                
             finally:
                 con.close()
+
+        # Send confirmation email when status changes to confirmed
+        if new_status == 'confirmed':
+            try:
+                from voucher_api import get_booking_data, _send_booking_confirmed_email
+                booking_data = get_booking_data(booking_id)
+                if booking_data:
+                    asyncio.ensure_future(_send_booking_confirmed_email(booking_data))
+                    print(f"[CONFIRM EMAIL] Scheduled for booking {booking_id}")
+            except Exception as e:
+                print(f"[CONFIRM EMAIL] Error scheduling email: {e}")
+
+        return JSONResponse({"ok": True, "message": f"Booking status updated to {new_status}"})
                 
     except Exception as e:
         print(f"Error updating booking status: {e}")
