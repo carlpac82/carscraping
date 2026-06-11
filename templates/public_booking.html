@@ -862,7 +862,7 @@
                 </div>
             </div>
             <div class="days-display-container">
-                <label>Número de Dias</label>
+                <label id="daysLabel">Número de Dias</label>
                 <div class="days-display" id="daysDisplay">0 dias</div>
             </div>
         </div>
@@ -1628,14 +1628,15 @@
         const pt = document.getElementById('pickupTime').value || '00:00';
         const dd = document.getElementById('dropoffDate').value;
         const dt = document.getElementById('dropoffTime').value || '00:00';
-        if (!pd || !dd) { document.getElementById('daysDisplay').textContent = '0 dias'; rentalDays = 0; updateSummaryPrice(); return; }
+        if (!pd || !dd) { const T0 = translations[currentLang]||translations.en; document.getElementById('daysDisplay').textContent = '0 ' + (T0.labelDayUnit||'dias'); rentalDays = 0; updateSummaryPrice(); return; }
 
         const pickup = new Date(pd + 'T' + pt);
         const dropoff = new Date(dd + 'T' + dt);
         const diffMs = dropoff - pickup;
 
         if (diffMs <= 0) {
-            document.getElementById('daysDisplay').textContent = '0 dias';
+            const T0 = translations[currentLang]||translations.en;
+            document.getElementById('daysDisplay').textContent = '0 ' + (T0.labelDayUnit||'dias');
             rentalDays = 0;
             updateSummaryPrice();
             return;
@@ -1647,7 +1648,9 @@
         if (diffMs % msPerDay > 0) days += 1;
 
         rentalDays = days;
-        document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
+        const Td = translations[currentLang]||translations.en;
+        const dayUnit = days === 1 ? (Td.labelDayUnitSingle||'dia') : (Td.labelDayUnit||'dias');
+        document.getElementById('daysDisplay').textContent = `${days} ${dayUnit}`;
         updateSummaryPrice();
     }
 
@@ -2389,6 +2392,8 @@
             errConnection: 'Erro de ligação. Tente novamente.',
             errBooking: 'Erro ao criar reserva.',
             errTodayMin: 'Para reservas no dia de hoje, a hora de entrega deve ser pelo menos',
+            labelDayUnit: 'dias',
+            labelDayUnitSingle: 'dia',
             labelLanguage: 'pt',
         },
         en: {
@@ -2450,6 +2455,8 @@
             errConnection: 'Connection error. Please try again.',
             errBooking: 'Error creating booking.',
             errTodayMin: 'For bookings today, pickup time must be at least',
+            labelDayUnit: 'days',
+            labelDayUnitSingle: 'day',
             labelLanguage: 'en',
         },
         fr: {
@@ -2511,6 +2518,8 @@
             errConnection: 'Erreur de connexion. Veuillez réessayer.',
             errBooking: 'Erreur lors de la création de la réservation.',
             errTodayMin: 'Pour les réservations aujourd\'hui, l\'heure de départ doit être au moins',
+            labelDayUnit: 'jours',
+            labelDayUnitSingle: 'jour',
             labelLanguage: 'fr',
         },
         de: {
@@ -2572,6 +2581,8 @@
             errConnection: 'Verbindungsfehler. Bitte versuchen Sie es erneut.',
             errBooking: 'Fehler beim Erstellen der Buchung.',
             errTodayMin: 'Für heutige Buchungen muss die Abholzeit mindestens',
+            labelDayUnit: 'Tage',
+            labelDayUnitSingle: 'Tag',
             labelLanguage: 'de',
         }
     };
@@ -2866,6 +2877,8 @@
         document.querySelector('[data-step="1"] #dropoffLocation option[value=""]').textContent = T.selectOption;
         const daysLabel = document.querySelector('.days-display-container label');
         if (daysLabel) daysLabel.textContent = T.labelDays;
+        const daysDisp = document.getElementById('daysDisplay');
+        if (daysDisp && rentalDays === 0) daysDisp.textContent = '0 ' + (T.labelDayUnit||'dias');
 
         // Step 3 labels
         const sectionTitle = document.querySelector('.protection-section .section-title');
