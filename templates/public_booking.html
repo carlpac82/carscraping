@@ -509,39 +509,48 @@
         .lang-landing {
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
+            background: #009cb6;
+        }
+        .lang-topbar {
+            background: #009cb6;
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .lang-topbar img {
+            height: 48px;
+            width: auto;
+        }
+        .lang-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
             padding: 40px 20px;
         }
         .lang-card {
             background: white;
             border-radius: 20px;
-            padding: 56px 48px;
+            padding: 48px 44px;
             width: 100%;
-            max-width: 480px;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+            max-width: 460px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.22);
             text-align: center;
         }
-        .lang-logo {
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #009cb6;
-            margin-bottom: 32px;
-        }
         .lang-welcome {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 700;
             color: #111827;
             line-height: 1.2;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .lang-subtitle {
-            font-size: 15px;
+            font-size: 14px;
             color: #6b7280;
-            margin-bottom: 48px;
+            margin-bottom: 40px;
             line-height: 1.5;
         }
         .lang-grid {
@@ -553,10 +562,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
-            padding: 20px 16px;
+            gap: 10px;
+            padding: 20px 12px;
             border: 2px solid #e5e7eb;
-            border-radius: 12px;
+            border-radius: 14px;
             background: white;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -566,23 +575,26 @@
             border-color: #009cb6;
             background: #f0f9fb;
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,156,182,0.12);
+            box-shadow: 0 8px 20px rgba(0,156,182,0.14);
         }
-        .lang-btn-code {
-            font-size: 18px;
-            font-weight: 800;
-            color: #111827;
-            letter-spacing: 1px;
+        .lang-flag {
+            width: 40px;
+            height: 28px;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
         }
+        .lang-flag svg { width: 100%; height: 100%; display: block; }
         .lang-btn-name {
-            font-size: 12px;
-            color: #6b7280;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
         }
         .lang-footer {
-            margin-top: 40px;
+            padding: 20px;
             font-size: 12px;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255,255,255,0.55);
             text-align: center;
         }
         .hidden { display: none !important; }
@@ -605,30 +617,64 @@
 
 <!-- LANDING PAGE - Selecção de idioma -->
 <div id="langLanding" class="lang-landing">
-    <div class="lang-card">
-        <div class="lang-logo">Auto Prudente</div>
-        <div class="lang-welcome" id="langWelcome">Bem-vindo</div>
-        <div class="lang-subtitle" id="langSubtitle">Selecione o seu idioma para continuar</div>
-        <div class="lang-grid">
-            <button class="lang-btn" onclick="selectLanguage('pt')">
-                <span class="lang-btn-code">PT</span>
-                <span class="lang-btn-name">Português</span>
-            </button>
-            <button class="lang-btn" onclick="selectLanguage('en')">
-                <span class="lang-btn-code">EN</span>
-                <span class="lang-btn-name">English</span>
-            </button>
-            <button class="lang-btn" onclick="selectLanguage('fr')">
-                <span class="lang-btn-code">FR</span>
-                <span class="lang-btn-name">Français</span>
-            </button>
-            <button class="lang-btn" onclick="selectLanguage('de')">
-                <span class="lang-btn-code">DE</span>
-                <span class="lang-btn-name">Deutsch</span>
-            </button>
+    <!-- Top bar com logo igual ao dashboard -->
+    <div class="lang-topbar">
+        <img src="/static/ap-heather.png" alt="Auto Prudente">
+    </div>
+    <!-- Corpo central -->
+    <div class="lang-body">
+        <div class="lang-card">
+            <div class="lang-welcome" id="langWelcome">Bem-vindo</div>
+            <div class="lang-subtitle" id="langSubtitle">Selecione o seu idioma para continuar</div>
+            <div class="lang-grid">
+                <button class="lang-btn" onclick="selectLanguage('pt')">
+                    <div class="lang-flag">
+                        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="24" height="40" fill="#006600"/>
+                            <rect x="24" width="36" height="40" fill="#FF0000"/>
+                            <circle cx="24" cy="20" r="8" fill="#FFD700" stroke="#006600" stroke-width="1"/>
+                            <circle cx="24" cy="20" r="5" fill="#003399"/>
+                        </svg>
+                    </div>
+                    <span class="lang-btn-name">Português</span>
+                </button>
+                <button class="lang-btn" onclick="selectLanguage('en')">
+                    <div class="lang-flag">
+                        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="60" height="40" fill="#012169"/>
+                            <path d="M0,0 L60,40 M60,0 L0,40" stroke="white" stroke-width="6"/>
+                            <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" stroke-width="4"/>
+                            <path d="M30,0 V40 M0,20 H60" stroke="white" stroke-width="10"/>
+                            <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="6"/>
+                        </svg>
+                    </div>
+                    <span class="lang-btn-name">English</span>
+                </button>
+                <button class="lang-btn" onclick="selectLanguage('fr')">
+                    <div class="lang-flag">
+                        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="20" height="40" fill="#002395"/>
+                            <rect x="20" width="20" height="40" fill="#FFFFFF"/>
+                            <rect x="40" width="20" height="40" fill="#ED2939"/>
+                        </svg>
+                    </div>
+                    <span class="lang-btn-name">Français</span>
+                </button>
+                <button class="lang-btn" onclick="selectLanguage('de')">
+                    <div class="lang-flag">
+                        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="60" height="14" fill="#000000"/>
+                            <rect y="13" width="60" height="14" fill="#DD0000"/>
+                            <rect y="26" width="60" height="14" fill="#FFCE00"/>
+                        </svg>
+                    </div>
+                    <span class="lang-btn-name">Deutsch</span>
+                </button>
+            </div>
         </div>
     </div>
-    <div class="lang-footer">rentalprices.pt &nbsp;·&nbsp; Auto Prudente</div>
+    <!-- Footer -->
+    <div class="lang-footer">Auto Prudente &copy; 2026 &mdash; Todos os direitos reservados</div>
 </div>
 
 <div class="modal-content hidden" id="mainModal">
