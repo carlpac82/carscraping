@@ -2431,7 +2431,7 @@ async def create_public_booking(slug: str, token: str, booking: BookingCreate):
             import asyncio
             booking_data = get_booking_data(booking_id)
             if booking_data:
-                asyncio.create_task(send_new_booking_notification(booking_id, booking_data))
+                asyncio.ensure_future(send_new_booking_notification(booking_id, booking_data))
         except Exception as e:
             print(f"[PUBLIC BOOKING] Error sending notification: {e}")
 

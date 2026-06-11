@@ -2302,7 +2302,7 @@
             if (data.ok) {
                 document.getElementById('bookingForm').style.display = 'none';
                 document.getElementById('modalFooter').style.display = 'none';
-                document.getElementById('successVoucher').textContent = data.voucher || '';
+                document.getElementById('successVoucher').textContent = data.voucher_number || data.voucher || '';
                 document.getElementById('successScreen').style.display = 'block';
             } else {
                 showError(data.error || t('errBooking'));
