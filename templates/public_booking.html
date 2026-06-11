@@ -773,10 +773,10 @@
             /* imagem ocupa row 1, col 1 */
             .summary-vehicle-image { grid-column: 1; grid-row: 1; }
             .summary-vehicle-image img { width: 90px; height: 64px; object-fit: contain; }
-            /* grupo+nome+features ocupa row 1, col 2 - alinhado à direita */
+            /* grupo+nome+features ocupa row 1, col 2 - alinhado à esquerda */
             .summary-vehicle-details {
                 grid-column: 2; grid-row: 1;
-                text-align: right;
+                text-align: left;
                 display: flex; flex-direction: column; gap: 2px;
             }
             .summary-vehicle-group { font-size: 13px; }
@@ -812,7 +812,8 @@
                 color: white !important;
             }
 
-            /* Cliente + preço: lado a lado */
+            /* Cliente + preço: lado a lado - segundo summary-section */
+            .summary-section:last-of-type .summary-layout { flex-direction: row !important; align-items: flex-start; }
             .summary-client-info { flex: 1; }
             .summary-pricing { margin-left: auto; text-align: right; flex-shrink: 0; }
 
