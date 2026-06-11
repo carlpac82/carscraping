@@ -63497,7 +63497,7 @@ async def api_get_commissioners(request: Request):
                            c.created_at, c.public_token, c.public_slug,
                            COUNT(b.id) as total_bookings
                     FROM commissioners c
-                    LEFT JOIN commissioner_bookings b ON b.commissioner_id = c.id
+                    LEFT JOIN commission_bookings b ON b.commissioner_id = c.id
                     GROUP BY c.id, c.username, c.name, c.email, c.commission_rate,
                              c.enabled, c.created_at, c.public_token, c.public_slug
                     ORDER BY c.name
