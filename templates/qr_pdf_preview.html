@@ -69,13 +69,21 @@
     padding: 4px 6px;
     letter-spacing: 0.5px;
   }
-  .v-card img {
+  .v-card-photo {
     width: 100%;
     height: 64px;
     object-fit: contain;
     padding: 6px 8px;
     background: white;
     mix-blend-mode: multiply;
+    display: block;
+  }
+  .v-card-features img {
+    height: 13px !important;
+    width: auto !important;
+    mix-blend-mode: normal !important;
+    background: none !important;
+    padding: 0 !important;
   }
   .v-card-name {
     font-size: 10px;
@@ -189,7 +197,7 @@ fetch('/api/commissioners/vehicle-groups')
       if (v.transmission === 'automatic') feats += `<img src="/static/Icones-Caracteristicas/automatico.png" alt="Auto">`;
       card.innerHTML = `
         <div class="v-card-header">GROUP ${v.code}</div>
-        <img src="${v.image}" alt="${v.name}" onerror="this.style.display='none'">
+        <img class="v-card-photo" src="${v.image}" alt="${v.name}" onerror="this.style.display='none'">
         <div class="v-card-name">${shortName}</div>
         <div class="v-card-features">${feats}</div>
       `;
