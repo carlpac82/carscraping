@@ -782,7 +782,15 @@
             .days-display { font-size: 18px; }
 
             /* T&C modal */
-            .tc-card { height: 95vh; height: 95dvh; border-radius: 12px; }
+            #tcModal { padding: 8px; }
+            .tc-card {
+                width: 100%;
+                max-width: 100%;
+                height: calc(100vh - 16px);
+                height: calc(100dvh - 16px);
+                border-radius: 12px;
+            }
+            .tc-body iframe { width: 100%; height: 100%; }
 
             /* Footer - separar em duas linhas */
             .lang-footer { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 16px; }
