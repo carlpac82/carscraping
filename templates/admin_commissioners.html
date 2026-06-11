@@ -1156,7 +1156,7 @@ function gerarPDF() {
   btn.textContent = 'A gerar PDF...';
   btn.disabled = true;
   const el = document.getElementById('pdfContent');
-  html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#f0f9fb', logging: false }).then(canvas => {
+  html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#f0f9fb', logging: false, width: 794, height: 1123, windowWidth: 794, windowHeight: 1123 }).then(canvas => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const imgData = canvas.toDataURL('image/jpeg', 0.98);
