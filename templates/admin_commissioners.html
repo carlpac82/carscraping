@@ -1085,22 +1085,18 @@
                     if (v.doors) feats += `<img src="${origin}/static/Icones-Caracteristicas/${v.doors}P.png" style="height:22px;">`;
                     if (v.transmission === 'automatic') feats += `<img src="${origin}/static/Icones-Caracteristicas/automatico.png" style="height:22px;">`;
                     cardsHtml += `
-                    <div style="background:white;border-radius:8px;border:1.5px solid #e5e7eb;overflow:hidden;text-align:center;">
-                      <div style="background:#009cb6;color:white;font-size:13px;font-weight:700;padding:7px 6px;">GROUP <span style="color:#f5c800;">${v.code}</span></div>
-                      <div style="background:white;height:80px;display:flex;align-items:center;justify-content:center;padding:4px 8px;">
-                        <img src="${v.image}" style="max-width:100%;max-height:72px;object-fit:contain;mix-blend-mode:multiply;">
-                      </div>
-                      <div style="font-size:12px;color:#374151;padding:2px 6px 1px;font-weight:600;line-height:1.3;">${shortName}</div>
-                      <div style="display:flex;justify-content:center;gap:6px;padding:4px 4px 7px;">${feats}</div>
+                    <div class="v-card">
+                      <div class="v-card-header">GROUP <span style="color:#f5c800;">${v.code}</span></div>
+                      <div class="v-card-img"><img src="${v.image}" crossorigin="anonymous"></div>
+                      <div class="v-card-name">${shortName}</div>
+                      <div class="v-card-feats">${feats}</div>
                     </div>`;
                 });
                 // Card check-in
                 cardsHtml += `
-                <div style="background:#009cb6;border:none;overflow:hidden;display:flex;flex-direction:column;border-radius:8px;">
-                  <div style="background:#f5c800;color:white;font-size:13px;font-weight:700;padding:7px 6px;flex-shrink:0;text-align:center;">CHECK-IN ONLINE</div>
-                  <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-                    <img src="${origin}/static/checkin-online.png" style="width:100%;height:100%;object-fit:contain;display:block;">
-                  </div>
+                <div class="checkin-card">
+                  <div class="checkin-header">CHECK-IN ONLINE</div>
+                  <div class="checkin-img"><img src="${origin}/static/checkin-online.png" crossorigin="anonymous"></div>
                 </div>`;
 
                 win.document.write(`<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
@@ -1108,27 +1104,37 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { font-size: 14px; }
   body { width: 794px; background: #f0f9fb; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2937; }
-  .header { background:#009cb6; padding:22px 32px; display:flex; align-items:center; justify-content:space-between; }
-  .header img { height:56px; }
+  .header { background:#009cb6; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .header img { height:44px; }
   .header-text { text-align:right; color:white; }
-  .header-text h1 { font-size:20px; font-weight:800; }
-  .subtitle-bar { background:#f5c800; color:white; text-align:center; padding:10px; font-size:13px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; }
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:18px 24px 10px; }
-  .qr-section { background:#009cb6; margin:12px 24px 18px; border-radius:16px; padding:20px 24px; display:flex; align-items:center; gap:24px; }
-  .qr-circle { background:white; border-radius:50%; width:120px; height:120px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
-  .qr-circle img { width:100px; height:100px; }
+  .header-text h1 { font-size:17px; font-weight:800; }
+  .subtitle-bar { background:#f5c800; color:white; text-align:center; padding:7px; font-size:12px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; padding:10px 16px 8px; }
+  .v-card { background:white; border-radius:7px; border:1.5px solid #e5e7eb; overflow:hidden; text-align:center; }
+  .v-card-header { background:#009cb6; color:white; font-size:11px; font-weight:700; padding:5px 4px; }
+  .v-card-img { height:64px; display:flex; align-items:center; justify-content:center; padding:3px 8px; background:white; }
+  .v-card-img img { max-width:100%; max-height:58px; object-fit:contain; mix-blend-mode:multiply; }
+  .v-card-name { font-size:10px; color:#374151; padding:1px 4px 1px; font-weight:600; line-height:1.2; }
+  .v-card-feats { display:flex; justify-content:center; gap:4px; padding:3px 4px 5px; }
+  .v-card-feats img { height:18px; }
+  .checkin-card { background:#009cb6; border-radius:7px; overflow:hidden; display:flex; flex-direction:column; }
+  .checkin-header { background:#f5c800; color:white; font-size:11px; font-weight:700; padding:5px 4px; text-align:center; }
+  .checkin-img { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; min-height:64px; }
+  .checkin-img img { width:100%; height:100%; object-fit:contain; display:block; }
+  .qr-section { background:#009cb6; margin:8px 16px 10px; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:18px; }
+  .qr-circle { background:white; border-radius:50%; width:90px; height:90px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .qr-circle img { width:74px; height:74px; }
   .qr-text { color:white; }
-  .qr-text h2 { font-size:22px; font-weight:900; text-transform:uppercase; letter-spacing:1px; line-height:1.1; }
-  .qr-text p { font-size:13px; opacity:0.9; margin-top:6px; }
-  .footer { text-align:center; padding:10px; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; }
-  #dlBtn { display:block; margin:20px auto; padding:12px 32px; background:#009cb6; color:white; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; }
+  .qr-text h2 { font-size:18px; font-weight:900; text-transform:uppercase; letter-spacing:1px; line-height:1.1; }
+  .qr-text p { font-size:11px; opacity:0.9; margin-top:4px; }
+  .footer { text-align:center; padding:7px; font-size:9px; color:#9ca3af; border-top:1px solid #e5e7eb; }
+  #dlBtn { display:block; margin:16px auto; padding:10px 28px; background:#009cb6; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
 </style></head><body>
 <div id="pdfContent">
 <div class="header">
   <img src="${origin}/static/ap-heather.png" crossorigin="anonymous">
-  <div class="header-text"><h1>Reserve o seu carro aqui<br><span style="font-size:15px;font-weight:600;opacity:0.9;">Book Your Car Here</span></h1></div>
+  <div class="header-text"><h1>Reserve o seu carro aqui<br><span style="font-size:13px;font-weight:600;opacity:0.9;">Book Your Car Here</span></h1></div>
 </div>
 <div class="subtitle-bar">&#9733; Oferta Especial &nbsp;&middot;&nbsp; Special Offer &#9733;</div>
 <div class="grid">${cardsHtml}</div>
@@ -1137,7 +1143,7 @@
   <div class="qr-text">
     <h2>Scan Me<br>Reserva Agora</h2>
     <p>Aponte a câmara do telemóvel para o QR code e reserve online</p>
-    <p style="margin-top:4px;">Point your phone camera at the QR code and book online</p>
+    <p style="margin-top:3px;">Point your phone camera at the QR code and book online</p>
   </div>
 </div>
 <div class="footer">Auto Prudente Rent a Car &middot; Albufeira &middot; +351 289 542 150 &middot; info@auto-prudente.com</div>
@@ -1149,34 +1155,21 @@ function gerarPDF() {
   btn.textContent = 'A gerar PDF...';
   btn.disabled = true;
   const el = document.getElementById('pdfContent');
-  html2canvas(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#f0f9fb' }).then(canvas => {
+  html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#f0f9fb', logging: false }).then(canvas => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
     const pdfW = pdf.internal.pageSize.getWidth();
     const pdfH = pdf.internal.pageSize.getHeight();
-    const canvasW = canvas.width;
-    const canvasH = canvas.height;
-    const ratio = canvasH / canvasW;
+    const ratio = canvas.height / canvas.width;
     const imgH = pdfW * ratio;
-    if (imgH <= pdfH) {
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, imgH);
-    } else {
-      let yPos = 0;
-      let remaining = imgH;
-      while (remaining > 0) {
-        pdf.addImage(imgData, 'JPEG', 0, yPos, pdfW, imgH);
-        remaining -= pdfH;
-        yPos -= pdfH;
-        if (remaining > 0) pdf.addPage();
-      }
-    }
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, Math.min(imgH, pdfH));
     pdf.save('auto-prudente-qr.pdf');
     btn.textContent = '✅ PDF Descarregado!';
     btn.disabled = false;
   });
 }
-window.onload = function() { setTimeout(gerarPDF, 1200); };
+window.onload = function() { setTimeout(gerarPDF, 1500); };
 <\/script>
 </body></html>`);
                 win.document.close();
