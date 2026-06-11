@@ -814,13 +814,24 @@
 
         <!-- Sucesso -->
         <div class="success-screen" id="successScreen">
-            <div class="success-icon">✅</div>
-            <h2 style="font-size:20px;color:#1f2937;margin-bottom:8px;">Reserva Confirmada!</h2>
-            <p style="color:#6b7280;font-size:14px;">A sua reserva foi criada com sucesso.</p>
-            <p style="color:#6b7280;font-size:13px;margin-top:4px;">Receberá um email de confirmação em breve.</p>
-            <div class="success-voucher" id="successVoucher"></div>
-            <p style="font-size:11px;color:#9ca3af;">Guarde este número para referência.</p>
-            <button class="btn-new" onclick="resetForm()">+ Nova Reserva</button>
+            <div class="success-icon">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </div>
+            <h2 style="font-size:20px;color:#1f2937;margin-bottom:6px;" id="successTitleEl">Pedido Recebido!</h2>
+            <p style="color:#6b7280;font-size:14px;margin-bottom:4px;" id="successMsgEl">A sua reserva foi recebida com sucesso.</p>
+            <p style="color:#6b7280;font-size:13px;margin-bottom:16px;" id="successEmailEl">Iremos verificar a disponibilidade e confirmar brevemente. Receberá um resumo por email.</p>
+            <div style="background:#f0f9fb;border:1.5px solid #009cb6;border-radius:10px;padding:14px 24px;margin-bottom:16px;display:inline-block;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:2px;" id="successVoucherLabelEl">Referência da Reserva</div>
+                <div class="success-voucher" id="successVoucher" style="font-size:20px;font-weight:700;color:#009cb6;letter-spacing:1px;">-</div>
+            </div>
+            <p style="font-size:12px;color:#9ca3af;margin-bottom:20px;" id="successSaveEl">Guarde este número para referência.</p>
+            <button class="btn-new" onclick="resetForm()" id="successNewBtnEl">+ Nova Reserva</button>
         </div>
 
         <form id="bookingForm">
@@ -2363,9 +2374,11 @@
             calculating: 'A calcular...',
             perDay: '/dia',
             includedLabel: 'Incluído',
-            successTitle: 'Reserva Confirmada!',
-            successMsg: 'A sua reserva foi criada com sucesso.',
-            successEmail: 'Receberá um email de confirmação em breve.',
+            successTitle: 'Pedido Recebido!',
+            successMsg: 'A sua reserva foi recebida com sucesso.',
+            successEmail: 'Iremos verificar a disponibilidade e confirmar brevemente. Receberá um resumo por email.',
+            successVoucherLabel: 'Referência da Reserva',
+            successSave: 'Guarde este número para referência.',
             newBookingBtn: '+ Nova Reserva',
             confirmContactTitle: 'Reserva sujeita a confirmação',
             confirmContactSubtitle: 'Dúvidas? Ligue-nos:',
@@ -2475,9 +2488,11 @@
             calculating: 'Calculating...',
             perDay: '/day',
             includedLabel: 'Included',
-            successTitle: 'Booking Confirmed!',
-            successMsg: 'Your booking has been created successfully.',
-            successEmail: 'You will receive a confirmation email shortly.',
+            successTitle: 'Request Received!',
+            successMsg: 'Your booking request has been received.',
+            successEmail: 'We will verify availability and confirm shortly. You will receive a booking summary by email.',
+            successVoucherLabel: 'Booking Reference',
+            successSave: 'Save this number for your reference.',
             newBookingBtn: '+ New Booking',
             confirmContactTitle: 'Booking subject to confirmation',
             confirmContactSubtitle: 'Questions? Call us:',
@@ -2587,9 +2602,11 @@
             calculating: 'Calcul en cours...',
             perDay: '/jour',
             includedLabel: 'Inclus',
-            successTitle: 'Réservation Confirmée !',
-            successMsg: 'Votre réservation a été créée avec succès.',
-            successEmail: 'Vous recevrez un email de confirmation prochainement.',
+            successTitle: 'Demande Reçue !',
+            successMsg: 'Votre demande de réservation a été reçue.',
+            successEmail: 'Nous vérifierons la disponibilité et confirmerons prochainement. Vous recevrez un résumé par email.',
+            successVoucherLabel: 'Référence de Réservation',
+            successSave: 'Conservez ce numéro pour référence.',
             newBookingBtn: '+ Nouvelle Réservation',
             confirmContactTitle: 'Réservation sous réserve de confirmation',
             confirmContactSubtitle: 'Des questions? Appelez-nous:',
@@ -2699,9 +2716,11 @@
             calculating: 'Wird berechnet...',
             perDay: '/Tag',
             includedLabel: 'Enthalten',
-            successTitle: 'Buchung bestätigt!',
-            successMsg: 'Ihre Buchung wurde erfolgreich erstellt.',
-            successEmail: 'Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
+            successTitle: 'Anfrage Eingegangen!',
+            successMsg: 'Ihre Buchungsanfrage wurde erfolgreich empfangen.',
+            successEmail: 'Wir prüfen die Verfügbarkeit und bestätigen in Kürze. Sie erhalten eine Zusammenfassung per E-Mail.',
+            successVoucherLabel: 'Buchungsreferenz',
+            successSave: 'Bitte notieren Sie diese Nummer.',
             newBookingBtn: '+ Neue Buchung',
             confirmContactTitle: 'Buchung vorbehaltlich Bestätigung',
             confirmContactSubtitle: 'Fragen? Rufen Sie uns an:',
@@ -3099,13 +3118,13 @@
         document.getElementById('btnSubmit').textContent = T.btnSubmit;
 
         // Success screen
-        const succTitle = document.querySelector('.success-screen h2');
-        if (succTitle) succTitle.textContent = T.successTitle;
-        const succPs = document.querySelectorAll('.success-screen p');
-        if (succPs[0]) succPs[0].textContent = T.successMsg;
-        if (succPs[1]) succPs[1].textContent = T.successEmail;
-        const newBookBtn = document.querySelector('.btn-new');
-        if (newBookBtn) newBookBtn.textContent = T.newBookingBtn;
+        const el = id => document.getElementById(id);
+        if (el('successTitleEl')) el('successTitleEl').textContent = T.successTitle;
+        if (el('successMsgEl')) el('successMsgEl').textContent = T.successMsg;
+        if (el('successEmailEl')) el('successEmailEl').textContent = T.successEmail;
+        if (el('successVoucherLabelEl')) el('successVoucherLabelEl').textContent = T.successVoucherLabel;
+        if (el('successSaveEl')) el('successSaveEl').textContent = T.successSave;
+        if (el('successNewBtnEl')) el('successNewBtnEl').textContent = T.newBookingBtn;
 
         // data-i18n generic loop
         document.querySelectorAll('[data-i18n]').forEach(el => {
