@@ -163,16 +163,34 @@
             <h4 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 16px;">Valores</h4>
             <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
                 <tr>
-                    <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Valor Total:</td>
-                    <td style="padding-bottom: 8px; color: #666666;">€{{ total_price }}</td>
+                    <td style="color: #333333; padding-bottom: 8px;">Preço Base:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ base_price }}</td>
+                </tr>
+                {% if insurance_type == 'premium' and premium_insurance and premium_insurance != '0.00' %}
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">Seguro Premium:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ premium_insurance }}</td>
+                </tr>
+                {% endif %}
+                {% if road_tax and road_tax != '0.00' %}
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">Taxa de Estrada:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ road_tax }}</td>
+                </tr>
+                {% endif %}
+                {% for extra in extras %}
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">{{ extra.name }}:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ '%.2f'|format(extra.total|float) }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="font-weight: bold; color: #00bcd4; font-size: 15px; padding-top: 8px;">Total:</td>
+                    <td style="color: #00bcd4; font-size: 15px; font-weight: bold; padding-top: 8px;">€{{ total_price }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Depósito Pago:</td>
-                    <td style="padding-bottom: 8px; color: #666666;">€{{ deposit }}</td>
-                </tr>
-                <tr>
-                    <td style="font-weight: bold; color: #00bcd4; font-size: 16px;">A Pagar no Levantamento:</td>
-                    <td style="color: #00bcd4; font-size: 16px; font-weight: bold;">€{{ amount_to_pay }}</td>
+                    <td style="font-weight: bold; color: #333333; padding-top: 6px;">A Pagar no Levantamento:</td>
+                    <td style="color: #666666; padding-top: 6px;">€{{ amount_to_pay }}</td>
                 </tr>
             </table>
         </div>

@@ -84,14 +84,36 @@
                             </tr>
                         </table>
 
-                        <!-- Price -->
+                        <!-- Price breakdown -->
                         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;margin-bottom:20px;">
                             <tr>
                                 <td style="padding:14px 16px;">
                                     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
                                         <tr>
-                                            <td style="color:#6b7280;padding-bottom:6px;">{{ total_label }}</td>
-                                            <td style="text-align:right;font-weight:700;color:#1f2937;padding-bottom:6px;">€{{ total_price }}</td>
+                                            <td style="color:#6b7280;padding-bottom:6px;">{{ price_base_label }}</td>
+                                            <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ base_price }}</td>
+                                        </tr>
+                                        {% if insurance_type == 'premium' and float(premium_insurance) > 0 %}
+                                        <tr>
+                                            <td style="color:#6b7280;padding-bottom:6px;">{{ price_insurance_label }}</td>
+                                            <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ premium_insurance }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if float(road_tax) > 0 %}
+                                        <tr>
+                                            <td style="color:#6b7280;padding-bottom:6px;">{{ price_roadtax_label }}</td>
+                                            <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ road_tax }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% for extra in extras %}
+                                        <tr>
+                                            <td style="color:#6b7280;padding-bottom:6px;">{{ extra.name }}</td>
+                                            <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ '%.2f'|format(extra.total|float) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        <tr style="border-top:1px solid #e5e7eb;">
+                                            <td style="color:#1f2937;font-weight:700;padding-top:8px;">{{ total_label }}</td>
+                                            <td style="text-align:right;font-weight:700;color:#009cb6;padding-top:8px;">€{{ total_price }}</td>
                                         </tr>
                                     </table>
                                 </td>
