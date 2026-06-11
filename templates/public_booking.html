@@ -1570,7 +1570,7 @@
         }
 
         const prev = timeSelect.value;
-        timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
+        timeSelect.innerHTML = `<option value="">${t('selectHour')}</option>`;
         slots.forEach(t => {
             const o = document.createElement('option');
             o.value = t; o.textContent = t;
