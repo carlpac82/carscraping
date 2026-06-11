@@ -642,6 +642,44 @@
         }
         .hidden { display: none !important; }
 
+        /* ─── T&C POPUP ─── */
+        #tcModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 200;
+        }
+        #tcModal.hidden { display: none !important; }
+        .tc-card {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 860px;
+            height: 88vh;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .tc-header {
+            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .tc-header h3 { margin: 0; font-size: 17px; font-weight: 600; }
+        .tc-body { flex: 1; overflow: hidden; }
+        .tc-body iframe { width: 100%; height: 100%; border: none; display: block; }
+        #tcLink { color: #009cb6; text-decoration: none; font-weight: 600; }
+        #tcLink:hover { text-decoration: underline; }
+
         /* ─── RESPONSIVE ─── */
         @media (max-width: 640px) {
             body { padding: 0; align-items: flex-start; }
@@ -719,7 +757,20 @@
         </div>
     </div>
     <!-- Footer -->
-    <div class="lang-footer">Auto Prudente &copy; 2026 &mdash; Todos os direitos reservados</div>
+    <div class="lang-footer">Auto Prudente &copy; 2026 &mdash; Todos os direitos reservados &nbsp;|&nbsp; <a href="#" onclick="openTC(event)" id="tcLink">Termos e Condições</a></div>
+</div>
+
+<!-- T&C POPUP -->
+<div id="tcModal" class="hidden">
+    <div class="tc-card" id="tcCard">
+        <div class="tc-header">
+            <h3 id="tcTitle">Termos e Condições</h3>
+            <button class="modal-close" onclick="closeTC()">&times;</button>
+        </div>
+        <div class="tc-body">
+            <iframe id="tcIframe" src="" title="Termos e Condições"></iframe>
+        </div>
+    </div>
 </div>
 
 <div id="mainModal" class="hidden">
@@ -2555,6 +2606,115 @@
             }
         });
     });
+
+    // ─── T&C POPUP ──────────────────────────────────────────
+    const tcPdfs = {
+        pt: '/static/TC-PT.pdf',
+        en: '/static/TC-EN.pdf',
+        fr: '/static/T&C-FR.pdf',
+        de: '/static/TC-DE.pdf'
+    };
+    const tcTitles = {
+        pt: 'Termos e Condições',
+        en: 'Terms & Conditions',
+        fr: 'Termes et Conditions',
+        de: 'Allgemeine Geschäftsbedingungen'
+    };
+    let _tcTriggerBtn = null;
+
+    function openTC(e) {
+        e.preventDefault();
+        _tcTriggerBtn = e.currentTarget;
+        const lang = detectBrowserLang();
+        const pdf = tcPdfs[lang] || tcPdfs['en'];
+        document.getElementById('tcIframe').src = pdf;
+        document.getElementById('tcTitle').textContent = tcTitles[lang] || tcTitles['en'];
+        const modal = document.getElementById('tcModal');
+        modal.classList.remove('hidden');
+        applyMacOSMaximizeAnimationTC(modal, _tcTriggerBtn);
+    }
+
+    function closeTC() {
+        const modal = document.getElementById('tcModal');
+        applyMacOSMinimizeAnimationTC(modal, _tcTriggerBtn, () => {
+            modal.classList.add('hidden');
+            document.getElementById('tcIframe').src = '';
+            const card = document.getElementById('tcCard');
+            card.style.cssText = '';
+            modal.style.cssText = 'display:none!important';
+            modal.classList.add('hidden');
+        });
+    }
+
+    function applyMacOSMaximizeAnimationTC(modal, triggerButton) {
+        const card = document.getElementById('tcCard');
+        if (!triggerButton) {
+            card.style.transform = 'scale(0.92)';
+            card.style.opacity = '0';
+            card.style.transition = 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1), opacity 0.35s cubic-bezier(0.2,0.8,0.2,1)';
+            card.style.transformOrigin = 'center';
+            card.offsetHeight;
+            requestAnimationFrame(() => { card.style.transform = 'scale(1)'; card.style.opacity = '1'; });
+            return;
+        }
+        const modalRect = modal.getBoundingClientRect();
+        const btnRect = triggerButton.getBoundingClientRect();
+        const modalCX = modalRect.left + modalRect.width / 2;
+        const modalCY = modalRect.top + modalRect.height / 2;
+        const btnCX = btnRect.left + btnRect.width / 2;
+        const btnCY = btnRect.top + btnRect.height / 2;
+        const deltaX = btnCX - modalCX;
+        const deltaY = btnCY - modalCY;
+        const btnScale = Math.min(btnRect.width / modalRect.width, btnRect.height / modalRect.height);
+        const initialScale = Math.max(btnScale * 0.8, 0.1);
+        const originX = ((btnCX - modalRect.left) / modalRect.width) * 100;
+        const originY = ((btnCY - modalRect.top) / modalRect.height) * 100;
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.25s ease-out';
+        card.style.willChange = 'transform, opacity';
+        card.style.transformOrigin = `${originX}% ${originY}%`;
+        card.style.transform = `translate(${deltaX*0.8}px,${deltaY*0.8}px) scale(${initialScale}) skewY(${deltaX>0?-2:2}deg) scaleY(${initialScale*0.85})`;
+        card.style.opacity = '0';
+        card.offsetHeight;
+        requestAnimationFrame(() => { modal.style.opacity = '1'; });
+        requestAnimationFrame(() => {
+            card.style.transition = 'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.5s cubic-bezier(0.25,0.46,0.45,0.94)';
+            requestAnimationFrame(() => {
+                card.style.transform = 'translate(0,0) scale(1) skewY(0deg) scaleY(1)';
+                card.style.opacity = '1';
+                setTimeout(() => { card.style.willChange = 'auto'; }, 500);
+            });
+        });
+    }
+
+    function applyMacOSMinimizeAnimationTC(modal, targetButton, onComplete) {
+        const card = document.getElementById('tcCard');
+        if (!card || !targetButton) { onComplete && onComplete(); return; }
+        const modalRect = modal.getBoundingClientRect();
+        const btnRect = targetButton.getBoundingClientRect();
+        const modalCX = modalRect.left + modalRect.width / 2;
+        const modalCY = modalRect.top + modalRect.height / 2;
+        const btnCX = btnRect.left + btnRect.width / 2;
+        const btnCY = btnRect.top + btnRect.height / 2;
+        const deltaX = btnCX - modalCX;
+        const deltaY = btnCY - modalCY;
+        const targetScale = Math.min(btnRect.width / modalRect.width, btnRect.height / modalRect.height) * 0.8;
+        const finalScale = Math.max(targetScale, 0.1);
+        const originX = ((btnCX - modalRect.left) / modalRect.width) * 100;
+        const originY = ((btnCY - modalRect.top) / modalRect.height) * 100;
+        modal.style.transition = 'opacity 0.25s ease-out';
+        requestAnimationFrame(() => { modal.style.opacity = '0.4'; });
+        setTimeout(() => {
+            card.style.willChange = 'transform, opacity';
+            card.style.transition = 'transform 0.45s cubic-bezier(0.4,0.0,1,1), opacity 0.45s cubic-bezier(0.4,0.0,1,1)';
+            card.style.transformOrigin = `${originX}% ${originY}%`;
+            requestAnimationFrame(() => {
+                card.style.transform = `translate(${deltaX*0.8}px,${deltaY*0.8}px) scale(${finalScale}) skewY(${deltaX>0?-2:2}deg) scaleY(${finalScale*0.85})`;
+                card.style.opacity = '0';
+            });
+        }, 50);
+        setTimeout(() => { onComplete && onComplete(); }, 450);
+    }
 
     let _langTriggerButton = null;
 
