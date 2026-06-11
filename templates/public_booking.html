@@ -2505,6 +2505,37 @@
         }
     };
 
+    // ─── BROWSER LANGUAGE DETECTION ──────────────────────────
+    const welcomeTexts = {
+        pt: { welcome: 'Bem-vindo', subtitle: 'Selecione o seu idioma para continuar' },
+        en: { welcome: 'Welcome', subtitle: 'Select your language to continue' },
+        fr: { welcome: 'Bienvenue', subtitle: 'Sélectionnez votre langue pour continuer' },
+        de: { welcome: 'Willkommen', subtitle: 'Wählen Sie Ihre Sprache, um fortzufahren' }
+    };
+
+    function detectBrowserLang() {
+        const nav = (navigator.language || navigator.userLanguage || 'pt').toLowerCase().substring(0, 2);
+        if (nav === 'en') return 'en';
+        if (nav === 'fr') return 'fr';
+        if (nav === 'de') return 'de';
+        return 'pt';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const detected = detectBrowserLang();
+        const texts = welcomeTexts[detected];
+        document.getElementById('langWelcome').textContent = texts.welcome;
+        document.getElementById('langSubtitle').textContent = texts.subtitle;
+        // Destacar o botão do idioma detectado
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            const lang = btn.getAttribute('onclick').match(/selectLanguage\('(\w+)'\)/)[1];
+            if (lang === detected) {
+                btn.style.borderColor = '#009cb6';
+                btn.style.background = '#f0f9fb';
+            }
+        });
+    });
+
     function selectLanguage(lang) {
         currentLang = lang;
         document.getElementById('langLanding').classList.add('hidden');
