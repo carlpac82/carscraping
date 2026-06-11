@@ -539,12 +539,16 @@
         }
         .lang-topbar {
             background: #009cb6;
-            padding: 14px 30px;
-            display: flex;
-            align-items: center;
+            padding: 12px 30px;
             border-bottom: 1px solid rgba(255,255,255,0.15);
             width: 100%;
             box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+        }
+        .lang-topbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
         }
         .lang-topbar img {
             height: 48px;
@@ -646,7 +650,9 @@
 <div id="langLanding" class="lang-landing">
     <!-- Top bar com logo igual ao dashboard -->
     <div class="lang-topbar">
-        <img src="/static/ap-heather.png" alt="Auto Prudente">
+        <div class="lang-topbar-inner">
+            <img src="/static/ap-heather.png" alt="Auto Prudente">
+        </div>
     </div>
     <!-- Corpo central -->
     <div class="lang-body">
