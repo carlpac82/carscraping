@@ -797,8 +797,19 @@
             .summary-dropoff { flex: 1; text-align: right; margin-bottom: 0; }
 
             /* Contacto: texto esquerda, telefone direita */
-            .contact-info { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
-            .contact-phone-overlay { position: static; transform: none; flex-shrink: 0; }
+            .contact-info {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 10px;
+                position: static !important;
+            }
+            .contact-phone-overlay {
+                position: static !important;
+                transform: none !important;
+                flex-shrink: 0;
+            }
 
             /* Cliente + preço: lado a lado */
             .summary-client-info { flex: 1; }
