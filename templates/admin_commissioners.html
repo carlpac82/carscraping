@@ -1103,9 +1103,10 @@
 
                 win.document.write(`<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
 <style>
-  @page { size: A4; margin: 0; }
+  @page { size: A4 portrait; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 210mm; min-height: 297mm; background: #f0f9fb; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2937; }
+  html, body { width: 210mm; height: 297mm; max-width: 210mm; overflow: hidden; background: #f0f9fb; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2937; }
+  @media print { html, body { width: 210mm; height: 297mm; } }
   .header { background:#009cb6; padding:22px 32px; display:flex; align-items:center; justify-content:space-between; }
   .header img { height:56px; }
   .header-text { text-align:right; color:white; }

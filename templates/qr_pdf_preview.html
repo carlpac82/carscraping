@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Preview - QR PDF Auto Prudente</title>
 <style>
-  @page { size: A4; margin: 0; }
+  @page { size: A4 portrait; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
+  html, body {
     width: 210mm;
-    min-height: 297mm;
+    height: 297mm;
+    max-width: 210mm;
+    overflow: hidden;
     background: #f0f9fb;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     color: #1f2937;
   }
+  @media print { html, body { width: 210mm; height: 297mm; } }
 
   /* HEADER */
   .header {
