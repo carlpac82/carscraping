@@ -20,7 +20,7 @@
             padding: 0;
             align-items: stretch;
             justify-content: flex-start;
-            background: #009cb6;
+            background: #f0f4f8;
         }
 
         /* ─── MODAL ─── */
@@ -517,7 +517,11 @@
             flex-direction: column;
             min-height: 100vh;
             width: 100%;
-            background: #009cb6;
+            background: #f0f4f8;
+            background-image:
+                linear-gradient(rgba(0,156,182,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,156,182,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
         .lang-topbar {
             background: #009cb6;
@@ -526,6 +530,7 @@
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.15);
             width: 100%;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
         }
         .lang-topbar img {
             height: 48px;
@@ -602,7 +607,7 @@
         .lang-footer {
             padding: 20px;
             font-size: 12px;
-            color: rgba(255,255,255,0.55);
+            color: #9ca3af;
             text-align: center;
         }
         .hidden { display: none !important; }
