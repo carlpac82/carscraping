@@ -2282,7 +2282,7 @@
         };
 
         try {
-            const res = await fetch('/api/public/booking', {
+            const res = await fetch(`/api/public/booking/${SLUG}/${TOKEN}`, {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
                 body: JSON.stringify(payload)
@@ -2782,7 +2782,9 @@
         document.getElementById('langSubtitle').textContent = texts.subtitle;
         // Destacar o botão do idioma detectado
         document.querySelectorAll('.lang-btn').forEach(btn => {
-            const lang = btn.getAttribute('onclick').match(/selectLanguage\('(\w+)'\)/)[1];
+            const oc = btn.getAttribute('onclick');
+            const m = oc && oc.match(/selectLanguage\('(\w+)'\)/);
+            const lang = m && m[1];
             if (lang === detected) {
                 btn.style.borderColor = '#009cb6';
                 btn.style.background = '#f0f9fb';
