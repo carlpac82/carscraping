@@ -62922,6 +62922,11 @@ async def commissioner_dashboard_page(request: Request):
     """Redirect para nova rota /agentes/dashboard"""
     return RedirectResponse(url="/agentes/dashboard", status_code=301)
 
+@app.get("/admin/qr-pdf-preview", response_class=HTMLResponse)
+async def qr_pdf_preview(request: Request):
+    """Preview page for QR PDF design"""
+    return templates.TemplateResponse("qr_pdf_preview.html", {"request": request})
+
 @app.get("/admin/commissioners", response_class=HTMLResponse)
 async def admin_commissioners_page(request: Request):
     """Admin commissioners management page - Manage commissioners (add/edit/delete)"""

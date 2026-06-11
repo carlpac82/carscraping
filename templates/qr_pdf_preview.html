@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Preview - QR PDF Auto Prudente</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 210mm;
+    min-height: 297mm;
+    background: #009cb6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 297mm;
+    gap: 28px;
+    padding: 40px;
+  }
+  .logo { width: 200px; }
+  .qr-wrapper {
+    background: white;
+    border-radius: 50%;
+    width: 280px;
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  }
+  .qr-wrapper img { width: 230px; height: 230px; }
+  .tagline {
+    color: white;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .sub {
+    color: rgba(255,255,255,0.85);
+    font-size: 16px;
+    font-weight: 400;
+    text-align: center;
+    margin-top: -16px;
+  }
+  .scan {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <img class="logo" src="/static/ap-heather.png" alt="Auto Prudente">
+  <div class="tagline">Book Your Car Here</div>
+  <div class="sub">Reserva rápida e segura — sem filas</div>
+  <div class="qr-wrapper">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=ffffff&bgcolor=009cb6&data=https://rentalprices.pt/reservar/auto-prudente/exemplo" alt="QR Code">
+  </div>
+  <div class="scan">Aponte a câmara do seu telemóvel para o QR code</div>
+</div>
+</body>
+</html>
