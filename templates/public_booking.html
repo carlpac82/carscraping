@@ -1038,11 +1038,11 @@
                 <div class="extra-item" onclick="toggleExtra('extraGPS')">
                     <input type="checkbox" id="extraGPS" value="gps" style="display:none;">
                     <div class="extra-icon"><img src="/static/extras/20210622110214_4dfc5c7374e9c08cd246f03883de4272.png" alt="GPS"></div>
-                    <div class="extra-info"><strong>GPS</strong><span class="extra-price" id="price_gps">+5€/dia</span></div>
+                    <div class="extra-info"><strong>GPS</strong><span class="extra-price" id="price_gps">+5€<span data-i18n="perDay">/dia</span></span></div>
                 </div>
                 <div class="extra-item extra-with-quantity">
                     <div class="extra-icon"><img src="/static/extras/20210622110335_cdc017edeaca896919f46424fcbb5993.png" alt="Cadeira Criança"></div>
-                    <div class="extra-info"><strong data-i18n="extraChildSeatLabel">Cadeira de Criança</strong><span class="extra-price" id="price_child_seat">+5€/dia</span></div>
+                    <div class="extra-info"><strong data-i18n="extraChildSeatLabel">Cadeira de Criança</strong><span class="extra-price" id="price_child_seat">+5€<span data-i18n="perDay">/dia</span></span></div>
                     <div class="quantity-selector">
                         <button type="button" onclick="changeQuantity('extraChildSeat',-1)">-</button>
                         <input type="number" id="extraChildSeat" min="0" max="3" value="0" readonly>
@@ -1051,7 +1051,7 @@
                 </div>
                 <div class="extra-item extra-with-quantity">
                     <div class="extra-icon"><img src="/static/extras/20210622110320_6e699497bd12b0402a3048127f9b4f98.png" alt="Booster Seat"></div>
-                    <div class="extra-info"><strong>Booster Seat</strong><span class="extra-price" id="price_booster_seat">+3€/dia</span></div>
+                    <div class="extra-info"><strong>Booster Seat</strong><span class="extra-price" id="price_booster_seat">+3€<span data-i18n="perDay">/dia</span></span></div>
                     <div class="quantity-selector">
                         <button type="button" onclick="changeQuantity('extraBoosterSeat',-1)">-</button>
                         <input type="number" id="extraBoosterSeat" min="0" max="3" value="0" readonly>
@@ -1079,16 +1079,16 @@
                 <div class="extra-item" onclick="toggleExtra('extraYoungDriver')">
                     <input type="checkbox" id="extraYoungDriver" value="young_driver" style="display:none;">
                     <div class="extra-icon"><img src="/static/extras/20260206051651_309aa80495ab5ce88b4c086669edb780.png" alt="Young Driver"></div>
-                    <div class="extra-info"><strong>Young Driver (+21)</strong><span class="extra-price" id="price_young_driver">+10€/dia</span></div>
+                    <div class="extra-info"><strong>Young Driver (+21)</strong><span class="extra-price" id="price_young_driver">+10€<span data-i18n="perDay">/dia</span></span></div>
                 </div>
                 <div class="extra-item" onclick="toggleExtra('extraSeniorDriver')">
                     <input type="checkbox" id="extraSeniorDriver" value="senior_driver" style="display:none;">
                     <div class="extra-icon"><img src="/static/extras/20260206053309_a0bdea1741fc1024981d45e3f9a9fe06.png" alt="Senior Driver"></div>
-                    <div class="extra-info"><strong>Senior Driver (+75)</strong><span class="extra-price" id="price_senior_driver">+8€/dia</span></div>
+                    <div class="extra-info"><strong>Senior Driver (+75)</strong><span class="extra-price" id="price_senior_driver">+8€<span data-i18n="perDay">/dia</span></span></div>
                 </div>
                 <div class="extra-item extra-with-quantity">
                     <div class="extra-icon"><img src="/static/extras/20260328_condutor_adicional.png" alt="Condutor Adicional"></div>
-                    <div class="extra-info"><strong data-i18n="extraAdditionalDriverLabel">Condutor Adicional</strong><span class="extra-price" id="price_additional_driver">+10€/dia</span></div>
+                    <div class="extra-info"><strong data-i18n="extraAdditionalDriverLabel">Condutor Adicional</strong><span class="extra-price" id="price_additional_driver">+10€<span data-i18n="perDay">/dia</span></span></div>
                     <div class="quantity-selector">
                         <button type="button" onclick="changeQuantity('extraAdditionalDriver',-1)">-</button>
                         <input type="number" id="extraAdditionalDriver" value="0" min="0" max="2" readonly>
@@ -1098,7 +1098,7 @@
                 <div class="extra-item" onclick="toggleExtra('extraTripToSpain')">
                     <input type="checkbox" id="extraTripToSpain" value="trip_to_spain" style="display:none;">
                     <div class="extra-icon"><img src="/static/extras/spain.png" alt="Trip to Spain"></div>
-                    <div class="extra-info"><strong data-i18n="extraSpainLabel">Espanha (máximo Sevila)</strong><span class="extra-price" id="price_trip_to_spain">+100€ (taxa única)</span></div>
+                    <div class="extra-info"><strong data-i18n="extraSpainLabel">Espanha (máximo Sevila)</strong><span class="extra-price" id="price_trip_to_spain">+100€ (<span data-i18n="oneTimeFee">taxa única</span>)</span></div>
                 </div>
             </div>
             </div>
@@ -1498,13 +1498,14 @@
         if (!commissionerPricing?.extras) return;
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         const e = commissionerPricing.extras;
-        set('price_gps', `+${e.gps?.per_day || 5}€/dia`);
-        set('price_child_seat', `+${e.child_seat?.per_day || 12}€/dia`);
-        set('price_booster_seat', `+${e.booster_seat?.per_day || 6}€/dia`);
-        set('price_young_driver', `+${e.young_driver?.per_day || 12}€/dia`);
-        set('price_senior_driver', `+${e.senior_driver?.per_day || 10}€/dia`);
-        set('price_additional_driver', `+${e.additional_driver?.per_day || 10}€/dia`);
-        set('price_trip_to_spain', `+${e.trip_to_spain?.min || 100}€ (taxa única)`);
+        const pd = t('perDay'); const otf = t('oneTimeFee');
+        set('price_gps', `+${e.gps?.per_day || 5}€${pd}`);
+        set('price_child_seat', `+${e.child_seat?.per_day || 12}€${pd}`);
+        set('price_booster_seat', `+${e.booster_seat?.per_day || 6}€${pd}`);
+        set('price_young_driver', `+${e.young_driver?.per_day || 12}€${pd}`);
+        set('price_senior_driver', `+${e.senior_driver?.per_day || 10}€${pd}`);
+        set('price_additional_driver', `+${e.additional_driver?.per_day || 10}€${pd}`);
+        set('price_trip_to_spain', `+${e.trip_to_spain?.min || 100}€ (${otf})`);
     }
 
     // ─── TIME SLOTS ───────────────────────────────────────────
@@ -2411,6 +2412,7 @@
             extraChildSeatLabel: 'Cadeira de Criança',
             extraAirportLabel: 'Taxa Aeroporto',
             extraAirportPrice: 'Taxa única',
+            oneTimeFee: 'taxa única',
             extraAirportNote: 'Mínimo 5 dias',
             extraRoadTaxNote: 'Máx. 10 dias • Obrigatório',
             extraAdditionalDriverLabel: 'Condutor Adicional',
@@ -2516,6 +2518,7 @@
             extraChildSeatLabel: 'Child Seat',
             extraAirportLabel: 'Airport Fee',
             extraAirportPrice: 'One-time fee',
+            oneTimeFee: 'one-time fee',
             extraAirportNote: 'Minimum 5 days',
             extraRoadTaxNote: 'Max. 10 days • Mandatory',
             extraAdditionalDriverLabel: 'Additional Driver',
@@ -2621,6 +2624,7 @@
             extraChildSeatLabel: 'Siège Enfant',
             extraAirportLabel: 'Taxe Aéroport',
             extraAirportPrice: 'Frais uniques',
+            oneTimeFee: 'frais uniques',
             extraAirportNote: 'Minimum 5 jours',
             extraRoadTaxNote: 'Max. 10 jours • Obligatoire',
             extraAdditionalDriverLabel: 'Conducteur Supplémentaire',
@@ -2726,6 +2730,7 @@
             extraChildSeatLabel: 'Kindersitz',
             extraAirportLabel: 'Flughafengebühr',
             extraAirportPrice: 'Einmalige Gebühr',
+            oneTimeFee: 'einmalige Gebühr',
             extraAirportNote: 'Mindestens 5 Tage',
             extraRoadTaxNote: 'Max. 10 Tage • Pflichtgebühr',
             extraAdditionalDriverLabel: 'Zusätzlicher Fahrer',
