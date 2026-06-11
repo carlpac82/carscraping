@@ -779,6 +779,10 @@
 
             /* T&C modal */
             .tc-card { height: 95vh; height: 95dvh; border-radius: 12px; }
+
+            /* Footer - separar em duas linhas */
+            .lang-footer { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 16px; }
+            .footer-sep { display: none; }
         }
     </style>
 </head>
@@ -845,7 +849,7 @@
         </div>
     </div>
     <!-- Footer -->
-    <div class="lang-footer">Auto Prudente &copy; 2026 &mdash; Todos os direitos reservados &nbsp;|&nbsp; <a href="#" onclick="openTC(event)" id="tcLink">Termos e Condições</a></div>
+    <div class="lang-footer"><span class="footer-copy">Auto Prudente &copy; 2026 &mdash; Todos os direitos reservados</span><span class="footer-sep"> &nbsp;|&nbsp; </span><a href="#" onclick="openTC(event)" id="tcLink">Termos e Condições</a></div>
 </div>
 
 <!-- T&C POPUP -->
