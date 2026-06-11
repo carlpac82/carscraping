@@ -1781,12 +1781,12 @@
             card.dataset.code = vehicle.code;
             card.innerHTML = `
                 <div class="vehicle-card-header">
-                    <div class="vehicle-group">GROUP <span class="group-letter">${vehicle.code}</span></div>
+                    <div class="vehicle-group">${t('groupLabel')} <span class="group-letter">${vehicle.code}</span></div>
                 </div>
                 <div class="vehicle-card-body">
                     <img src="${vehicle.image}" alt="${vehicle.name}"
                          onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22><rect fill=%22%23e5e7eb%22 width=%22200%22 height=%22100%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22>Grupo ${vehicle.code}</text></svg>'">
-                    <div class="vehicle-model">${vehicle.name}</div>
+                    <div class="vehicle-model">${vehicle.name.replace(/ ou similar| or similar| ou similaire| oder ähnlich/i, '')} ${t('orSimilar')}</div>
                     <div class="vehicle-features">
                         ${isUnavail ? '' : `
                             ${vehicle.ac ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/AC.png" alt="A/C"></div>' : ''}
@@ -1794,7 +1794,7 @@
                             <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${vehicle.doors}P.png" alt="${vehicle.doors} portas"></div>
                             ${vehicle.transmission==='automatic' ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/automatico.png" alt="Auto"></div>' : ''}
                         `}
-                        ${isUnavail ? '<span class="unavailable-badge">SEM DISPONIBILIDADE</span>' : ''}
+                        ${isUnavail ? `<span class="unavailable-badge">${t('unavailableBadge')}</span>` : ''}
                     </div>
                 </div>`;
             if (!isUnavail) card.onclick = () => selectVehicle(vehicle, card);
@@ -1828,20 +1828,20 @@
         const el1 = document.getElementById('baseFranchisePrice');
         const el2 = document.getElementById('baseFranchiseText');
         const elModal = document.getElementById('modalFranchise');
-        if (el1) el1.textContent = `Franquia até ${clean}`;
-        if (el2) el2.textContent = `Franquia de ${clean}`;
+        if (el1) el1.textContent = `${t('franchiseUpTo')} ${clean}`;
+        if (el2) el2.textContent = `${t('franchiseOf')} ${clean}`;
         if (elModal) elModal.textContent = clean;
     }
 
     function updatePremiumInsurancePrice() {
         const el = document.getElementById('premiumInsurancePrice');
         if (!el) return;
-        if (!selectedVehicle || !rentalDays) { el.textContent = 'A calcular...'; return; }
+        if (!selectedVehicle || !rentalDays) { el.textContent = t('calculating'); return; }
         const pd = document.getElementById('pickupDate').value;
         if (!pd) return;
         const season = getSeasonForDate(new Date(pd + 'T12:00:00'));
         const rate = getPremiumDailyRate(selectedVehicle, season, rentalDays);
-        el.textContent = rate ? `${rate}€/dia` : 'Incluído';
+        el.textContent = rate ? `${rate}€${t('perDay')}` : t('includedLabel');
     }
 
     // ─── INSURANCE ────────────────────────────────────────────
@@ -2378,6 +2378,13 @@
             extrasLabel: 'Extras Opcionais',
             notIncluded: 'Não incluído',
             groupLabel: 'GROUP',
+            orSimilar: 'ou similar',
+            unavailableBadge: 'SEM DISPONIBILIDADE',
+            franchiseUpTo: 'Franquia até',
+            franchiseOf: 'Franquia de',
+            calculating: 'A calcular...',
+            perDay: '/dia',
+            includedLabel: 'Incluído',
             successTitle: 'Reserva Confirmada!',
             successMsg: 'A sua reserva foi criada com sucesso.',
             successEmail: 'Receberá um email de confirmação em breve.',
@@ -2443,6 +2450,13 @@
             extrasLabel: 'Optional Extras',
             notIncluded: 'Not included',
             groupLabel: 'GROUP',
+            orSimilar: 'or similar',
+            unavailableBadge: 'UNAVAILABLE',
+            franchiseUpTo: 'Excess up to',
+            franchiseOf: 'Excess of',
+            calculating: 'Calculating...',
+            perDay: '/day',
+            includedLabel: 'Included',
             successTitle: 'Booking Confirmed!',
             successMsg: 'Your booking has been created successfully.',
             successEmail: 'You will receive a confirmation email shortly.',
@@ -2508,6 +2522,13 @@
             extrasLabel: 'Extras Optionnels',
             notIncluded: 'Non inclus',
             groupLabel: 'GROUPE',
+            orSimilar: 'ou similaire',
+            unavailableBadge: 'INDISPONIBLE',
+            franchiseUpTo: 'Franchise jusqu\'à',
+            franchiseOf: 'Franchise de',
+            calculating: 'Calcul en cours...',
+            perDay: '/jour',
+            includedLabel: 'Inclus',
             successTitle: 'Réservation Confirmée !',
             successMsg: 'Votre réservation a été créée avec succès.',
             successEmail: 'Vous recevrez un email de confirmation prochainement.',
@@ -2573,6 +2594,13 @@
             extrasLabel: 'Optionale Extras',
             notIncluded: 'Nicht enthalten',
             groupLabel: 'GRUPPE',
+            orSimilar: 'oder ähnlich',
+            unavailableBadge: 'NICHT VERFÜGBAR',
+            franchiseUpTo: 'Selbstbeteiligung bis',
+            franchiseOf: 'Selbstbeteiligung von',
+            calculating: 'Wird berechnet...',
+            perDay: '/Tag',
+            includedLabel: 'Enthalten',
             successTitle: 'Buchung bestätigt!',
             successMsg: 'Ihre Buchung wurde erfolgreich erstellt.',
             successEmail: 'Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
