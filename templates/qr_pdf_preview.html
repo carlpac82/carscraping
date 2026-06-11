@@ -208,18 +208,10 @@ fetch('/api/commissioners/vehicle-groups')
     const checkinQr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=009cb6&bgcolor=e5e5e5&data=${encodeURIComponent(checkinUrl)}`;
     const checkinCard = document.createElement('div');
     checkinCard.className = 'v-card';
-    checkinCard.style.cssText = 'background:#009cb6; border-color:#009cb6; grid-column: span 1;';
+    checkinCard.style.cssText = 'background:white; border-color:#e5e7eb; grid-column: span 1; overflow:hidden;';
     checkinCard.innerHTML = `
       <div class="v-card-header" style="background:#f5c800;color:white;">CHECK-IN ONLINE</div>
-      <div style="display:flex;align-items:center;justify-content:space-around;padding:8px 6px;gap:6px;">
-        <div style="border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
-          <img src="/static/checkin-online.png" style="width:56px;height:56px;object-fit:contain;mix-blend-mode:normal;">
-        </div>
-        <div style="background:#e0e0e0;border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
-          <img src="${checkinQr}" style="width:44px;height:44px;mix-blend-mode:normal;">
-        </div>
-      </div>
-      <div class="v-card-name" style="color:white;padding-bottom:6px;">Faça o check-in<br>antes de chegar</div>
+      <img src="/static/checkin-online.png" style="width:100%;height:auto;display:block;object-fit:contain;mix-blend-mode:normal;">
     `;
     grid.appendChild(checkinCard);
   })
