@@ -93,13 +93,13 @@
                                             <td style="color:#6b7280;padding-bottom:6px;">{{ price_base_label }}</td>
                                             <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ base_price }}</td>
                                         </tr>
-                                        {% if insurance_type == 'premium' and float(premium_insurance) > 0 %}
+                                        {% if insurance_type == 'premium' and premium_insurance|float > 0 %}
                                         <tr>
                                             <td style="color:#6b7280;padding-bottom:6px;">{{ price_insurance_label }}</td>
                                             <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ premium_insurance }}</td>
                                         </tr>
                                         {% endif %}
-                                        {% if float(road_tax) > 0 %}
+                                        {% if road_tax|float > 0 %}
                                         <tr>
                                             <td style="color:#6b7280;padding-bottom:6px;">{{ price_roadtax_label }}</td>
                                             <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ road_tax }}</td>
@@ -107,8 +107,8 @@
                                         {% endif %}
                                         {% for extra in extras %}
                                         <tr>
-                                            <td style="color:#6b7280;padding-bottom:6px;">{{ extra.name }}</td>
-                                            <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ '%.2f'|format(extra.total|float) }}</td>
+                                            <td style="color:#6b7280;padding-bottom:6px;">{{ extra.name }}{% if extra.quantity and extra.quantity > 1 %} x{{ extra.quantity }}{% endif %}</td>
+                                            <td style="text-align:right;color:#1f2937;padding-bottom:6px;">€{{ '%.2f'|format((extra.price or extra.total or 0)|float) }}</td>
                                         </tr>
                                         {% endfor %}
                                         <tr style="border-top:1px solid #e5e7eb;">

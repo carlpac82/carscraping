@@ -180,8 +180,8 @@
                 {% endif %}
                 {% for extra in extras %}
                 <tr>
-                    <td style="color: #333333; padding-bottom: 8px;">{{ extra.name }}:</td>
-                    <td style="padding-bottom: 8px; color: #666666;">€{{ '%.2f'|format(extra.total|float) }}</td>
+                    <td style="color: #333333; padding-bottom: 8px;">{{ extra.name }}{% if extra.quantity and extra.quantity > 1 %} x{{ extra.quantity }}{% endif %}:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ '%.2f'|format((extra.price or extra.total or 0)|float) }}</td>
                 </tr>
                 {% endfor %}
                 <tr style="border-top: 1px solid #e0e0e0;">
