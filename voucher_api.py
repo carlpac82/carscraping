@@ -25,7 +25,7 @@ class EmailRequest(BaseModel):
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Vehicle model mapping
+# Vehicle model mapping (carscraping automated prices - DO NOT CHANGE)
 vehicle_models = {
     'B': 'Fiat Panda ou Similar',
     'B1': 'Peugeot 108 ou Similar',
@@ -43,6 +43,26 @@ vehicle_models = {
     'N': 'Toyota RAV4 ou Similar',
     'O': 'Volkswagen Sharan ou Similar',
     'P': 'Citroen Berlingo ou Similar'
+}
+
+# Commissioner portal vehicle names (correct names for booking confirmation emails)
+commissioner_vehicle_models = {
+    'A': 'KIA Picanto ou Similar',
+    'B': 'FIAT Panda ou Similar',
+    'B1': 'FIAT Panda ou Similar',
+    'B2': 'FIAT Panda ou Similar',
+    'D': 'SEAT Ibiza ou Similar',
+    'E1': 'Hyundai i10 ou Similar',
+    'E2': 'Citroen C3 ou Similar',
+    'F': 'SEAT Arona ou Similar',
+    'G': 'FIAT 500 Cabrio',
+    'J1': 'Peugeot 2008 ou Similar',
+    'J2': 'Peugeot 308 SW',
+    'L1': 'Citroen C3 Aircross ou Similar',
+    'L2': 'Peugeot 308 SW',
+    'M1': 'Dacia Jogger ou Similar',
+    'M2': 'Citroen C4 Picasso',
+    'N': 'Toyota Proace ou Similar',
 }
 
 # Vehicle name mapping for API - NOMES EXATOS DO COMMISSIONER DASHBOARD
@@ -929,7 +949,7 @@ def get_booking_data(booking_id):
             'dropoff_location': result[12],
             'vehicle_group': result[13],
             'vehicle_name': vehicle_api_names.get(result[13], result[13]),  # Add vehicle name
-            'vehicle_model': vehicle_models.get(result[13], f'{result[13]} ou Similar'),
+            'vehicle_model': commissioner_vehicle_models.get(result[13], f'Grupo {result[13]}'),
             'extras': extras,
             'flight_number': result[15],
             'language': result[16] or 'pt',  # Add language field
