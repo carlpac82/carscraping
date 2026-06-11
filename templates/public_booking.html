@@ -505,6 +505,88 @@
         .insurance-modal .modal-btn-confirm { background: #009cb6; color: white; border: 1.5px solid #009cb6; }
         .insurance-modal .modal-btn-confirm:hover { background: #007a8f; border-color: #007a8f; }
 
+        /* ─── LANGUAGE LANDING PAGE ─── */
+        .lang-landing {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .lang-card {
+            background: white;
+            border-radius: 20px;
+            padding: 56px 48px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+            text-align: center;
+        }
+        .lang-logo {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #009cb6;
+            margin-bottom: 32px;
+        }
+        .lang-welcome {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+        .lang-subtitle {
+            font-size: 15px;
+            color: #6b7280;
+            margin-bottom: 48px;
+            line-height: 1.5;
+        }
+        .lang-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .lang-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 20px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .lang-btn:hover {
+            border-color: #009cb6;
+            background: #f0f9fb;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,156,182,0.12);
+        }
+        .lang-btn-code {
+            font-size: 18px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: 1px;
+        }
+        .lang-btn-name {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .lang-footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+
         /* ─── RESPONSIVE ─── */
         @media (max-width: 640px) {
             body { padding: 0; align-items: flex-start; }
@@ -521,7 +603,35 @@
 </head>
 <body>
 
-<div class="modal-content" id="mainModal">
+<!-- LANDING PAGE - Selecção de idioma -->
+<div id="langLanding" class="lang-landing">
+    <div class="lang-card">
+        <div class="lang-logo">Auto Prudente</div>
+        <div class="lang-welcome" id="langWelcome">Bem-vindo</div>
+        <div class="lang-subtitle" id="langSubtitle">Selecione o seu idioma para continuar</div>
+        <div class="lang-grid">
+            <button class="lang-btn" onclick="selectLanguage('pt')">
+                <span class="lang-btn-code">PT</span>
+                <span class="lang-btn-name">Português</span>
+            </button>
+            <button class="lang-btn" onclick="selectLanguage('en')">
+                <span class="lang-btn-code">EN</span>
+                <span class="lang-btn-name">English</span>
+            </button>
+            <button class="lang-btn" onclick="selectLanguage('fr')">
+                <span class="lang-btn-code">FR</span>
+                <span class="lang-btn-name">Français</span>
+            </button>
+            <button class="lang-btn" onclick="selectLanguage('de')">
+                <span class="lang-btn-code">DE</span>
+                <span class="lang-btn-name">Deutsch</span>
+            </button>
+        </div>
+    </div>
+    <div class="lang-footer">rentalprices.pt &nbsp;·&nbsp; Auto Prudente</div>
+</div>
+
+<div class="modal-content hidden" id="mainModal">
     <!-- Header -->
     <div class="modal-header">
         <h2>Nova Reserva</h2>
@@ -991,7 +1101,7 @@
 
     <!-- Footer -->
     <div class="modal-footer" id="modalFooter">
-        <button type="button" class="btn-cancel" onclick="cancelBooking()">Cancelar</button>
+        <button type="button" class="btn-cancel" id="btnCancel" onclick="cancelBooking()">Cancelar</button>
         <div class="wizard-navigation">
             <button type="button" class="btn-previous" id="btnPrev" style="display:none;" onclick="previousStep()">← Anterior</button>
             <button type="button" class="btn-next" id="btnNext" onclick="nextStep()">Seguinte →</button>
@@ -1084,8 +1194,17 @@
     let depositConfirmed = null;
 
     // ─── INIT ─────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', async () => {
-        await Promise.all([loadVehicleGroups(), loadPricing(), loadLocations(), loadScheduleSettings(), loadHotels()]);
+    // Pré-carregar dados em background enquanto o utilizador escolhe o idioma
+    document.addEventListener('DOMContentLoaded', () => {
+        loadVehicleGroups();
+        loadPricing();
+        loadLocations();
+        loadScheduleSettings();
+    });
+
+    async function init() {
+        // Aguardar dados (se ainda não terminaram)
+        await Promise.all([loadVehicleGroups(), loadPricing(), loadLocations(), loadScheduleSettings()]);
 
         // Definir datas iniciais DEPOIS de carregar scheduleSettings
         setInitialDates();
@@ -1140,7 +1259,7 @@
             const modal = document.getElementById('insuranceWarningModal');
             if (e.target === modal) closeInsuranceModal();
         });
-    });
+    }
 
     // ─── LOAD DATA ────────────────────────────────────────────
     async function loadVehicleGroups() {
@@ -1808,7 +1927,7 @@
             const pl = document.getElementById('pickupLocation').value;
             const dl = document.getElementById('dropoffLocation').value;
             if (!pd || !dd || !pt || !dt || !pl || !dl) {
-                showError('Preencha todos os campos obrigatórios.');
+                showError(t('errRequired'));
                 return;
             }
             if (rentalDays <= 0) { showError('A data de recolha deve ser posterior à data de entrega.'); return; }
@@ -1832,7 +1951,7 @@
         }
 
         if (currentStep === 2) {
-            if (!selectedVehicle) { showError('Selecione um grupo de veículo.'); return; }
+            if (!selectedVehicle) { showError(t('errVehicle')); return; }
             showVehicleSummary();
         }
 
@@ -1842,12 +1961,12 @@
             const em = document.getElementById('clientEmail').value.trim();
             const ph = document.getElementById('clientPhone').value.trim();
             if (!fn || !ln || !em || !ph) {
-                showError('Preencha todos os campos obrigatórios do cliente (Primeiro Nome, Último Nome, Email e Telefone).');
+                showError(t('errClient'));
                 return;
             }
             // Validar formato do email (igual ao dashboard)
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(em)) { showError('Por favor, insira um email válido.'); return; }
+            if (!emailRegex.test(em)) { showError(t('errEmail')); return; }
             fillStep5Summary();
         }
 
@@ -1903,15 +2022,15 @@
     // ─── SUBMIT ───────────────────────────────────────────────
     async function submitBooking() {
         // Validações finais (igual ao dashboard)
-        if (valueConfirmed === null) { showError('Por favor, confirme se o valor está correto (Sim ou Não).'); return; }
-        if (depositConfirmed === null) { showError('Por favor, defina se há depósito do cliente (Sim ou Não).'); return; }
+        if (valueConfirmed === null) { showError(t('errValueConfirm')); return; }
+        if (depositConfirmed === null) { showError(t('errDeposit')); return; }
         if (depositConfirmed && !(parseFloat(document.getElementById('depositAmount').value) > 0)) {
-            showError('Por favor, insira um valor de depósito válido.'); return;
+            showError(t('errDepositAmount')); return;
         }
 
         const btn = document.getElementById('btnSubmit');
         btn.disabled = true;
-        btn.textContent = 'A processar...';
+        btn.textContent = t('btnProcessing');
 
         // Calcular dias (mesma lógica do dashboard)
         const pickupDateVal = document.getElementById('pickupDate').value;
@@ -2024,7 +2143,7 @@
             dropoff_date: dropoffDateVal,
             dropoff_time: dropoffTimeVal,
             dropoff_location: document.getElementById('dropoffLocation').value,
-            language: 'pt',
+            language: currentLang,
             observations: null,
             insurance_type: selectedInsurance,
             base_price: basePrice,
@@ -2052,15 +2171,361 @@
                 document.getElementById('successVoucher').textContent = data.voucher || '';
                 document.getElementById('successScreen').style.display = 'block';
             } else {
-                showError(data.error || 'Erro ao criar reserva.');
+                showError(data.error || t('errBooking'));
                 btn.disabled = false;
-                btn.textContent = 'Criar Reserva';
+                btn.textContent = t('btnSubmit');
             }
         } catch(e) {
-            showError('Erro de ligação. Tente novamente.');
+            showError(t('errConnection'));
             btn.disabled = false;
-            btn.textContent = 'Criar Reserva';
+            btn.textContent = t('btnSubmit');
         }
+    }
+
+    // ─── LANGUAGE SYSTEM ──────────────────────────────────────
+    let currentLang = 'pt';
+
+    const translations = {
+        pt: {
+            pageTitle: 'Reserva de Viatura - Auto Prudente',
+            headerTitle: 'Nova Reserva',
+            step1Label: 'Datas e Locais',
+            step2Label: 'Veículo',
+            step3Label: 'Extras',
+            step4Label: 'Cliente',
+            step5Label: 'Confirmação',
+            step1Title: 'Datas, Horários e Locais',
+            step2Title: 'Escolha o Grupo de Veículo',
+            step3Title: 'Extras e Preço',
+            step4Title: 'Dados do Cliente',
+            step5Title: 'Resumo e Confirmação',
+            labelPickupDate: 'Data Entrega *',
+            labelPickupTime: 'Hora Entrega *',
+            labelPickupLocation: 'Local de Entrega *',
+            labelDropoffDate: 'Data Recolha *',
+            labelDropoffTime: 'Hora Recolha *',
+            labelDropoffLocation: 'Local de Recolha *',
+            selectHour: 'Selecione a hora',
+            selectOption: 'Selecione...',
+            labelDays: 'Número de Dias',
+            labelFirstName: 'Primeiro Nome *',
+            labelLastName: 'Último Nome *',
+            labelEmail: 'Email *',
+            labelPhone: 'Telefone *',
+            labelHotel: 'Hotel / Apartamento / Villa',
+            labelRoom: 'Número do Quarto',
+            hotelPlaceholder: 'Nome do hotel, apartamento ou villa',
+            btnCancel: 'Cancelar',
+            btnPrev: '← Anterior',
+            btnNext: 'Seguinte →',
+            btnSubmit: 'Criar Reserva',
+            btnProcessing: 'A processar...',
+            priceLabel: 'Preço Estimado',
+            insuranceSection: 'Proteção e Seguro',
+            insuranceSubtitle: 'Escolha a cobertura ideal para sua tranquilidade',
+            baseInsuranceTitle: 'Seguro Base',
+            baseInsuranceIncluded: 'Incluído',
+            premiumInsuranceTitle: 'Seguro Premium',
+            premiumBadge: 'RECOMENDADO',
+            premiumFranchise: 'Franquia 0€',
+            extrasLabel: 'Extras Opcionais',
+            notIncluded: 'Não incluído',
+            groupLabel: 'GROUP',
+            successTitle: 'Reserva Confirmada!',
+            successMsg: 'A sua reserva foi criada com sucesso.',
+            successEmail: 'Receberá um email de confirmação em breve.',
+            newBookingBtn: '+ Nova Reserva',
+            errRequired: 'Preencha todos os campos obrigatórios.',
+            errVehicle: 'Selecione um grupo de veículo.',
+            errClient: 'Preencha todos os campos obrigatórios do cliente (Primeiro Nome, Último Nome, Email e Telefone).',
+            errEmail: 'Por favor, insira um email válido.',
+            errValueConfirm: 'Por favor, confirme se o valor está correto (Sim ou Não).',
+            errDeposit: 'Por favor, defina se há depósito do cliente (Sim ou Não).',
+            errDepositAmount: 'Por favor, insira um valor de depósito válido.',
+            errConnection: 'Erro de ligação. Tente novamente.',
+            errBooking: 'Erro ao criar reserva.',
+            errTodayMin: 'Para reservas no dia de hoje, a hora de entrega deve ser pelo menos',
+            labelLanguage: 'pt',
+        },
+        en: {
+            pageTitle: 'Car Rental - Auto Prudente',
+            headerTitle: 'New Booking',
+            step1Label: 'Dates & Locations',
+            step2Label: 'Vehicle',
+            step3Label: 'Extras',
+            step4Label: 'Client',
+            step5Label: 'Confirmation',
+            step1Title: 'Dates, Times & Locations',
+            step2Title: 'Choose Vehicle Group',
+            step3Title: 'Extras & Price',
+            step4Title: 'Client Details',
+            step5Title: 'Summary & Confirmation',
+            labelPickupDate: 'Pickup Date *',
+            labelPickupTime: 'Pickup Time *',
+            labelPickupLocation: 'Pickup Location *',
+            labelDropoffDate: 'Return Date *',
+            labelDropoffTime: 'Return Time *',
+            labelDropoffLocation: 'Return Location *',
+            selectHour: 'Select time',
+            selectOption: 'Select...',
+            labelDays: 'Number of Days',
+            labelFirstName: 'First Name *',
+            labelLastName: 'Last Name *',
+            labelEmail: 'Email *',
+            labelPhone: 'Phone *',
+            labelHotel: 'Hotel / Apartment / Villa',
+            labelRoom: 'Room Number',
+            hotelPlaceholder: 'Hotel, apartment or villa name',
+            btnCancel: 'Cancel',
+            btnPrev: '← Back',
+            btnNext: 'Next →',
+            btnSubmit: 'Create Booking',
+            btnProcessing: 'Processing...',
+            priceLabel: 'Estimated Price',
+            insuranceSection: 'Protection & Insurance',
+            insuranceSubtitle: 'Choose the best coverage for your peace of mind',
+            baseInsuranceTitle: 'Basic Insurance',
+            baseInsuranceIncluded: 'Included',
+            premiumInsuranceTitle: 'Premium Insurance',
+            premiumBadge: 'RECOMMENDED',
+            premiumFranchise: 'Excess 0€',
+            extrasLabel: 'Optional Extras',
+            notIncluded: 'Not included',
+            groupLabel: 'GROUP',
+            successTitle: 'Booking Confirmed!',
+            successMsg: 'Your booking has been created successfully.',
+            successEmail: 'You will receive a confirmation email shortly.',
+            newBookingBtn: '+ New Booking',
+            errRequired: 'Please fill in all required fields.',
+            errVehicle: 'Please select a vehicle group.',
+            errClient: 'Please fill in all required client fields (First Name, Last Name, Email and Phone).',
+            errEmail: 'Please enter a valid email address.',
+            errValueConfirm: 'Please confirm whether the value is correct (Yes or No).',
+            errDeposit: 'Please specify whether there is a client deposit (Yes or No).',
+            errDepositAmount: 'Please enter a valid deposit amount.',
+            errConnection: 'Connection error. Please try again.',
+            errBooking: 'Error creating booking.',
+            errTodayMin: 'For bookings today, pickup time must be at least',
+            labelLanguage: 'en',
+        },
+        fr: {
+            pageTitle: 'Location de Voiture - Auto Prudente',
+            headerTitle: 'Nouvelle Réservation',
+            step1Label: 'Dates & Lieux',
+            step2Label: 'Véhicule',
+            step3Label: 'Extras',
+            step4Label: 'Client',
+            step5Label: 'Confirmation',
+            step1Title: 'Dates, Horaires et Lieux',
+            step2Title: 'Choisissez le Groupe de Véhicule',
+            step3Title: 'Extras et Prix',
+            step4Title: 'Données du Client',
+            step5Title: 'Résumé et Confirmation',
+            labelPickupDate: 'Date de Départ *',
+            labelPickupTime: 'Heure de Départ *',
+            labelPickupLocation: 'Lieu de Départ *',
+            labelDropoffDate: 'Date de Retour *',
+            labelDropoffTime: 'Heure de Retour *',
+            labelDropoffLocation: 'Lieu de Retour *',
+            selectHour: 'Sélectionnez l\'heure',
+            selectOption: 'Sélectionnez...',
+            labelDays: 'Nombre de Jours',
+            labelFirstName: 'Prénom *',
+            labelLastName: 'Nom *',
+            labelEmail: 'Email *',
+            labelPhone: 'Téléphone *',
+            labelHotel: 'Hôtel / Appartement / Villa',
+            labelRoom: 'Numéro de Chambre',
+            hotelPlaceholder: 'Nom de l\'hôtel, appartement ou villa',
+            btnCancel: 'Annuler',
+            btnPrev: '← Précédent',
+            btnNext: 'Suivant →',
+            btnSubmit: 'Créer la Réservation',
+            btnProcessing: 'En cours...',
+            priceLabel: 'Prix Estimé',
+            insuranceSection: 'Protection et Assurance',
+            insuranceSubtitle: 'Choisissez la couverture idéale pour votre tranquillité',
+            baseInsuranceTitle: 'Assurance de Base',
+            baseInsuranceIncluded: 'Inclus',
+            premiumInsuranceTitle: 'Assurance Premium',
+            premiumBadge: 'RECOMMANDÉ',
+            premiumFranchise: 'Franchise 0€',
+            extrasLabel: 'Extras Optionnels',
+            notIncluded: 'Non inclus',
+            groupLabel: 'GROUPE',
+            successTitle: 'Réservation Confirmée !',
+            successMsg: 'Votre réservation a été créée avec succès.',
+            successEmail: 'Vous recevrez un email de confirmation prochainement.',
+            newBookingBtn: '+ Nouvelle Réservation',
+            errRequired: 'Veuillez remplir tous les champs obligatoires.',
+            errVehicle: 'Veuillez sélectionner un groupe de véhicule.',
+            errClient: 'Veuillez remplir tous les champs obligatoires (Prénom, Nom, Email et Téléphone).',
+            errEmail: 'Veuillez saisir une adresse email valide.',
+            errValueConfirm: 'Veuillez confirmer si le montant est correct (Oui ou Non).',
+            errDeposit: 'Veuillez indiquer s\'il y a un dépôt client (Oui ou Non).',
+            errDepositAmount: 'Veuillez saisir un montant de dépôt valide.',
+            errConnection: 'Erreur de connexion. Veuillez réessayer.',
+            errBooking: 'Erreur lors de la création de la réservation.',
+            errTodayMin: 'Pour les réservations aujourd\'hui, l\'heure de départ doit être au moins',
+            labelLanguage: 'fr',
+        },
+        de: {
+            pageTitle: 'Mietwagen - Auto Prudente',
+            headerTitle: 'Neue Buchung',
+            step1Label: 'Daten & Orte',
+            step2Label: 'Fahrzeug',
+            step3Label: 'Extras',
+            step4Label: 'Kunde',
+            step5Label: 'Bestätigung',
+            step1Title: 'Daten, Zeiten und Orte',
+            step2Title: 'Fahrzeuggruppe wählen',
+            step3Title: 'Extras und Preis',
+            step4Title: 'Kundendaten',
+            step5Title: 'Zusammenfassung und Bestätigung',
+            labelPickupDate: 'Abholdatum *',
+            labelPickupTime: 'Abholzeit *',
+            labelPickupLocation: 'Abholort *',
+            labelDropoffDate: 'Rückgabedatum *',
+            labelDropoffTime: 'Rückgabezeit *',
+            labelDropoffLocation: 'Rückgabeort *',
+            selectHour: 'Uhrzeit auswählen',
+            selectOption: 'Auswählen...',
+            labelDays: 'Anzahl der Tage',
+            labelFirstName: 'Vorname *',
+            labelLastName: 'Nachname *',
+            labelEmail: 'E-Mail *',
+            labelPhone: 'Telefon *',
+            labelHotel: 'Hotel / Apartment / Villa',
+            labelRoom: 'Zimmernummer',
+            hotelPlaceholder: 'Name des Hotels, Apartments oder der Villa',
+            btnCancel: 'Abbrechen',
+            btnPrev: '← Zurück',
+            btnNext: 'Weiter →',
+            btnSubmit: 'Buchung erstellen',
+            btnProcessing: 'Wird verarbeitet...',
+            priceLabel: 'Geschätzter Preis',
+            insuranceSection: 'Schutz und Versicherung',
+            insuranceSubtitle: 'Wählen Sie den idealen Schutz für Ihre Sicherheit',
+            baseInsuranceTitle: 'Basisversicherung',
+            baseInsuranceIncluded: 'Inklusive',
+            premiumInsuranceTitle: 'Premium-Versicherung',
+            premiumBadge: 'EMPFOHLEN',
+            premiumFranchise: 'Selbstbeteiligung 0€',
+            extrasLabel: 'Optionale Extras',
+            notIncluded: 'Nicht enthalten',
+            groupLabel: 'GRUPPE',
+            successTitle: 'Buchung bestätigt!',
+            successMsg: 'Ihre Buchung wurde erfolgreich erstellt.',
+            successEmail: 'Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
+            newBookingBtn: '+ Neue Buchung',
+            errRequired: 'Bitte füllen Sie alle Pflichtfelder aus.',
+            errVehicle: 'Bitte wählen Sie eine Fahrzeuggruppe.',
+            errClient: 'Bitte füllen Sie alle Pflichtfelder aus (Vorname, Nachname, E-Mail und Telefon).',
+            errEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+            errValueConfirm: 'Bitte bestätigen Sie, ob der Betrag korrekt ist (Ja oder Nein).',
+            errDeposit: 'Bitte geben Sie an, ob eine Kaution hinterlegt wird (Ja oder Nein).',
+            errDepositAmount: 'Bitte geben Sie einen gültigen Kautionsbetrag ein.',
+            errConnection: 'Verbindungsfehler. Bitte versuchen Sie es erneut.',
+            errBooking: 'Fehler beim Erstellen der Buchung.',
+            errTodayMin: 'Für heutige Buchungen muss die Abholzeit mindestens',
+            labelLanguage: 'de',
+        }
+    };
+
+    function selectLanguage(lang) {
+        currentLang = lang;
+        document.getElementById('langLanding').classList.add('hidden');
+        document.getElementById('mainModal').classList.remove('hidden');
+        applyLanguage(lang);
+        init();
+    }
+
+    function t(key) {
+        return (translations[currentLang] || translations['pt'])[key] || key;
+    }
+
+    function applyLanguage(lang) {
+        const T = translations[lang] || translations['pt'];
+        document.title = T.pageTitle;
+        document.querySelector('.modal-header h2').textContent = T.headerTitle;
+
+        // Step labels
+        const stepLabels = document.querySelectorAll('.wizard-step .step-label');
+        const labelKeys = ['step1Label','step2Label','step3Label','step4Label','step5Label'];
+        stepLabels.forEach((el, i) => { if (labelKeys[i]) el.textContent = T[labelKeys[i]]; });
+
+        // Step titles (h3)
+        const stepContents = document.querySelectorAll('.wizard-step-content');
+        const titleKeys = ['step1Title','step2Title','step3Title','step4Title','step5Title'];
+        stepContents.forEach((el, i) => {
+            const h3 = el.querySelector('h3');
+            if (h3 && titleKeys[i]) h3.textContent = T[titleKeys[i]];
+        });
+
+        // Step 1 labels
+        const labels1 = document.querySelectorAll('[data-step="1"] .form-group label');
+        const keys1 = ['labelPickupDate','labelPickupTime','labelPickupLocation','labelDropoffDate','labelDropoffTime','labelDropoffLocation'];
+        labels1.forEach((el, i) => { if (keys1[i]) el.textContent = T[keys1[i]]; });
+        document.querySelector('[data-step="1"] #pickupTime option[value=""]').textContent = T.selectHour;
+        document.querySelector('[data-step="1"] #dropoffTime option[value=""]').textContent = T.selectHour;
+        document.querySelector('[data-step="1"] #pickupLocation option[value=""]').textContent = T.selectOption;
+        document.querySelector('[data-step="1"] #dropoffLocation option[value=""]').textContent = T.selectOption;
+        const daysLabel = document.querySelector('.days-display-container label');
+        if (daysLabel) daysLabel.textContent = T.labelDays;
+
+        // Step 3 labels
+        const sectionTitle = document.querySelector('.protection-section .section-title');
+        if (sectionTitle) {
+            const icon = sectionTitle.querySelector('.section-icon');
+            sectionTitle.textContent = T.insuranceSection;
+            if (icon) sectionTitle.prepend(icon);
+        }
+        const secSubtitle = document.querySelector('.section-subtitle');
+        if (secSubtitle) secSubtitle.textContent = T.insuranceSubtitle;
+        const baseTitle = document.querySelector('#baseInsuranceCard .card-title');
+        if (baseTitle) baseTitle.textContent = T.baseInsuranceTitle;
+        const baseIncluded = document.querySelector('#baseInsuranceCard .price-calc');
+        if (baseIncluded) baseIncluded.textContent = T.baseInsuranceIncluded;
+        const premiumTitle = document.querySelector('#premiumInsuranceCard .card-title');
+        if (premiumTitle) premiumTitle.textContent = T.premiumInsuranceTitle;
+        const premiumBadge = document.querySelector('#premiumInsuranceCard .card-badge');
+        if (premiumBadge) premiumBadge.textContent = T.premiumBadge;
+        const premiumFranchise = document.querySelector('#premiumInsuranceCard .price-info');
+        if (premiumFranchise) premiumFranchise.textContent = T.premiumFranchise;
+        const divLabel = document.querySelector('.divider-label');
+        if (divLabel) divLabel.textContent = T.extrasLabel;
+        const priceLbl = document.querySelector('.price-label');
+        if (priceLbl) priceLbl.textContent = T.priceLabel;
+        document.querySelectorAll('.exclusions-title').forEach(el => {
+            const icon = el.querySelector('.info-icon');
+            el.textContent = T.notIncluded + ' ';
+            if (icon) el.appendChild(icon);
+        });
+
+        // Step 4 labels
+        const labels4 = document.querySelectorAll('[data-step="4"] .form-group label');
+        const keys4 = ['labelFirstName','labelLastName','labelEmail','labelPhone','labelHotel','labelRoom'];
+        labels4.forEach((el, i) => { if (keys4[i]) el.textContent = T[keys4[i]]; });
+        const hotelInput = document.getElementById('clientHotel');
+        if (hotelInput) hotelInput.placeholder = T.hotelPlaceholder;
+
+        // Footer buttons
+        document.getElementById('btnCancel') && (document.getElementById('btnCancel').textContent = T.btnCancel);
+        document.getElementById('btnPrev').textContent = T.btnPrev;
+        document.getElementById('btnNext').textContent = T.btnNext;
+        document.getElementById('btnSubmit').textContent = T.btnSubmit;
+
+        // Success screen
+        const succTitle = document.querySelector('.success-screen h2');
+        if (succTitle) succTitle.textContent = T.successTitle;
+        const succPs = document.querySelectorAll('.success-screen p');
+        if (succPs[0]) succPs[0].textContent = T.successMsg;
+        if (succPs[1]) succPs[1].textContent = T.successEmail;
+        const newBookBtn = document.querySelector('.btn-new');
+        if (newBookBtn) newBookBtn.textContent = T.newBookingBtn;
+
+        // Language stored for payload
+        currentLang = lang;
     }
 </script>
 </body>
