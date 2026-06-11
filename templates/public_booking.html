@@ -2932,6 +2932,10 @@
         _tcTriggerBtn = e.currentTarget;
         const lang = detectBrowserLang();
         const pdf = tcPdfs[lang] || tcPdfs['en'];
+        if (window.innerWidth <= 640) {
+            window.open(pdf, '_blank');
+            return;
+        }
         document.getElementById('tcIframe').src = pdf;
         document.getElementById('tcTitle').textContent = tcTitles[lang] || tcTitles['en'];
         const modal = document.getElementById('tcModal');
