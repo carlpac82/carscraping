@@ -1962,7 +1962,7 @@
         // Vehicle
         document.getElementById('summaryVehicleImageStep5').src = v.image || '';
         document.getElementById('summaryVehicleGroupStep5').textContent = `${t('groupLabel')} ${v.code}`;
-        document.getElementById('summaryVehicleNameStep5').textContent = v.name || v.code;
+        document.getElementById('summaryVehicleNameStep5').textContent = (v.name || v.code).replace(/ ou similar| or similar| ou similaire| oder ähnlich/i, '') + ' ' + t('orSimilar');
         let feats = '';
         if (v.ac) feats += `<img src="/static/Icones-Caracteristicas/AC.png" alt="" style="height:18px">`;
         if (v.seats) feats += `<img src="/static/Icones-Caracteristicas/${String(v.seats).includes('-')?v.seats+' L':v.seats+'L'}.png" alt="" style="height:18px">`;
@@ -2006,7 +2006,19 @@
     function formatDate(str) {
         if (!str) return '-';
         const [y,m,d] = str.split('-');
-        return `${d} de ${['','janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'][parseInt(m)]} de ${y}`;
+        const months = {
+            pt: ['','janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
+            en: ['','January','February','March','April','May','June','July','August','September','October','November','December'],
+            fr: ['','janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+            de: ['','Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+        };
+        const lang = currentLang || 'pt';
+        const mList = months[lang] || months.pt;
+        const mn = mList[parseInt(m)];
+        if (lang === 'pt') return `${d} de ${mn} de ${y}`;
+        if (lang === 'fr') return `${d} ${mn} ${y}`;
+        if (lang === 'de') return `${d}. ${mn} ${y}`;
+        return `${mn} ${d}, ${y}`;
     }
 
     // ─── STEP NAVIGATION ──────────────────────────────────────
