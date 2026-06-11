@@ -177,8 +177,9 @@ fetch('/api/commissioners/vehicle-groups')
       card.className = 'v-card';
       const shortName = v.name.replace(/ ou similar| or similar| ou similaire| oder ähnlich/i, '');
       let feats = '';
+      const seatsFile = String(v.seats).includes('-') ? v.seats + ' L' : v.seats + 'L';
       if (v.ac) feats += `<img src="/static/Icones-Caracteristicas/AC.png" alt="AC">`;
-      if (v.seats) feats += `<img src="/static/Icones-Caracteristicas/${String(v.seats).includes('-') ? v.seats+' L' : v.seats+'L'}.png" alt="${v.seats}L">`;
+      if (v.seats) feats += `<img src="/static/Icones-Caracteristicas/${encodeURIComponent(seatsFile)}.png" alt="${v.seats}L">`;
       if (v.doors) feats += `<img src="/static/Icones-Caracteristicas/${v.doors}P.png" alt="${v.doors}P">`;
       if (v.transmission === 'automatic') feats += `<img src="/static/Icones-Caracteristicas/automatico.png" alt="Auto">`;
       card.innerHTML = `
