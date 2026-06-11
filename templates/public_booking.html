@@ -1125,11 +1125,9 @@
                     <input type="tel" id="clientPhone" placeholder="912345678" required>
                 </div>
                 <div class="form-group">
-                    <label>Hotel / Apartamento / Villa</label>
                     <input type="text" id="clientHotel" placeholder="Nome do hotel, apartamento ou villa">
                 </div>
                 <div class="form-group">
-                    <label>Número do Quarto</label>
                     <input type="text" id="clientRoom">
                 </div>
             </div>
@@ -1155,11 +1153,11 @@
                         </div>
                         <div class="summary-dates">
                             <div class="summary-pickup">
-                                <div class="summary-label" data-i18n="labelPickupDate">Entrega</div>
+                                <div class="summary-label" data-i18n="summaryPickupLabel">Entrega</div>
                                 <div class="summary-dates-text" id="summaryPickupText">-</div>
                             </div>
                             <div class="summary-dropoff">
-                                <div class="summary-label" data-i18n="labelDropoffDate">Recolha</div>
+                                <div class="summary-label" data-i18n="summaryDropoffLabel">Recolha</div>
                                 <div class="summary-dates-text" id="summaryDropoffText">-</div>
                             </div>
                         </div>
@@ -2325,9 +2323,11 @@
             labelLastName: 'Último Nome *',
             labelEmail: 'Email *',
             labelPhone: 'Telefone *',
-            labelHotel: 'Hotel / Apartamento / Villa',
+            labelHotel: 'Hotel',
             labelRoom: 'Número do Quarto',
-            hotelPlaceholder: 'Nome do hotel, apartamento ou villa',
+            hotelPlaceholder: 'Hotel, apartamento ou villa',
+            summaryPickupLabel: 'Entrega',
+            summaryDropoffLabel: 'Recolha',
             btnCancel: 'Cancelar',
             btnPrev: '← Anterior',
             btnNext: 'Seguinte →',
@@ -2435,9 +2435,11 @@
             labelLastName: 'Last Name *',
             labelEmail: 'Email *',
             labelPhone: 'Phone *',
-            labelHotel: 'Hotel / Apartment / Villa',
+            labelHotel: 'Hotel',
             labelRoom: 'Room Number',
-            hotelPlaceholder: 'Hotel, apartment or villa name',
+            hotelPlaceholder: 'Hotel, apartment or villa',
+            summaryPickupLabel: 'Pickup',
+            summaryDropoffLabel: 'Return',
             btnCancel: 'Cancel',
             btnPrev: '← Back',
             btnNext: 'Next →',
@@ -2545,9 +2547,11 @@
             labelLastName: 'Nom *',
             labelEmail: 'Email *',
             labelPhone: 'Téléphone *',
-            labelHotel: 'Hôtel / Appartement / Villa',
-            labelRoom: 'Numéro de Chambre',
-            hotelPlaceholder: 'Nom de l\'hôtel, appartement ou villa',
+            labelHotel: 'Hôtel',
+            labelRoom: 'N° de Chambre',
+            hotelPlaceholder: 'Hôtel, appartement ou villa',
+            summaryPickupLabel: 'Départ',
+            summaryDropoffLabel: 'Retour',
             btnCancel: 'Annuler',
             btnPrev: '← Précédent',
             btnNext: 'Suivant →',
@@ -2655,9 +2659,11 @@
             labelLastName: 'Nachname *',
             labelEmail: 'E-Mail *',
             labelPhone: 'Telefon *',
-            labelHotel: 'Hotel / Apartment / Villa',
+            labelHotel: 'Hotel',
             labelRoom: 'Zimmernummer',
-            hotelPlaceholder: 'Name des Hotels, Apartments oder der Villa',
+            hotelPlaceholder: 'Hotel, Apartment oder Villa',
+            summaryPickupLabel: 'Abholung',
+            summaryDropoffLabel: 'Rückgabe',
             btnCancel: 'Abbrechen',
             btnPrev: '← Zurück',
             btnNext: 'Weiter →',
@@ -3065,10 +3071,12 @@
 
         // Step 4 labels
         const labels4 = document.querySelectorAll('[data-step="4"] .form-group label');
-        const keys4 = ['labelFirstName','labelLastName','labelEmail','labelPhone','labelHotel','labelRoom'];
+        const keys4 = ['labelFirstName','labelLastName','labelEmail','labelPhone'];
         labels4.forEach((el, i) => { if (keys4[i]) el.textContent = T[keys4[i]]; });
         const hotelInput = document.getElementById('clientHotel');
         if (hotelInput) hotelInput.placeholder = T.hotelPlaceholder;
+        const roomInput = document.getElementById('clientRoom');
+        if (roomInput) roomInput.placeholder = T.labelRoom;
 
         // Footer buttons
         document.getElementById('btnCancel') && (document.getElementById('btnCancel').textContent = T.btnCancel);
