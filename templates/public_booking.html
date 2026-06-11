@@ -1155,11 +1155,11 @@
                         </div>
                         <div class="summary-dates">
                             <div class="summary-pickup">
-                                <div class="summary-label">Entrega</div>
+                                <div class="summary-label" data-i18n="labelPickupDate">Entrega</div>
                                 <div class="summary-dates-text" id="summaryPickupText">-</div>
                             </div>
                             <div class="summary-dropoff">
-                                <div class="summary-label">Recolha</div>
+                                <div class="summary-label" data-i18n="labelDropoffDate">Recolha</div>
                                 <div class="summary-dates-text" id="summaryDropoffText">-</div>
                             </div>
                         </div>
@@ -1170,8 +1170,8 @@
                 <div class="confirmation-contact">
                     <div class="contact-info">
                     <div class="contact-text">
-                        <div class="contact-title">Confirme com Auto Prudente</div>
-                        <div class="contact-subtitle">Ligue para verificar disponibilidade e valores</div>
+                        <div class="contact-title" data-i18n="confirmContactTitle">Confirme com Auto Prudente</div>
+                        <div class="contact-subtitle" data-i18n="confirmContactSubtitle">Ligue para verificar disponibilidade e valores</div>
                     </div>
                     <div class="contact-phone-overlay">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1186,14 +1186,14 @@
                 <div class="summary-section">
                     <div class="summary-layout">
                         <div class="summary-client-info">
-                            <div class="summary-label">Cliente</div>
+                            <div class="summary-label" data-i18n="labelClient">Cliente</div>
                             <div class="summary-value" id="summaryClientName">-</div>
                             <div class="summary-contact-details">
                                 <span id="summaryClientPhone">-</span>
                                 <span id="summaryClientEmail">-</span>
                             </div>
                             <div class="summary-client-hotel" id="summaryClientHotel" style="display: none;">
-                                <div class="summary-label">Hotel</div>
+                                <div class="summary-label" data-i18n="labelHotel">Hotel</div>
                                 <div class="summary-value">
                                     <span id="summaryHotelName">-</span>
                                     <span id="summaryRoomNumber">-</span>
@@ -1202,42 +1202,15 @@
                         </div>
                         <div class="summary-pricing">
                             <div class="summary-total">
-                                <div class="summary-label">Valor Total</div>
+                                <div class="summary-label" data-i18n="summaryTotalLabel">Valor Total</div>
                                 <div class="summary-price" id="summaryTotalAmount">€0.00</div>
-                            </div>
-                            <div class="confirmation-section">
-                                <div class="confirmation-item">
-                                    <div class="confirmation-label">Valor está correto?</div>
-                                    <div class="confirmation-buttons-text">
-                                        <button type="button" class="confirmation-text-btn confirmation-btn-yes" id="btnValueYes" onclick="confirmValue(true)">Sim</button>
-                                        <button type="button" class="confirmation-text-btn confirmation-btn-no" id="btnValueNo" onclick="confirmValue(false)">Não</button>
-                                    </div>
-                                </div>
-                                <div class="confirmation-item">
-                                    <div class="confirmation-label">Depósito?</div>
-                                    <div class="confirmation-buttons-text">
-                                        <button type="button" class="confirmation-text-btn confirmation-btn-yes" id="btnDepositYes" onclick="setDeposit(true)">Sim</button>
-                                        <button type="button" class="confirmation-text-btn confirmation-btn-no" id="btnDepositNo" onclick="setDeposit(false)">Não</button>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Ajuste valor + depósito -->
-                <div id="valueAdjustmentSection" style="display:none;" class="value-adjustment-section">
-                    <div class="adjustment-input-group">
-                        <label for="valueAdjustment">Preço confirmado (€):</label>
-                        <input type="number" id="valueAdjustment" step="0.01" placeholder="0.00">
-                    </div>
-                </div>
-                <div id="depositSection" style="display:none;" class="deposit-section">
-                    <div class="deposit-input-group">
-                        <label for="depositAmount">Depósito (€):</label>
-                        <input type="number" id="depositAmount" step="0.01" placeholder="0.00">
-                    </div>
-                </div>
+                <input type="hidden" id="valueAdjustment" value="">
+                <input type="hidden" id="depositAmount" value="">
 
             </div>
         </div>
@@ -1979,16 +1952,9 @@
     // ─── CONFIRMATION (step 5) ────────────────────────────────
     function confirmValue(yes) {
         valueConfirmed = yes;
-        document.getElementById('btnValueYes').classList.toggle('selected', yes);
-        document.getElementById('btnValueNo').classList.toggle('selected', !yes);
-        document.getElementById('valueAdjustmentSection').style.display = !yes ? 'block' : 'none';
-        if (yes) document.getElementById('valueAdjustment').value = '';
     }
     function setDeposit(yes) {
         depositConfirmed = yes;
-        document.getElementById('btnDepositYes').classList.toggle('selected', yes);
-        document.getElementById('btnDepositNo').classList.toggle('selected', !yes);
-        document.getElementById('depositSection').style.display = yes ? 'block' : 'none';
         if (!yes) document.getElementById('depositAmount').value = '';
     }
 
@@ -1997,7 +1963,7 @@
         const v = selectedVehicleData;
         // Vehicle
         document.getElementById('summaryVehicleImageStep5').src = v.image || '';
-        document.getElementById('summaryVehicleGroupStep5').textContent = `GROUP ${v.code}`;
+        document.getElementById('summaryVehicleGroupStep5').textContent = `${t('groupLabel')} ${v.code}`;
         document.getElementById('summaryVehicleNameStep5').textContent = v.name || v.code;
         let feats = '';
         if (v.ac) feats += `<img src="/static/Icones-Caracteristicas/AC.png" alt="" style="height:18px">`;
@@ -2030,7 +1996,7 @@
                 const hn = document.getElementById('summaryHotelName');
                 const rn = document.getElementById('summaryRoomNumber');
                 if (hn) hn.textContent = hotel;
-                if (rn) rn.textContent = room ? ` - Quarto ${room}` : '';
+                if (rn) rn.textContent = room ? ` - ${t('labelRoom')} ${room}` : '';
             } else {
                 hotelEl.style.display = 'none';
             }
@@ -2172,12 +2138,8 @@
 
     // ─── SUBMIT ───────────────────────────────────────────────
     async function submitBooking() {
-        // Validações finais (igual ao dashboard)
-        if (valueConfirmed === null) { showError(t('errValueConfirm')); return; }
-        if (depositConfirmed === null) { showError(t('errDeposit')); return; }
-        if (depositConfirmed && !(parseFloat(document.getElementById('depositAmount').value) > 0)) {
-            showError(t('errDepositAmount')); return;
-        }
+        if (valueConfirmed === null) valueConfirmed = true;
+        if (depositConfirmed === null) depositConfirmed = false;
 
         const btn = document.getElementById('btnSubmit');
         btn.disabled = true;
@@ -2393,6 +2355,10 @@
             successMsg: 'A sua reserva foi criada com sucesso.',
             successEmail: 'Receberá um email de confirmação em breve.',
             newBookingBtn: '+ Nova Reserva',
+            confirmContactTitle: 'Confirme com Auto Prudente',
+            confirmContactSubtitle: 'Ligue para verificar disponibilidade e valores',
+            labelClient: 'Cliente',
+            summaryTotalLabel: 'Valor Total',
             baseBenefit1: 'Cobertura básica contra danos',
             baseBenefit3: 'Não inclui assistência em viagem',
             baseBenefit4: 'Cartão de crédito obrigatório (débito não aceito)',
@@ -2499,6 +2465,10 @@
             successMsg: 'Your booking has been created successfully.',
             successEmail: 'You will receive a confirmation email shortly.',
             newBookingBtn: '+ New Booking',
+            confirmContactTitle: 'Confirm with Auto Prudente',
+            confirmContactSubtitle: 'Call to verify availability and rates',
+            labelClient: 'Client',
+            summaryTotalLabel: 'Total Amount',
             baseBenefit1: 'Basic damage coverage',
             baseBenefit3: 'No roadside assistance included',
             baseBenefit4: 'Credit card required (debit not accepted)',
@@ -2605,6 +2575,10 @@
             successMsg: 'Votre réservation a été créée avec succès.',
             successEmail: 'Vous recevrez un email de confirmation prochainement.',
             newBookingBtn: '+ Nouvelle Réservation',
+            confirmContactTitle: 'Confirmez avec Auto Prudente',
+            confirmContactSubtitle: 'Appelez pour vérifier la disponibilité et les tarifs',
+            labelClient: 'Client',
+            summaryTotalLabel: 'Montant Total',
             baseBenefit1: 'Couverture de base contre les dommages',
             baseBenefit3: 'Pas d\'assistance en voyage incluse',
             baseBenefit4: 'Carte de crédit obligatoire (débit non accepté)',
@@ -2711,6 +2685,10 @@
             successMsg: 'Ihre Buchung wurde erfolgreich erstellt.',
             successEmail: 'Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
             newBookingBtn: '+ Neue Buchung',
+            confirmContactTitle: 'Bestätigen Sie mit Auto Prudente',
+            confirmContactSubtitle: 'Anrufen zur Verfügbarkeit und Preisen',
+            labelClient: 'Kunde',
+            summaryTotalLabel: 'Gesamtbetrag',
             baseBenefit1: 'Grundlegende Schadensdeckung',
             baseBenefit3: 'Kein Pannendienst enthalten',
             baseBenefit4: 'Kreditkarte erforderlich (Debit nicht akzeptiert)',
