@@ -826,7 +826,7 @@ def get_booking_data(booking_id):
             'extras_total': f"{float(result[27]):.2f}" if result[27] else '0.00',
             'insurance_type': result[28] or 'base',
             'booking_date': result[20].strftime('%d/%m/%Y %H:%M') if result[20] else '',  # Clean format without seconds
-            'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
+            'vehicle_image': f"/api/vehicles/{vehicle_api_names.get(result[13], result[13]).replace(' ', '%20')}/photo" if result[13] else ''
         }
         
         return booking_data
