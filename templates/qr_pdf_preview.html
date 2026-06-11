@@ -211,18 +211,10 @@ fetch('/api/commissioners/vehicle-groups')
     checkinCard.className = 'v-card';
     checkinCard.style.cssText = 'background:#009cb6; border-color:#009cb6; grid-column: span 1;';
     checkinCard.innerHTML = `
-      <div class="v-card-header" style="background:#007a90;">CHECK-IN ONLINE</div>
+      <div class="v-card-header" style="background:#f5c800;color:white;">CHECK-IN ONLINE</div>
       <div style="display:flex;align-items:center;justify-content:space-around;padding:8px 6px;gap:6px;">
-        <div style="background:#f5c800;border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg width="32" height="28" viewBox="0 0 64 56" fill="none">
-            <rect x="6" y="4" width="52" height="36" rx="4" fill="#374151"/>
-            <rect x="10" y="8" width="44" height="28" rx="2" fill="white"/>
-            <rect x="18" y="16" width="28" height="12" rx="3" fill="#009cb6"/>
-            <text x="32" y="25" text-anchor="middle" fill="white" font-size="8" font-weight="bold" font-family="Arial">CHECK-IN</text>
-            <rect x="24" y="40" width="16" height="5" rx="1" fill="#4b5563"/>
-            <rect x="16" y="45" width="32" height="4" rx="2" fill="#6b7280"/>
-            <polygon points="28,40 36,40 34,35 30,35" fill="#374151"/>
-          </svg>
+        <div style="border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+          <img src="/static/checkin-online.png" style="width:56px;height:56px;object-fit:contain;mix-blend-mode:normal;">
         </div>
         <div style="background:#e0e0e0;border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
           <img src="${checkinQr}" style="width:44px;height:44px;mix-blend-mode:normal;">
