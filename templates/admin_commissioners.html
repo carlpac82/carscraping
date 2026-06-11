@@ -1153,7 +1153,22 @@ function gerarPDF() {
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const pdfW = pdf.internal.pageSize.getWidth();
     const pdfH = pdf.internal.pageSize.getHeight();
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+    const canvasW = canvas.width;
+    const canvasH = canvas.height;
+    const ratio = canvasH / canvasW;
+    const imgH = pdfW * ratio;
+    if (imgH <= pdfH) {
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, imgH);
+    } else {
+      let yPos = 0;
+      let remaining = imgH;
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'JPEG', 0, yPos, pdfW, imgH);
+        remaining -= pdfH;
+        yPos -= pdfH;
+        if (remaining > 0) pdf.addPage();
+      }
+    }
     pdf.save('auto-prudente-qr.pdf');
     btn.textContent = '✅ PDF Descarregado!';
     btn.disabled = false;
