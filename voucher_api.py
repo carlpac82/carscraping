@@ -1280,7 +1280,7 @@ async def confirm_and_print_booking(booking_id: int):
         
         # Redirect to PDF generation
         from fastapi.responses import RedirectResponse
-        return RedirectResponse(url=f"/api/commissioner-booking-pdf/generate/{booking_id}")
+        return RedirectResponse(url=f"/api/commissioner/voucher/print/{booking_id}")
         
     except Exception as e:
         print(f"[CONFIRM PRINT] Error confirming booking: {e}")
