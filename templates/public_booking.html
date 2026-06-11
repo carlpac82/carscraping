@@ -687,36 +687,57 @@
         @media (max-width: 640px) {
             body { padding: 0; align-items: flex-start; }
 
-            /* Modal ocupa ecrã completo */
+            /* Modal ocupa ecrã completo - iOS Safari usa dvh para excluir barra do browser */
             #mainModal { padding: 0; align-items: flex-start; }
             .modal-content {
-                max-height: 100vh; height: 100vh;
-                border-radius: 0; width: 100%; max-width: 100%;
-                display: flex; flex-direction: column;
+                border-radius: 0;
+                width: 100%;
+                max-width: 100%;
+                height: 100vh;
+                height: 100dvh;
+                max-height: 100vh;
+                max-height: 100dvh;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
             }
 
-            /* Header mais compacto */
-            .modal-header { padding: 14px 16px; }
-            .modal-header h2 { font-size: 16px; }
+            /* Header compacto */
+            .modal-header { padding: 12px 16px; flex-shrink: 0; }
+            .modal-header h2 { font-size: 15px; }
 
-            /* Wizard progress */
-            .wizard-progress { padding: 12px 16px 0; }
-            .step-label { font-size: 9px; }
-            .step-number { width: 28px; height: 28px; font-size: 12px; }
-            .wizard-progress::after { top: 30px; left: 44px; right: 44px; }
+            /* Wizard progress compacto */
+            .wizard-progress { padding: 10px 12px 0; flex-shrink: 0; }
+            .step-label { font-size: 8px; }
+            .step-number { width: 26px; height: 26px; font-size: 11px; }
+            .wizard-progress::after { top: 28px; left: 38px; right: 38px; }
 
-            /* Body com padding reduzido */
-            .modal-body { padding: 14px 16px; }
+            /* Body scroll - ocupa espaço restante */
+            .modal-body {
+                padding: 12px 14px;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                min-height: 0;
+            }
 
-            /* Footer */
-            .modal-footer { padding: 12px 16px; }
+            /* Footer fixo no fundo - sempre visível */
+            .modal-footer {
+                padding: 10px 14px;
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+                flex-shrink: 0;
+                border-top: 2px solid #e5e7eb;
+                background: white;
+                z-index: 10;
+            }
             .btn-cancel, .btn-previous, .btn-next, .btn-submit-booking {
-                padding: 9px 14px; font-size: 13px;
+                padding: 10px 14px; font-size: 13px;
             }
 
             /* Forms */
-            .form-row { grid-template-columns: 1fr; gap: 10px; }
+            .form-row { grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
             .form-grid { grid-template-columns: 1fr; gap: 10px; }
+            .wizard-step-content h3 { font-size: 15px; margin-bottom: 14px; }
 
             /* Veículos */
             .vehicle-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -726,11 +747,11 @@
             .protection-grid { grid-template-columns: 1fr; }
             .section-title { font-size: 16px; }
 
-            /* Vehicle summary */
-            .vehicle-summary-content { flex-direction: column; align-items: flex-start; gap: 8px; }
-            .vehicle-summary-image { flex: none; width: 100%; text-align: center; }
-            .vehicle-summary-image img { height: 80px; }
-            .vehicle-summary-price { margin-left: 0; text-align: left; padding-left: 0; }
+            /* Vehicle summary step 3 */
+            .vehicle-summary-content { flex-direction: row; gap: 10px; }
+            .vehicle-summary-image { flex: 0 0 80px; }
+            .vehicle-summary-image img { height: 56px; }
+            .vehicle-summary-price { margin-left: auto; padding-left: 8px; }
 
             /* Step 5 summary */
             .summary-layout { flex-direction: column; gap: 10px; }
@@ -741,16 +762,20 @@
             /* Extras */
             .extras-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
 
-            /* Lang card */
-            .lang-card { padding: 28px 20px; border-radius: 16px; }
+            /* Lang landing */
+            .lang-card { padding: 24px 16px; border-radius: 16px; }
             .lang-welcome { font-size: 20px; }
-            .lang-subtitle { margin-bottom: 24px; }
+            .lang-subtitle { margin-bottom: 20px; font-size: 13px; }
 
             /* Confirmation items */
             .confirmation-item { flex-direction: column; align-items: flex-start; gap: 6px; }
 
+            /* Days display */
+            .days-display-container { padding: 10px 16px; }
+            .days-display { font-size: 18px; }
+
             /* T&C modal */
-            .tc-card { height: 95vh; border-radius: 12px; }
+            .tc-card { height: 95vh; height: 95dvh; border-radius: 12px; }
         }
     </style>
 </head>
