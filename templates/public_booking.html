@@ -759,8 +759,23 @@
             .vehicle-summary-price { margin-left: auto; padding-left: 8px; }
 
             /* Step 5 summary */
-            .summary-layout { flex-direction: column; gap: 10px; }
             .summary-vehicle-card { flex-wrap: wrap; }
+
+            /* Datas: entrega à esquerda, recolha à direita na mesma linha */
+            .summary-dates {
+                display: flex; flex-direction: row;
+                gap: 8px; margin-left: 0; text-align: left; width: 100%;
+            }
+            .summary-pickup { flex: 1; }
+            .summary-dropoff { flex: 1; text-align: right; margin-bottom: 0; }
+
+            /* Contacto: texto à esquerda, telefone à direita alinhado verticalmente */
+            .contact-info { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
+            .contact-phone-overlay { position: static; transform: none; flex-shrink: 0; }
+
+            /* Cliente + preço: lado a lado */
+            .summary-client-info { flex: 1; }
+            .summary-pricing { margin-left: auto; text-align: right; flex-shrink: 0; }
 
             /* Extras */
             .extras-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
