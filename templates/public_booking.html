@@ -2571,8 +2571,7 @@
 
     function goBackToLanding() {
         const modal = document.getElementById('mainModal');
-        const closeBtn = document.querySelector('#mainModal .modal-close');
-        applyMacOSMinimizeAnimationModal(modal, closeBtn, () => {
+        applyMacOSMinimizeAnimationModal(modal, _langTriggerButton, () => {
             modal.classList.add('hidden');
             document.getElementById('langLanding').classList.remove('blurred');
             // Reset estilos do card para próxima abertura
