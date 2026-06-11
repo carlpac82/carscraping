@@ -1066,34 +1066,80 @@
         }
 
         function downloadQrPdf() {
-            const img = document.getElementById('qrCodeImg');
-            const commName = document.getElementById('qrModalTitle').textContent.replace('Link QR — ', '');
-            const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=ffffff&bgcolor=009cb6&data=${encodeURIComponent(document.getElementById('qrLink').value)}`;
-            const logoUrl = window.location.origin + '/static/ap-heather.png';
+            const bookingUrl = document.getElementById('qrLink').value;
+            const origin = window.location.origin;
+            const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=009cb6&bgcolor=ffffff&data=${encodeURIComponent(bookingUrl)}`;
             const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+
+            fetch('/api/commissioners/vehicle-groups')
+              .then(r => r.json())
+              .then(data => {
+                const groups = (data.ok && data.groups) ? data.groups : [];
+                let cardsHtml = '';
+                groups.forEach(v => {
+                    const shortName = v.name.replace(/ ou similar| or similar| ou similaire| oder ähnlich/gi, '');
+                    const seatsFile = String(v.seats).includes('-') ? v.seats + ' L' : v.seats + 'L';
+                    let feats = '';
+                    if (v.ac) feats += `<img src="${origin}/static/Icones-Caracteristicas/AC.png" style="height:22px;">`;
+                    if (v.seats) feats += `<img src="${origin}/static/Icones-Caracteristicas/${encodeURIComponent(seatsFile)}.png" style="height:22px;">`;
+                    if (v.doors) feats += `<img src="${origin}/static/Icones-Caracteristicas/${v.doors}P.png" style="height:22px;">`;
+                    if (v.transmission === 'automatic') feats += `<img src="${origin}/static/Icones-Caracteristicas/automatico.png" style="height:22px;">`;
+                    cardsHtml += `
+                    <div style="background:white;border-radius:8px;border:1.5px solid #e5e7eb;overflow:hidden;text-align:center;">
+                      <div style="background:#009cb6;color:white;font-size:13px;font-weight:700;padding:7px 6px;">GROUP <span style="color:#f5c800;">${v.code}</span></div>
+                      <img src="${v.image}" style="width:100%;height:72px;object-fit:contain;padding:6px 8px;background:white;mix-blend-mode:multiply;display:block;">
+                      <div style="font-size:12px;color:#374151;padding:2px 6px 1px;font-weight:600;line-height:1.3;">${shortName}</div>
+                      <div style="display:flex;justify-content:center;gap:6px;padding:4px 4px 7px;">${feats}</div>
+                    </div>`;
+                });
+                // Card check-in
+                cardsHtml += `
+                <div style="background:#009cb6;border:none;overflow:hidden;display:flex;flex-direction:column;border-radius:8px;">
+                  <div style="background:#f5c800;color:white;font-size:13px;font-weight:700;padding:7px 6px;flex-shrink:0;">CHECK-IN ONLINE</div>
+                  <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                    <img src="${origin}/static/checkin-online.png" style="width:100%;height:100%;object-fit:contain;display:block;">
+                  </div>
+                </div>`;
+
+                win.document.write(`<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
 <style>
   @page { size: A4; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 210mm; height: 297mm; background: #009cb6; display: flex; align-items: center; justify-content: center; font-family: 'Helvetica Neue', Arial, sans-serif; }
-  .card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 28px; padding: 40px; }
-  .logo { width: 200px; }
-  .qr-wrapper { background: white; border-radius: 50%; width: 280px; height: 280px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 40px rgba(0,0,0,0.25); }
-  .qr-wrapper img { width: 230px; height: 230px; }
-  .tagline { color: white; font-size: 32px; font-weight: 800; letter-spacing: 1px; text-align: center; text-transform: uppercase; }
-  .sub { color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 400; text-align: center; margin-top: -16px; }
-  .scan { color: rgba(255,255,255,0.7); font-size: 13px; text-align: center; margin-top: 8px; }
+  body { width: 210mm; min-height: 297mm; background: #f0f9fb; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2937; }
+  .header { background:#009cb6; padding:22px 32px; display:flex; align-items:center; justify-content:space-between; }
+  .header img { height:56px; }
+  .header-text { text-align:right; color:white; }
+  .header-text h1 { font-size:20px; font-weight:800; }
+  .subtitle-bar { background:#f5c800; color:white; text-align:center; padding:10px; font-size:13px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:18px 24px 10px; }
+  .qr-section { background:#009cb6; margin:12px 24px 18px; border-radius:16px; padding:20px 24px; display:flex; align-items:center; gap:24px; }
+  .qr-circle { background:white; border-radius:50%; width:120px; height:120px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+  .qr-circle img { width:100px; height:100px; }
+  .qr-text { color:white; }
+  .qr-text h2 { font-size:22px; font-weight:900; text-transform:uppercase; letter-spacing:1px; line-height:1.1; }
+  .qr-text p { font-size:13px; opacity:0.9; margin-top:6px; }
+  .footer { text-align:center; padding:10px; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; }
 </style></head><body>
-<div class="card">
-  <img class="logo" src="${logoUrl}" crossorigin="anonymous">
-  <div class="tagline">Book Your Car Here</div>
-  <div class="sub">Reserva rápida e segura — sem filas</div>
-  <div class="qr-wrapper"><img src="${qrSrc}" crossorigin="anonymous"></div>
-  <div class="scan">Aponte a câmara do seu telemóvel para o QR code</div>
+<div class="header">
+  <img src="${origin}/static/ap-heather.png">
+  <div class="header-text"><h1>Reserve o seu carro aqui<br><span style="font-size:15px;font-weight:600;opacity:0.9;">Book Your Car Here</span></h1></div>
 </div>
+<div class="subtitle-bar">&#9733; Oferta Especial &nbsp;&middot;&nbsp; Special Offer &#9733;</div>
+<div class="grid">${cardsHtml}</div>
+<div class="qr-section">
+  <div class="qr-circle"><img src="${qrSrc}"></div>
+  <div class="qr-text">
+    <h2>Scan Me<br>Reserva Agora</h2>
+    <p>Aponte a câmara do telemóvel para o QR code e reserve online</p>
+    <p style="margin-top:4px;">Point your phone camera at the QR code and book online</p>
+  </div>
+</div>
+<div class="footer">Auto Prudente Rent a Car &middot; Albufeira &middot; +351 289 542 150 &middot; info@auto-prudente.com</div>
 </body></html>`);
-            win.document.close();
-            setTimeout(() => { win.focus(); win.print(); }, 1200);
+                win.document.close();
+                setTimeout(() => { win.focus(); win.print(); }, 1500);
+              })
+              .catch(() => { win.close(); alert('Erro ao carregar grupos de veículos.'); });
         }
 
         function downloadQrCode() {
