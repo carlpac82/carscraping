@@ -189,6 +189,19 @@ fetch('/api/commissioners/vehicle-groups')
       `;
       grid.appendChild(card);
     });
+
+    // Card extra: Check-in Online
+    const checkinUrl = 'https://auto-prudente.com/online-checkin/';
+    const checkinQr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=009cb6&bgcolor=ffffff&data=${encodeURIComponent(checkinUrl)}`;
+    const checkinCard = document.createElement('div');
+    checkinCard.className = 'v-card';
+    checkinCard.innerHTML = `
+      <div class="v-card-header">CHECK-IN ONLINE</div>
+      <img src="${checkinQr}" alt="QR Check-in Online" style="height:64px;object-fit:contain;padding:4px;background:#f9fafb;">
+      <div class="v-card-name">Faça o check-in<br>antes de chegar</div>
+      <div class="v-card-features" style="font-size:9px;color:#009cb6;font-weight:600;padding-bottom:5px;">online-checkin</div>
+    `;
+    grid.appendChild(checkinCard);
   })
   .catch(() => {});
 </script>
