@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Preview - QR PDF Auto Prudente</title>
 <style>
   @page { size: A4; margin: 0; }
@@ -9,66 +10,189 @@
   body {
     width: 210mm;
     min-height: 297mm;
-    background: #009cb6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: #f0f9fb;
     font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #1f2937;
   }
-  .card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 297mm;
-    gap: 28px;
-    padding: 40px;
-  }
-  .logo { width: 200px; }
-  .qr-wrapper {
-    background: white;
-    border-radius: 50%;
-    width: 280px;
-    height: 280px;
+
+  /* HEADER */
+  .header {
+    background: #009cb6;
+    padding: 22px 32px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    justify-content: space-between;
   }
-  .qr-wrapper img { width: 230px; height: 230px; }
-  .tagline {
+  .header img { height: 56px; }
+  .header-text { text-align: right; color: white; }
+  .header-text h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+  .header-text p { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+
+  /* SUBTITLE BAR */
+  .subtitle-bar {
+    background: #007a90;
     color: white;
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: 1px;
     text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
   }
-  .sub {
-    color: rgba(255,255,255,0.85);
-    font-size: 16px;
-    font-weight: 400;
-    text-align: center;
-    margin-top: -16px;
-  }
-  .scan {
-    color: rgba(255,255,255,0.7);
+
+  /* VEHICLE GRID */
+  .section { padding: 18px 24px 10px; }
+  .section-title {
     font-size: 13px;
+    font-weight: 700;
+    color: #009cb6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+  .vehicles-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .v-card {
+    background: white;
+    border-radius: 8px;
+    border: 1.5px solid #e5e7eb;
+    overflow: hidden;
     text-align: center;
-    margin-top: 8px;
+  }
+  .v-card-header {
+    background: #009cb6;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 6px;
+    letter-spacing: 0.5px;
+  }
+  .v-card img {
+    width: 100%;
+    height: 52px;
+    object-fit: contain;
+    padding: 4px 6px;
+    background: #f9fafb;
+  }
+  .v-card-name {
+    font-size: 9px;
+    color: #374151;
+    padding: 3px 4px 2px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .v-card-features {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    padding: 3px 4px 5px;
+  }
+  .v-card-features img { height: 11px; width: auto; }
+
+  /* QR SECTION */
+  .qr-section {
+    background: #009cb6;
+    margin: 12px 24px 18px;
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .qr-circle {
+    background: white;
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .qr-circle img { width: 100px; height: 100px; }
+  .qr-text { color: white; }
+  .qr-text h2 { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; line-height: 1.1; }
+  .qr-text p { font-size: 13px; opacity: 0.9; margin-top: 6px; }
+  .qr-text .scan-hint { font-size: 11px; opacity: 0.7; margin-top: 8px; }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 10px;
+    color: #9ca3af;
+    border-top: 1px solid #e5e7eb;
   }
 </style>
 </head>
 <body>
-<div class="card">
-  <img class="logo" src="/static/ap-heather.png" alt="Auto Prudente">
-  <div class="tagline">Book Your Car Here</div>
-  <div class="sub">Reserva rápida e segura — sem filas</div>
-  <div class="qr-wrapper">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=ffffff&bgcolor=009cb6&data=https://rentalprices.pt/reservar/auto-prudente/exemplo" alt="QR Code">
+
+<div class="header">
+  <img src="/static/ap-heather.png" alt="Auto Prudente">
+  <div class="header-text">
+    <h1>Book Your Car Here</h1>
+    <p>Reserva rápida e segura · Faro Airport · Auto Prudente</p>
   </div>
-  <div class="scan">Aponte a câmara do seu telemóvel para o QR code</div>
 </div>
+
+<div class="subtitle-bar">Escolha o seu grupo de veículo e faça a reserva</div>
+
+<div class="section">
+  <div class="section-title">Grupos Disponíveis</div>
+  <div class="vehicles-grid" id="vehiclesGrid">
+    <!-- cards carregados via JS -->
+  </div>
+</div>
+
+<div class="qr-section">
+  <div class="qr-circle">
+    <img id="qrImg" src="" alt="QR Code">
+  </div>
+  <div class="qr-text">
+    <h2>Scan Me<br>Reserva Agora</h2>
+    <p>Aponte a câmara do telemóvel<br>para o QR code e reserve online</p>
+    <div class="scan-hint">rentalprices.pt · Sem filas · Reserva imediata</div>
+  </div>
+</div>
+
+<div class="footer">Auto Prudente Rent a Car · Faro Airport · +351 289 542 150 · info@auto-prudente.com</div>
+
+<script>
+const QR_URL = 'https://rentalprices.pt/reservar/auto-prudente/exemplo';
+
+// Carregar QR code
+document.getElementById('qrImg').src =
+  `https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=009cb6&bgcolor=ffffff&data=${encodeURIComponent(QR_URL)}`;
+
+// Carregar grupos
+fetch('/api/commissioners/vehicle-groups')
+  .then(r => r.json())
+  .then(data => {
+    const grid = document.getElementById('vehiclesGrid');
+    if (!data.ok || !data.groups) return;
+    data.groups.forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'v-card';
+      const shortName = v.name.replace(/ ou similar| or similar| ou similaire| oder ähnlich/i, '');
+      let feats = '';
+      if (v.ac) feats += `<img src="/static/Icones-Caracteristicas/AC.png" alt="AC">`;
+      if (v.seats) feats += `<img src="/static/Icones-Caracteristicas/${String(v.seats).includes('-') ? v.seats+' L' : v.seats+'L'}.png" alt="${v.seats}L">`;
+      if (v.doors) feats += `<img src="/static/Icones-Caracteristicas/${v.doors}P.png" alt="${v.doors}P">`;
+      if (v.transmission === 'automatic') feats += `<img src="/static/Icones-Caracteristicas/automatico.png" alt="Auto">`;
+      card.innerHTML = `
+        <div class="v-card-header">GROUP ${v.code}</div>
+        <img src="${v.image}" alt="${v.name}" onerror="this.style.display='none'">
+        <div class="v-card-name">${shortName}</div>
+        <div class="v-card-features">${feats}</div>
+      `;
+      grid.appendChild(card);
+    });
+  })
+  .catch(() => {});
+</script>
 </body>
 </html>
