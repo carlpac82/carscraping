@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="{{ language or 'pt' }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject_line }}</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background-color:#f4f4f4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+        <td align="center" style="padding:20px 10px;">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;background-color:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);width:600px!important;">
+
+                <!-- Header -->
+                <tr>
+                    <td style="background:linear-gradient(135deg,#009cb6 0%,#007a91 100%);padding:24px 28px;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="text-align:left;vertical-align:middle;">
+                                    <img src="http://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" style="height:46px;width:auto;">
+                                </td>
+                                <td style="text-align:right;vertical-align:middle;">
+                                    <div style="background:rgba(255,255,255,0.2);padding:8px 14px;border-radius:6px;display:inline-block;">
+                                        <span style="color:#ffffff;font-size:15px;font-weight:bold;">{{ voucher_number }}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Greeting -->
+                <tr>
+                    <td style="padding:28px 28px 0 28px;">
+                        <p style="font-size:16px;color:#1f2937;margin:0 0 8px 0;">
+                            {% set first_name = client_name.split(' ')[0] if client_name else '' %}
+                            {{ greeting }} {{ first_name }},
+                        </p>
+                        <p style="font-size:14px;color:#4b5563;line-height:1.7;margin:0 0 10px 0;">{{ intro_text }}</p>
+                        <div style="background:#fff7ed;border-left:4px solid #f59e0b;border-radius:0 6px 6px 0;padding:12px 16px;margin-bottom:20px;">
+                            <p style="font-size:13px;color:#92400e;margin:0;">{{ pending_text }}</p>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Booking Summary -->
+                <tr>
+                    <td style="padding:0 28px 20px 28px;">
+                        <h3 style="color:#009cb6;font-size:15px;margin:0 0 14px 0;border-bottom:2px solid #e5e7eb;padding-bottom:8px;">{{ summary_title }}</h3>
+
+                        <!-- Vehicle -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;margin-bottom:16px;overflow:hidden;">
+                            <tr>
+                                <td style="padding:14px 16px;vertical-align:middle;">
+                                    {% if vehicle_image %}
+                                    <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width:100px;height:auto;border-radius:6px;float:right;margin-left:12px;">
+                                    {% endif %}
+                                    <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">{{ group_label }} {{ vehicle_group }}</div>
+                                    <div style="font-size:16px;font-weight:700;color:#1f2937;">{{ vehicle_model }}</div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Dates -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                            <tr>
+                                <td style="width:48%;vertical-align:top;padding-right:8px;">
+                                    <div style="background:#f0f9fb;border:1px solid #bae6fd;border-radius:8px;padding:14px;">
+                                        <div style="font-size:11px;font-weight:700;color:#009cb6;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">{{ pickup_label }}</div>
+                                        <div style="font-size:14px;color:#1f2937;font-weight:600;">{{ pickup_date }}</div>
+                                        <div style="font-size:13px;color:#6b7280;">{{ pickup_time }}</div>
+                                        <div style="font-size:13px;color:#6b7280;">{{ pickup_location }}</div>
+                                    </div>
+                                </td>
+                                <td style="width:4%;text-align:center;vertical-align:middle;font-size:18px;color:#9ca3af;">→</td>
+                                <td style="width:48%;vertical-align:top;padding-left:8px;">
+                                    <div style="background:#f0f9fb;border:1px solid #bae6fd;border-radius:8px;padding:14px;">
+                                        <div style="font-size:11px;font-weight:700;color:#009cb6;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">{{ dropoff_label }}</div>
+                                        <div style="font-size:14px;color:#1f2937;font-weight:600;">{{ dropoff_date }}</div>
+                                        <div style="font-size:13px;color:#6b7280;">{{ dropoff_time }}</div>
+                                        <div style="font-size:13px;color:#6b7280;">{{ dropoff_location }}</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Price -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;margin-bottom:20px;">
+                            <tr>
+                                <td style="padding:14px 16px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                                        <tr>
+                                            <td style="color:#6b7280;padding-bottom:6px;">{{ total_label }}</td>
+                                            <td style="text-align:right;font-weight:700;color:#1f2937;padding-bottom:6px;">€{{ total_price }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="color:#6b7280;">{{ deposit_label }}</td>
+                                            <td style="text-align:right;font-weight:700;color:#1f2937;">€{{ deposit }}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Contact -->
+                        <div style="background:#f0f9fb;border:1px solid #009cb6;border-radius:8px;padding:14px 16px;text-align:center;margin-bottom:8px;">
+                            <p style="font-size:13px;color:#1f2937;margin:0 0 6px 0;">{{ contact_text }}</p>
+                            <a href="tel:+351289542150" style="font-size:18px;font-weight:700;color:#009cb6;text-decoration:none;">289 542 150</a>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 28px;text-align:center;">
+                        <p style="color:#9ca3af;margin:0 0 4px 0;font-size:11px;">{{ footer_auto }}</p>
+                        <p style="color:#9ca3af;margin:0;font-size:11px;">© 2026 Auto Prudente Rent a Car</p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
