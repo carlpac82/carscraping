@@ -758,8 +758,14 @@
             .vehicle-summary-image img { height: 56px; }
             .vehicle-summary-price { margin-left: auto; padding-left: 8px; }
 
-            /* Step 5 summary */
-            .summary-vehicle-card { flex-wrap: wrap; }
+            /* Step 5 - bloco veículo: imagem + info em row, datas abaixo */
+            .summary-layout { flex-direction: column; gap: 10px; }
+            .summary-vehicle-card { flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: nowrap; }
+            .summary-vehicle-image { flex-shrink: 0; }
+            .summary-vehicle-image img { width: 70px; height: 50px; }
+            .summary-vehicle-details { flex: 1; min-width: 0; }
+            .summary-vehicle-name { font-size: 12px; white-space: normal; }
+            .summary-vehicle-features img { width: 14px; height: 14px; }
 
             /* Datas: entrega à esquerda, recolha à direita na mesma linha */
             .summary-dates {
@@ -769,7 +775,7 @@
             .summary-pickup { flex: 1; }
             .summary-dropoff { flex: 1; text-align: right; margin-bottom: 0; }
 
-            /* Contacto: texto à esquerda, telefone à direita alinhado verticalmente */
+            /* Contacto: texto à esquerda, telefone à direita */
             .contact-info { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
             .contact-phone-overlay { position: static; transform: none; flex-shrink: 0; }
 
