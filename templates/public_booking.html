@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva de Viatura - Auto Prudente</title>
+    <title>Auto Prudente - Bookings</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -15,6 +15,12 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+        }
+        body.landing-active {
+            padding: 0;
+            align-items: stretch;
+            justify-content: flex-start;
+            background: #009cb6;
         }
 
         /* ─── MODAL ─── */
@@ -510,6 +516,7 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            width: 100%;
             background: #009cb6;
         }
         .lang-topbar {
@@ -518,6 +525,7 @@
             display: flex;
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.15);
+            width: 100%;
         }
         .lang-topbar img {
             height: 48px;
@@ -613,7 +621,7 @@
         }
     </style>
 </head>
-<body>
+<body class="landing-active">
 
 <!-- LANDING PAGE - Selecção de idioma -->
 <div id="langLanding" class="lang-landing">
@@ -2233,7 +2241,7 @@
 
     const translations = {
         pt: {
-            pageTitle: 'Reserva de Viatura - Auto Prudente',
+            pageTitle: 'Auto Prudente - Bookings',
             headerTitle: 'Nova Reserva',
             step1Label: 'Datas e Locais',
             step2Label: 'Veículo',
@@ -2294,7 +2302,7 @@
             labelLanguage: 'pt',
         },
         en: {
-            pageTitle: 'Car Rental - Auto Prudente',
+            pageTitle: 'Auto Prudente - Bookings',
             headerTitle: 'New Booking',
             step1Label: 'Dates & Locations',
             step2Label: 'Vehicle',
@@ -2355,7 +2363,7 @@
             labelLanguage: 'en',
         },
         fr: {
-            pageTitle: 'Location de Voiture - Auto Prudente',
+            pageTitle: 'Auto Prudente - Bookings',
             headerTitle: 'Nouvelle Réservation',
             step1Label: 'Dates & Lieux',
             step2Label: 'Véhicule',
@@ -2416,7 +2424,7 @@
             labelLanguage: 'fr',
         },
         de: {
-            pageTitle: 'Mietwagen - Auto Prudente',
+            pageTitle: 'Auto Prudente - Bookings',
             headerTitle: 'Neue Buchung',
             step1Label: 'Daten & Orte',
             step2Label: 'Fahrzeug',
@@ -2482,6 +2490,7 @@
         currentLang = lang;
         document.getElementById('langLanding').classList.add('hidden');
         document.getElementById('mainModal').classList.remove('hidden');
+        document.body.classList.remove('landing-active');
         applyLanguage(lang);
         init();
     }
