@@ -672,7 +672,7 @@
             <div class="lang-welcome" id="langWelcome">Bem-vindo</div>
             <div class="lang-subtitle" id="langSubtitle">Selecione o seu idioma para continuar</div>
             <div class="lang-grid">
-                <button class="lang-btn" onclick="selectLanguage('pt')">
+                <button class="lang-btn" onclick="selectLanguage('pt', this)">
                     <div class="lang-flag">
                         <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
                             <rect width="24" height="40" fill="#006600"/>
@@ -683,7 +683,7 @@
                     </div>
                     <span class="lang-btn-name">Português</span>
                 </button>
-                <button class="lang-btn" onclick="selectLanguage('en')">
+                <button class="lang-btn" onclick="selectLanguage('en', this)">
                     <div class="lang-flag">
                         <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
                             <rect width="60" height="40" fill="#012169"/>
@@ -695,7 +695,7 @@
                     </div>
                     <span class="lang-btn-name">English</span>
                 </button>
-                <button class="lang-btn" onclick="selectLanguage('fr')">
+                <button class="lang-btn" onclick="selectLanguage('fr', this)">
                     <div class="lang-flag">
                         <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
                             <rect width="20" height="40" fill="#002395"/>
@@ -705,7 +705,7 @@
                     </div>
                     <span class="lang-btn-name">Français</span>
                 </button>
-                <button class="lang-btn" onclick="selectLanguage('de')">
+                <button class="lang-btn" onclick="selectLanguage('de', this)">
                     <div class="lang-flag">
                         <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
                             <rect width="60" height="14" fill="#000000"/>
@@ -2556,17 +2556,123 @@
         });
     });
 
-    function selectLanguage(lang) {
+    let _langTriggerButton = null;
+
+    function selectLanguage(lang, triggerBtn) {
         currentLang = lang;
+        _langTriggerButton = triggerBtn || null;
         document.getElementById('langLanding').classList.add('blurred');
-        document.getElementById('mainModal').classList.remove('hidden');
+        const modal = document.getElementById('mainModal');
+        modal.classList.remove('hidden');
+        applyMacOSMaximizeAnimationModal(modal, _langTriggerButton);
         applyLanguage(lang);
         init();
     }
 
     function goBackToLanding() {
-        document.getElementById('mainModal').classList.add('hidden');
-        document.getElementById('langLanding').classList.remove('blurred');
+        const modal = document.getElementById('mainModal');
+        const closeBtn = document.querySelector('#mainModal .modal-close');
+        applyMacOSMinimizeAnimationModal(modal, closeBtn, () => {
+            modal.classList.add('hidden');
+            document.getElementById('langLanding').classList.remove('blurred');
+            // Reset estilos do card para próxima abertura
+            const card = modal.querySelector('.modal-content');
+            if (card) {
+                card.style.transition = '';
+                card.style.transform = '';
+                card.style.opacity = '';
+                card.style.transformOrigin = '';
+                card.style.willChange = 'auto';
+            }
+            modal.style.transition = '';
+            modal.style.opacity = '';
+        });
+    }
+
+    function applyMacOSMaximizeAnimationModal(modal, triggerButton) {
+        const card = modal.querySelector('.modal-content');
+        if (!card) return;
+
+        if (!triggerButton) {
+            card.style.transform = 'scale(0.92)';
+            card.style.opacity = '0';
+            card.style.transition = 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1), opacity 0.35s cubic-bezier(0.2,0.8,0.2,1)';
+            card.style.transformOrigin = 'center';
+            card.offsetHeight;
+            requestAnimationFrame(() => {
+                card.style.transform = 'scale(1)';
+                card.style.opacity = '1';
+            });
+            return;
+        }
+
+        const modalRect = modal.getBoundingClientRect();
+        const btnRect = triggerButton.getBoundingClientRect();
+        const modalCX = modalRect.left + modalRect.width / 2;
+        const modalCY = modalRect.top + modalRect.height / 2;
+        const btnCX = btnRect.left + btnRect.width / 2;
+        const btnCY = btnRect.top + btnRect.height / 2;
+        const deltaX = btnCX - modalCX;
+        const deltaY = btnCY - modalCY;
+        const btnScale = Math.min(btnRect.width / modalRect.width, btnRect.height / modalRect.height);
+        const initialScale = Math.max(btnScale * 0.8, 0.12);
+        const originX = ((btnCX - modalRect.left) / modalRect.width) * 100;
+        const originY = ((btnCY - modalRect.top) / modalRect.height) * 100;
+
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.25s ease-out';
+        card.style.willChange = 'transform, opacity';
+        card.style.transformOrigin = `${originX}% ${originY}%`;
+        card.style.transform = `translate(${deltaX*0.8}px,${deltaY*0.8}px) scale(${initialScale}) skewY(${deltaX>0?-2:2}deg) scaleY(${initialScale*0.85})`;
+        card.style.opacity = '0';
+        card.offsetHeight;
+        requestAnimationFrame(() => { modal.style.opacity = '1'; });
+        requestAnimationFrame(() => {
+            card.style.transition = 'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.5s cubic-bezier(0.25,0.46,0.45,0.94)';
+            requestAnimationFrame(() => {
+                card.style.transform = 'translate(0,0) scale(1) skewY(0deg) scaleY(1)';
+                card.style.opacity = '1';
+                setTimeout(() => { card.style.willChange = 'auto'; }, 500);
+            });
+        });
+    }
+
+    function applyMacOSMinimizeAnimationModal(modal, targetButton, onComplete) {
+        const card = modal.querySelector('.modal-content');
+        if (!card || !targetButton) {
+            onComplete && onComplete();
+            return;
+        }
+
+        const modalRect = modal.getBoundingClientRect();
+        const btnRect = targetButton.getBoundingClientRect();
+        const modalCX = modalRect.left + modalRect.width / 2;
+        const modalCY = modalRect.top + modalRect.height / 2;
+        const btnCX = btnRect.left + btnRect.width / 2;
+        const btnCY = btnRect.top + btnRect.height / 2;
+        const deltaX = btnCX - modalCX;
+        const deltaY = btnCY - modalCY;
+        const targetScale = Math.min(btnRect.width / modalRect.width, btnRect.height / modalRect.height) * 0.8;
+        const finalScale = Math.max(targetScale, 0.12);
+        const originX = ((btnCX - modalRect.left) / modalRect.width) * 100;
+        const originY = ((btnCY - modalRect.top) / modalRect.height) * 100;
+
+        modal.style.transformOrigin = `${originX}% ${originY}%`;
+        modal.style.transition = 'opacity 0.25s ease-out';
+        requestAnimationFrame(() => { modal.style.opacity = '0.4'; });
+
+        setTimeout(() => {
+            card.style.willChange = 'transform, opacity';
+            card.style.transition = 'transform 0.45s cubic-bezier(0.4,0.0,1,1), opacity 0.45s cubic-bezier(0.4,0.0,1,1)';
+            card.style.transformOrigin = `${originX}% ${originY}%`;
+            requestAnimationFrame(() => {
+                card.style.transform = `translate(${deltaX*0.8}px,${deltaY*0.8}px) scale(${finalScale}) skewY(${deltaX>0?-2:2}deg) scaleY(${finalScale*0.85})`;
+                card.style.opacity = '0';
+                setTimeout(() => { card.style.willChange = 'auto'; }, 450);
+            });
+        }, 50);
+
+        setTimeout(() => { onComplete && onComplete(); }, 450);
     }
 
     function t(key) {
