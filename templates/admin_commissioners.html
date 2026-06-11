@@ -1102,11 +1102,12 @@
                 </div>`;
 
                 win.document.write(`<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
 <style>
-  @page { size: A4 portrait; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { font-size: 14px; }
-  body { width: 210mm; background: #f0f9fb; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2937; margin: 0 auto; }
+  body { width: 794px; background: #f0f9fb; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2937; }
   .header { background:#009cb6; padding:22px 32px; display:flex; align-items:center; justify-content:space-between; }
   .header img { height:56px; }
   .header-text { text-align:right; color:white; }
@@ -1120,15 +1121,17 @@
   .qr-text h2 { font-size:22px; font-weight:900; text-transform:uppercase; letter-spacing:1px; line-height:1.1; }
   .qr-text p { font-size:13px; opacity:0.9; margin-top:6px; }
   .footer { text-align:center; padding:10px; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; }
+  #dlBtn { display:block; margin:20px auto; padding:12px 32px; background:#009cb6; color:white; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; }
 </style></head><body>
+<div id="pdfContent">
 <div class="header">
-  <img src="${origin}/static/ap-heather.png">
+  <img src="${origin}/static/ap-heather.png" crossorigin="anonymous">
   <div class="header-text"><h1>Reserve o seu carro aqui<br><span style="font-size:15px;font-weight:600;opacity:0.9;">Book Your Car Here</span></h1></div>
 </div>
 <div class="subtitle-bar">&#9733; Oferta Especial &nbsp;&middot;&nbsp; Special Offer &#9733;</div>
 <div class="grid">${cardsHtml}</div>
 <div class="qr-section">
-  <div class="qr-circle"><img src="${qrSrc}"></div>
+  <div class="qr-circle"><img src="${qrSrc}" crossorigin="anonymous"></div>
   <div class="qr-text">
     <h2>Scan Me<br>Reserva Agora</h2>
     <p>Aponte a câmara do telemóvel para o QR code e reserve online</p>
@@ -1136,9 +1139,30 @@
   </div>
 </div>
 <div class="footer">Auto Prudente Rent a Car &middot; Albufeira &middot; +351 289 542 150 &middot; info@auto-prudente.com</div>
+</div>
+<button id="dlBtn" onclick="gerarPDF()">⬇️ Download PDF A4</button>
+<script>
+function gerarPDF() {
+  const btn = document.getElementById('dlBtn');
+  btn.textContent = 'A gerar PDF...';
+  btn.disabled = true;
+  const el = document.getElementById('pdfContent');
+  html2canvas(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#f0f9fb' }).then(canvas => {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+    pdf.save('auto-prudente-qr.pdf');
+    btn.textContent = '✅ PDF Descarregado!';
+    btn.disabled = false;
+  });
+}
+window.onload = function() { setTimeout(gerarPDF, 1200); };
+<\/script>
 </body></html>`);
                 win.document.close();
-                setTimeout(() => { win.focus(); win.print(); }, 1500);
               })
               .catch(() => { win.close(); alert('Erro ao carregar grupos de veículos.'); });
         }
