@@ -1247,10 +1247,16 @@ async def confirm_and_print_booking(booking_id: int):
         # Send confirmation email to client
         try:
             booking_data = get_booking_data(booking_id)
-            if booking_data and booking_data.get('client_email'):
+            print(f"[CONFIRM PRINT] booking_data loaded: {booking_data is not None}")
+            if booking_data:
+                print(f"[CONFIRM PRINT] client_email={booking_data.get('client_email')} lang={booking_data.get('language')}")
                 asyncio.ensure_future(_send_booking_confirmed_email(booking_data))
+            else:
+                print(f"[CONFIRM PRINT] get_booking_data returned None for id={booking_id}")
         except Exception as e:
+            import traceback
             print(f"[CONFIRM PRINT] Error scheduling confirmation email: {e}")
+            print(traceback.format_exc())
         
         # Redirect to PDF generation
         from fastapi.responses import RedirectResponse
