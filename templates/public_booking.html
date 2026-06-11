@@ -910,9 +910,9 @@
                     <div class="protection-card" id="baseInsuranceCard" onclick="selectInsurance('base')">
                         <div class="insurance-checkbox"></div>
                         <div class="card-header">
-                            <h4 class="card-title">Seguro Base</h4>
+                            <h4 class="card-title" data-i18n="baseInsuranceTitle">Seguro Base</h4>
                             <div class="card-price">
-                                <span class="price-calc">Incluído</span>
+                                <span class="price-calc" data-i18n="baseInsuranceIncluded">Incluído</span>
                                 <span class="price-info" id="baseFranchisePrice">Franquia até 1.500€</span>
                             </div>
                         </div>
@@ -920,7 +920,7 @@
                             <div class="benefits-list">
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
-                                    <span class="benefit-text">Cobertura básica contra danos</span>
+                                    <span class="benefit-text" data-i18n="baseBenefit1">Cobertura básica contra danos</span>
                                 </div>
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
@@ -928,17 +928,17 @@
                                 </div>
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
-                                    <span class="benefit-text">Não inclui assistência em viagem</span>
+                                    <span class="benefit-text" data-i18n="baseBenefit3">Não inclui assistência em viagem</span>
                                 </div>
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                                    <span class="benefit-text">Cartão de crédito obrigatório (débito não aceito)</span>
+                                    <span class="benefit-text" data-i18n="baseBenefit4">Cartão de crédito obrigatório (débito não aceito)</span>
                                 </div>
                             </div>
                         </div>
                         <div class="exclusions">
                             <div class="exclusions-title">
-                                Não incluído
+                                <span data-i18n="notIncluded">Não incluído</span>
                                 <span class="info-icon" onclick="event.stopPropagation(); toggleInfoTooltip('base-exclusions')">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="12" cy="12" r="10"></circle>
@@ -949,11 +949,11 @@
                             </div>
                             <div class="info-tooltip" id="base-exclusions" style="display: none;">
                                 <div class="tooltip-content">
-                                    <h4>Cobertura Danos, Perda e Roubo</h4>
+                                    <h4 data-i18n="tooltipBaseTitle">Cobertura Danos, Perda e Roubo</h4>
                                     <ul>
-                                        <li>Assistência em viagem 24h</li>
-                                        <li>Cobertura de danos em rodas/chaves</li>
-                                        <li>Proteção contra roubo</li>
+                                        <li data-i18n="tooltipBaseItem1">Assistência em viagem 24h</li>
+                                        <li data-i18n="tooltipBaseItem2">Cobertura de danos em rodas/chaves</li>
+                                        <li data-i18n="tooltipBaseItem3">Proteção contra roubo</li>
                                     </ul>
                                     <button type="button" class="tooltip-close" onclick="toggleInfoTooltip('base-exclusions')">&#x2715;</button>
                                 </div>
@@ -964,36 +964,36 @@
                     <div class="protection-card featured selected" id="premiumInsuranceCard" onclick="selectInsurance('premium')">
                         <div class="insurance-checkbox"></div>
                         <div class="card-header">
-                            <h4 class="card-title">Seguro Premium</h4>
+                            <h4 class="card-title" data-i18n="premiumInsuranceTitle">Seguro Premium</h4>
                             <div class="card-price">
                                 <span class="price-calc" id="premiumInsurancePrice">25€/dia</span>
-                                <span class="price-info">Franquia 0€</span>
+                                <span class="price-info" data-i18n="premiumFranchise">Franquia 0€</span>
                             </div>
-                            <div class="card-badge">RECOMENDADO</div>
+                            <div class="card-badge" data-i18n="premiumBadge">RECOMENDADO</div>
                         </div>
                         <div class="card-content">
                             <div class="benefits-list">
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
-                                    <span class="benefit-text">Cobertura completa contra danos</span>
+                                    <span class="benefit-text" data-i18n="premBenefit1">Cobertura completa contra danos</span>
                                 </div>
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
-                                    <span class="benefit-text">Franquia zero (sem custos adicionais)</span>
+                                    <span class="benefit-text" data-i18n="premBenefit2">Franquia zero (sem custos adicionais)</span>
                                 </div>
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
-                                    <span class="benefit-text">Assistência 24h em todo o país</span>
+                                    <span class="benefit-text" data-i18n="premBenefit3">Assistência 24h em todo o país</span>
                                 </div>
                                 <div class="benefit-item">
                                     <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
-                                    <span class="benefit-text">Depósito reduzido: apenas 200€</span>
+                                    <span class="benefit-text" data-i18n="premBenefit4">Depósito reduzido: apenas 200€</span>
                                 </div>
                             </div>
                         </div>
                         <div class="exclusions">
                             <div class="exclusions-title">
-                                Não incluído
+                                <span data-i18n="notIncluded">Não incluído</span>
                                 <span class="info-icon" onclick="event.stopPropagation(); toggleInfoTooltip('premium-exclusions')">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="12" cy="12" r="10"></circle>
@@ -1004,12 +1004,12 @@
                             </div>
                             <div class="info-tooltip" id="premium-exclusions" style="display: none;">
                                 <div class="tooltip-content">
-                                    <h4>Proteção Adicional Limitada</h4>
+                                    <h4 data-i18n="tooltipPremTitle">Proteção Adicional Limitada</h4>
                                     <ul>
-                                        <li>Perda de chaves do veículo</li>
-                                        <li>Danos nas rodas e pneus</li>
-                                        <li>Parte inferior do carro</li>
-                                        <li>Interior do veículo (estofos, painéis)</li>
+                                        <li data-i18n="tooltipPremItem1">Perda de chaves do veículo</li>
+                                        <li data-i18n="tooltipPremItem2">Danos nas rodas e pneus</li>
+                                        <li data-i18n="tooltipPremItem3">Parte inferior do carro</li>
+                                        <li data-i18n="tooltipPremItem4">Interior do veículo (estofos, painéis)</li>
                                     </ul>
                                     <button class="tooltip-close" onclick="toggleInfoTooltip('premium-exclusions')">&#x2715;</button>
                                 </div>
@@ -1024,7 +1024,7 @@
                 <div class="divider-line"></div>
                 <div class="divider-text">
                     <span style="color:#009cb6;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg></span>
-                    <span class="divider-label">Extras Opcionais</span>
+                    <span class="divider-label" data-i18n="extrasLabel">Extras Opcionais</span>
                 </div>
                 <div class="divider-line"></div>
             </div>
@@ -1039,7 +1039,7 @@
                 </div>
                 <div class="extra-item extra-with-quantity">
                     <div class="extra-icon"><img src="/static/extras/20210622110335_cdc017edeaca896919f46424fcbb5993.png" alt="Cadeira Criança"></div>
-                    <div class="extra-info"><strong>Cadeira de Criança</strong><span class="extra-price" id="price_child_seat">+5€/dia</span></div>
+                    <div class="extra-info"><strong data-i18n="extraChildSeatLabel">Cadeira de Criança</strong><span class="extra-price" id="price_child_seat">+5€/dia</span></div>
                     <div class="quantity-selector">
                         <button type="button" onclick="changeQuantity('extraChildSeat',-1)">-</button>
                         <input type="number" id="extraChildSeat" min="0" max="3" value="0" readonly>
@@ -1059,9 +1059,9 @@
                     <input type="checkbox" id="extraAirport" value="airport_fee" style="display:none;">
                     <div class="extra-icon"><img src="/static/extras/20210622110230_9dad37ddb715eda6de2f888a8fc44d30.png" alt="Aeroporto"></div>
                     <div class="extra-info">
-                        <strong>Taxa Aeroporto</strong>
-                        <span class="extra-price">Taxa única</span>
-                        <span class="extra-note">Mínimo 5 dias</span>
+                        <strong data-i18n="extraAirportLabel">Taxa Aeroporto</strong>
+                        <span class="extra-price" data-i18n="extraAirportPrice">Taxa única</span>
+                        <span class="extra-note" data-i18n="extraAirportNote">Mínimo 5 dias</span>
                     </div>
                 </div>
                 <div class="extra-item selected" style="cursor:default;">
@@ -1070,7 +1070,7 @@
                     <div class="extra-info">
                         <strong>Road Tax</strong>
                         <span class="extra-price">+2,23€/dia</span>
-                        <span class="extra-note">Máx. 10 dias • Obrigatório</span>
+                        <span class="extra-note" data-i18n="extraRoadTaxNote">Máx. 10 dias • Obrigatório</span>
                     </div>
                 </div>
                 <div class="extra-item" onclick="toggleExtra('extraYoungDriver')">
@@ -1085,7 +1085,7 @@
                 </div>
                 <div class="extra-item extra-with-quantity">
                     <div class="extra-icon"><img src="/static/extras/20260328_condutor_adicional.png" alt="Condutor Adicional"></div>
-                    <div class="extra-info"><strong>Condutor Adicional</strong><span class="extra-price" id="price_additional_driver">+10€/dia</span></div>
+                    <div class="extra-info"><strong data-i18n="extraAdditionalDriverLabel">Condutor Adicional</strong><span class="extra-price" id="price_additional_driver">+10€/dia</span></div>
                     <div class="quantity-selector">
                         <button type="button" onclick="changeQuantity('extraAdditionalDriver',-1)">-</button>
                         <input type="number" id="extraAdditionalDriver" value="0" min="0" max="2" readonly>
@@ -1095,7 +1095,7 @@
                 <div class="extra-item" onclick="toggleExtra('extraTripToSpain')">
                     <input type="checkbox" id="extraTripToSpain" value="trip_to_spain" style="display:none;">
                     <div class="extra-icon"><img src="/static/extras/spain.png" alt="Trip to Spain"></div>
-                    <div class="extra-info"><strong>Espanha (máximo Sevila)</strong><span class="extra-price" id="price_trip_to_spain">+100€ (taxa única)</span></div>
+                    <div class="extra-info"><strong data-i18n="extraSpainLabel">Espanha (máximo Sevila)</strong><span class="extra-price" id="price_trip_to_spain">+100€ (taxa única)</span></div>
                 </div>
             </div>
             </div>
@@ -1264,8 +1264,8 @@
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
         </div>
-        <div class="modal-title">Seguro Base</div>
-        <div class="modal-subtitle">Requisitos obrigatórios</div>
+        <div class="modal-title" data-i18n="baseInsuranceTitle">Seguro Base</div>
+        <div class="modal-subtitle" data-i18n="modalBaseSubtitle">Requisitos obrigatórios</div>
         <div class="modal-body">
             <div class="requirement-item">
                 <div class="requirement-icon">
@@ -1276,7 +1276,7 @@
                     </svg>
                 </div>
                 <div class="requirement-text">
-                    <strong>Franquia:</strong> até <span id="modalFranchise">1.500€</span> em caso de danos
+                    <strong data-i18n="modalFranchiseLabel">Franquia:</strong> até <span id="modalFranchise">1.500€</span> <span data-i18n="modalFranchiseSuffix">em caso de danos</span>
                 </div>
             </div>
             <div class="requirement-item">
@@ -1287,7 +1287,7 @@
                     </svg>
                 </div>
                 <div class="requirement-text">
-                    <strong>Pagamento:</strong> cartão de crédito obrigatório (débito não aceito)
+                    <strong data-i18n="modalPaymentLabel">Pagamento:</strong> <span data-i18n="modalPaymentText">cartão de crédito obrigatório (débito não aceito)</span>
                 </div>
             </div>
             <div class="requirement-item">
@@ -1298,7 +1298,7 @@
                     </svg>
                 </div>
                 <div class="requirement-text">
-                    <strong>Local:</strong> entrega e recolha apenas em Auto Prudente
+                    <strong data-i18n="modalLocationLabel">Local:</strong> <span data-i18n="modalLocationText">entrega e recolha apenas em Auto Prudente</span>
                 </div>
             </div>
             <div class="requirement-item">
@@ -1309,13 +1309,13 @@
                     </svg>
                 </div>
                 <div class="requirement-text">
-                    <strong>Limitações:</strong> sem assistência em viagem 24h
+                    <strong data-i18n="modalLimitLabel">Limitações:</strong> <span data-i18n="modalLimitText">sem assistência em viagem 24h</span>
                 </div>
             </div>
         </div>
         <div class="modal-actions">
-            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeInsuranceModal()">Cancelar</button>
-            <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmBaseInsurance()">Confirmar Seguro Base</button>
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeInsuranceModal()" data-i18n="btnCancel">Cancelar</button>
+            <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmBaseInsurance()" data-i18n="modalBaseConfirm">Confirmar Seguro Base</button>
         </div>
     </div>
 </div>
@@ -2389,6 +2389,39 @@
             successMsg: 'A sua reserva foi criada com sucesso.',
             successEmail: 'Receberá um email de confirmação em breve.',
             newBookingBtn: '+ Nova Reserva',
+            baseBenefit1: 'Cobertura básica contra danos',
+            baseBenefit3: 'Não inclui assistência em viagem',
+            baseBenefit4: 'Cartão de crédito obrigatório (débito não aceito)',
+            premBenefit1: 'Cobertura completa contra danos',
+            premBenefit2: 'Franquia zero (sem custos adicionais)',
+            premBenefit3: 'Assistência 24h em todo o país',
+            premBenefit4: 'Depósito reduzido: apenas 200€',
+            tooltipBaseTitle: 'Cobertura Danos, Perda e Roubo',
+            tooltipBaseItem1: 'Assistência em viagem 24h',
+            tooltipBaseItem2: 'Cobertura de danos em rodas/chaves',
+            tooltipBaseItem3: 'Proteção contra roubo',
+            tooltipPremTitle: 'Proteção Adicional Limitada',
+            tooltipPremItem1: 'Perda de chaves do veículo',
+            tooltipPremItem2: 'Danos nas rodas e pneus',
+            tooltipPremItem3: 'Parte inferior do carro',
+            tooltipPremItem4: 'Interior do veículo (estofos, painéis)',
+            extraChildSeatLabel: 'Cadeira de Criança',
+            extraAirportLabel: 'Taxa Aeroporto',
+            extraAirportPrice: 'Taxa única',
+            extraAirportNote: 'Mínimo 5 dias',
+            extraRoadTaxNote: 'Máx. 10 dias • Obrigatório',
+            extraAdditionalDriverLabel: 'Condutor Adicional',
+            extraSpainLabel: 'Espanha (máximo Sevila)',
+            modalBaseSubtitle: 'Requisitos obrigatórios',
+            modalFranchiseLabel: 'Franquia:',
+            modalFranchiseSuffix: 'em caso de danos',
+            modalPaymentLabel: 'Pagamento:',
+            modalPaymentText: 'cartão de crédito obrigatório (débito não aceito)',
+            modalLocationLabel: 'Local:',
+            modalLocationText: 'entrega e recolha apenas em Auto Prudente',
+            modalLimitLabel: 'Limitações:',
+            modalLimitText: 'sem assistência em viagem 24h',
+            modalBaseConfirm: 'Confirmar Seguro Base',
             errRequired: 'Preencha todos os campos obrigatórios.',
             errVehicle: 'Selecione um grupo de veículo.',
             errClient: 'Preencha todos os campos obrigatórios do cliente (Primeiro Nome, Último Nome, Email e Telefone).',
@@ -2461,6 +2494,39 @@
             successMsg: 'Your booking has been created successfully.',
             successEmail: 'You will receive a confirmation email shortly.',
             newBookingBtn: '+ New Booking',
+            baseBenefit1: 'Basic damage coverage',
+            baseBenefit3: 'No roadside assistance included',
+            baseBenefit4: 'Credit card required (debit not accepted)',
+            premBenefit1: 'Full damage coverage',
+            premBenefit2: 'Zero excess (no additional costs)',
+            premBenefit3: '24h assistance nationwide',
+            premBenefit4: 'Reduced deposit: only 200€',
+            tooltipBaseTitle: 'Damage, Loss & Theft Coverage',
+            tooltipBaseItem1: '24h roadside assistance',
+            tooltipBaseItem2: 'Wheel/key damage coverage',
+            tooltipBaseItem3: 'Theft protection',
+            tooltipPremTitle: 'Limited Additional Protection',
+            tooltipPremItem1: 'Vehicle key loss',
+            tooltipPremItem2: 'Wheel and tyre damage',
+            tooltipPremItem3: 'Underside of the car',
+            tooltipPremItem4: 'Vehicle interior (upholstery, panels)',
+            extraChildSeatLabel: 'Child Seat',
+            extraAirportLabel: 'Airport Fee',
+            extraAirportPrice: 'One-time fee',
+            extraAirportNote: 'Minimum 5 days',
+            extraRoadTaxNote: 'Max. 10 days • Mandatory',
+            extraAdditionalDriverLabel: 'Additional Driver',
+            extraSpainLabel: 'Spain (max. Seville)',
+            modalBaseSubtitle: 'Mandatory requirements',
+            modalFranchiseLabel: 'Excess:',
+            modalFranchiseSuffix: 'in case of damage',
+            modalPaymentLabel: 'Payment:',
+            modalPaymentText: 'credit card required (debit not accepted)',
+            modalLocationLabel: 'Location:',
+            modalLocationText: 'pickup and return at Auto Prudente only',
+            modalLimitLabel: 'Limitations:',
+            modalLimitText: 'no 24h roadside assistance',
+            modalBaseConfirm: 'Confirm Basic Insurance',
             errRequired: 'Please fill in all required fields.',
             errVehicle: 'Please select a vehicle group.',
             errClient: 'Please fill in all required client fields (First Name, Last Name, Email and Phone).',
@@ -2533,6 +2599,39 @@
             successMsg: 'Votre réservation a été créée avec succès.',
             successEmail: 'Vous recevrez un email de confirmation prochainement.',
             newBookingBtn: '+ Nouvelle Réservation',
+            baseBenefit1: 'Couverture de base contre les dommages',
+            baseBenefit3: 'Pas d\'assistance en voyage incluse',
+            baseBenefit4: 'Carte de crédit obligatoire (débit non accepté)',
+            premBenefit1: 'Couverture complète contre les dommages',
+            premBenefit2: 'Franchise zéro (sans frais supplémentaires)',
+            premBenefit3: 'Assistance 24h dans tout le pays',
+            premBenefit4: 'Dépôt réduit: seulement 200€',
+            tooltipBaseTitle: 'Couverture Dommages, Perte et Vol',
+            tooltipBaseItem1: 'Assistance en voyage 24h',
+            tooltipBaseItem2: 'Couverture dommages roues/clés',
+            tooltipBaseItem3: 'Protection contre le vol',
+            tooltipPremTitle: 'Protection Additionnelle Limitée',
+            tooltipPremItem1: 'Perte des clés du véhicule',
+            tooltipPremItem2: 'Dommages aux roues et pneus',
+            tooltipPremItem3: 'Partie inférieure du véhicule',
+            tooltipPremItem4: 'Intérieur du véhicule (sièges, panneaux)',
+            extraChildSeatLabel: 'Siège Enfant',
+            extraAirportLabel: 'Taxe Aéroport',
+            extraAirportPrice: 'Frais uniques',
+            extraAirportNote: 'Minimum 5 jours',
+            extraRoadTaxNote: 'Max. 10 jours • Obligatoire',
+            extraAdditionalDriverLabel: 'Conducteur Supplémentaire',
+            extraSpainLabel: 'Espagne (max. Séville)',
+            modalBaseSubtitle: 'Conditions obligatoires',
+            modalFranchiseLabel: 'Franchise:',
+            modalFranchiseSuffix: 'en cas de dommages',
+            modalPaymentLabel: 'Paiement:',
+            modalPaymentText: 'carte de crédit obligatoire (débit non accepté)',
+            modalLocationLabel: 'Lieu:',
+            modalLocationText: 'départ et retour uniquement chez Auto Prudente',
+            modalLimitLabel: 'Limitations:',
+            modalLimitText: 'sans assistance en voyage 24h',
+            modalBaseConfirm: 'Confirmer Assurance de Base',
             errRequired: 'Veuillez remplir tous les champs obligatoires.',
             errVehicle: 'Veuillez sélectionner un groupe de véhicule.',
             errClient: 'Veuillez remplir tous les champs obligatoires (Prénom, Nom, Email et Téléphone).',
@@ -2605,6 +2704,39 @@
             successMsg: 'Ihre Buchung wurde erfolgreich erstellt.',
             successEmail: 'Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
             newBookingBtn: '+ Neue Buchung',
+            baseBenefit1: 'Grundlegende Schadensdeckung',
+            baseBenefit3: 'Kein Pannendienst enthalten',
+            baseBenefit4: 'Kreditkarte erforderlich (Debit nicht akzeptiert)',
+            premBenefit1: 'Vollständige Schadensdeckung',
+            premBenefit2: 'Null Selbstbeteiligung (keine Zusatzkosten)',
+            premBenefit3: '24h-Pannendienst landesweit',
+            premBenefit4: 'Reduzierte Kaution: nur 200€',
+            tooltipBaseTitle: 'Schaden-, Verlust- und Diebstahlschutz',
+            tooltipBaseItem1: '24h Pannendienst',
+            tooltipBaseItem2: 'Rad-/Schlüsselschadendeckung',
+            tooltipBaseItem3: 'Diebstahlschutz',
+            tooltipPremTitle: 'Begrenzte Zusatzversicherung',
+            tooltipPremItem1: 'Verlust der Fahrzeugschlüssel',
+            tooltipPremItem2: 'Rad- und Reifenschäden',
+            tooltipPremItem3: 'Unterseite des Fahrzeugs',
+            tooltipPremItem4: 'Fahrzeuginnenraum (Polster, Verkleidungen)',
+            extraChildSeatLabel: 'Kindersitz',
+            extraAirportLabel: 'Flughafengebühr',
+            extraAirportPrice: 'Einmalige Gebühr',
+            extraAirportNote: 'Mindestens 5 Tage',
+            extraRoadTaxNote: 'Max. 10 Tage • Pflichtgebühr',
+            extraAdditionalDriverLabel: 'Zusätzlicher Fahrer',
+            extraSpainLabel: 'Spanien (max. Sevilla)',
+            modalBaseSubtitle: 'Pflichtanforderungen',
+            modalFranchiseLabel: 'Selbstbeteiligung:',
+            modalFranchiseSuffix: 'im Schadensfall',
+            modalPaymentLabel: 'Zahlung:',
+            modalPaymentText: 'Kreditkarte erforderlich (Debit nicht akzeptiert)',
+            modalLocationLabel: 'Ort:',
+            modalLocationText: 'Abholung und Rückgabe nur bei Auto Prudente',
+            modalLimitLabel: 'Einschränkungen:',
+            modalLimitText: 'kein 24h-Pannendienst',
+            modalBaseConfirm: 'Basisversicherung bestätigen',
             errRequired: 'Bitte füllen Sie alle Pflichtfelder aus.',
             errVehicle: 'Bitte wählen Sie eine Fahrzeuggruppe.',
             errClient: 'Bitte füllen Sie alle Pflichtfelder aus (Vorname, Nachname, E-Mail und Telefon).',
@@ -2966,6 +3098,12 @@
         if (succPs[1]) succPs[1].textContent = T.successEmail;
         const newBookBtn = document.querySelector('.btn-new');
         if (newBookBtn) newBookBtn.textContent = T.newBookingBtn;
+
+        // data-i18n generic loop
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (T[key] !== undefined) el.textContent = T[key];
+        });
 
         // Language stored for payload
         currentLang = lang;
