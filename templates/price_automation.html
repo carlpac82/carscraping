@@ -4590,6 +4590,9 @@
                 </button>
             `;
             container.appendChild(scrollTopBtn);
+            
+            const renderedSections = container.querySelectorAll('[id^="day-grid-"]').length;
+            console.log(`🎨 [RENDER-CARDS] Finished: ${renderedSections} day section(s) rendered, ${container.children.length} child element(s) total`);
         }
         
         // Helper function to check if car is automatic
@@ -5558,7 +5561,25 @@
                 // Render cards SEMPRE que a geração termina, mesmo que não existam regras
                 // (cards podem mostrar apenas "No data available yet" quando não há preços)
                 console.log('Rendering price comparison cards...');
-                renderPriceComparisonCards(allCarsByDay, automatedPricesByGroup, dias);
+                try {
+                    renderPriceComparisonCards(allCarsByDay, automatedPricesByGroup, dias);
+                } catch (renderErr) {
+                    console.error('❌ [RENDER-CARDS] Failed to render cards:', renderErr);
+                    console.error('❌ [RENDER-CARDS] Stack:', renderErr.stack);
+                    const cardsContainer = document.getElementById('priceComparisonCards');
+                    if (cardsContainer) {
+                        cardsContainer.innerHTML = `
+                            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                                <div class="flex">
+                                    <div class="ml-3">
+                                        <p class="text-sm text-red-700 font-semibold">Erro ao mostrar Visual Cards</p>
+                                        <p class="text-xs text-red-600 mt-1">Abre a consola (F12 / Cmd+Opt+C) e envia o erro.</p>
+                                        <p class="text-xs text-red-500 mt-1">${renderErr.message || 'Erro desconhecido'}</p>
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                }
                 // Manter cards escondidos por padrão e mostrar tabela
                 document.getElementById('priceComparisonCards').classList.add('hidden');
                 document.getElementById('priceTableContainer').classList.remove('hidden');
