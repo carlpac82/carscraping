@@ -249,6 +249,9 @@ VEHICLES = {
 
     # ========== E1: MINI Auto ==========
     'citroen c1 auto': 'MINI Auto',
+    'dacia spring': 'MINI Auto',
+    'dacia spring auto': 'MINI Auto',
+    'dacia spring electric': 'MINI Auto',
     'fiat 500 auto': 'MINI Auto',
     'fiat 500 electric': 'MINI Auto',
     'fiat 500e': 'MINI Auto',

@@ -3963,11 +3963,12 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
         is_auto = True
     
     # Verificar tipo de veículo por palavras-chave
-    if '9' in cat or 'minivan' in cat or 'van' in cat:
+    # Usar regex para evitar confundir ratings (ex: 'Custo-benefício7.1') com 7/9 lugares
+    if re.search(r'\b9\s*(seater|seats|lugares|plazas|p)\b', cat) or 'minivan' in cat or 'van' in cat:
         pass
         return "N"  # 9 Seater
     
-    if '7' in cat or 'mpv' in cat or 'people carrier' in cat:
+    if re.search(r'\b7\s*(seater|seats|lugares|plazas|p)\b', cat) or 'mpv' in cat or 'people carrier' in cat:
         grupo = "M2" if is_auto else "M1"
         pass
         return grupo  # 7 Seater
