@@ -94,7 +94,6 @@ def _setup_chrome_driver():
         chrome_options.add_argument('--headless=new')
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--disable-software-rasterizer')
-        print(f"[BATCH] Modo headless (Linux)", file=sys.stderr, flush=True)
     else:
         print(f"[BATCH] Modo visual ({system})", file=sys.stderr, flush=True)
 
@@ -203,7 +202,6 @@ def _setup_chrome_driver():
         pass
 
     driver.set_page_load_timeout(30)
-    print(f"[BATCH] ✅ Chrome iniciado com stealth + CDP", file=sys.stderr, flush=True)
     return driver
 
 
@@ -223,7 +221,6 @@ def _ensure_eur_currency(driver):
         driver.add_cookie({"name": "country", "value": "PT", "domain": ".carjet.com"})
         driver.add_cookie({"name": "idioma", "value": "PT", "domain": ".carjet.com"})
         driver.add_cookie({"name": "lang", "value": "pt", "domain": ".carjet.com"})
-        print("[BATCH] 🍪 Cookies EUR/PT definidos", file=sys.stderr, flush=True)
         # Recarregar para que os cookies sejam enviados
         driver.get("https://www.carjet.com/aluguel-carros/index.htm")
         _human_delay(1.5, 2.5)
@@ -248,7 +245,6 @@ def _ensure_eur_currency(driver):
             }
             return forcePortuguese();
         """)
-        print(f"[BATCH] 🌐 Idioma: {lang_result}", file=sys.stderr, flush=True)
         if lang_result and lang_result.startswith('clicked_portuguese'):
             _human_delay(2.0, 3.0)
     except Exception as e:
@@ -283,8 +279,6 @@ def _ensure_eur_currency(driver):
             }
             return findAndClickEUR();
         """)
-        print(f"[BATCH] 💶 Moeda UI passo 1: {result}", file=sys.stderr, flush=True)
-
         # Se abrimos dropdown, tentar clicar na opção EUR após aparecer
         if result and result.startswith('opened_currency_dropdown'):
             time.sleep(1)
@@ -300,7 +294,6 @@ def _ensure_eur_currency(driver):
                 }
                 return 'no_eur_option_in_dropdown';
             """)
-            print(f"[BATCH] 💶 Moeda UI passo 2: {clicked_eur}", file=sys.stderr, flush=True)
             time.sleep(1)
 
         # Fallback: tentar via WebDriverWait seletores comuns
@@ -318,7 +311,6 @@ def _ensure_eur_currency(driver):
             for opt in eur_options:
                 if opt.is_displayed():
                     opt.click()
-                    print("[BATCH] 💶 Seletor EUR clicado via WebDriver", file=sys.stderr, flush=True)
                     time.sleep(1)
                     break
         except Exception as e2:
@@ -379,13 +371,13 @@ def _wait_for_results(driver, max_wait=30, batch_id=None):
                     print(f"[BATCH] ❌ war= detectado {war_count}x - desistindo", file=sys.stderr, flush=True)
                     return False
                 pause = random.uniform(4, 8)
-                print(f"[BATCH] ⚠️ war= detectado ({war_count}/{max_war_retries}) → pausa {pause:.1f}s e retry...", file=sys.stderr, flush=True)
+                print(f"[BATCH] war= ({war_count}/{max_war_retries}) → retry {pause:.1f}s", file=sys.stderr, flush=True)
                 time.sleep(pause)
                 _click_search(driver)
                 time.sleep(2)
                 break  # Reiniciar o wait loop
             if '/do/list/' in url and 's=' in url and 'b=' in url:
-                print(f"[BATCH] ✅ Resultados prontos após {waited}s (war retries: {war_count})", file=sys.stderr, flush=True)
+                print(f"[BATCH] ✅ Resultados prontos {waited}s", file=sys.stderr, flush=True)
                 return True
             time.sleep(2)
             waited += 2
@@ -467,7 +459,6 @@ def _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=None):
     from selenium.webdriver.support import expected_conditions as EC
 
     url = "https://www.carjet.com/aluguel-carros/index.htm"
-    print(f"[BATCH] Abrindo homepage: {url}", file=sys.stderr, flush=True)
     driver.get(url)
     _human_delay(2.5, 4.0)
 
@@ -485,7 +476,6 @@ def _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=None):
 
     # Preencher local - apenas "Faro" ou "Albufeira" (curto, para dropdown)
     search_text = carjet_location.split()[0]  # "Faro" ou "Albufeira"
-    print(f"[BATCH] Escrevendo local: {search_text} (letra a letra)", file=sys.stderr, flush=True)
     pickup = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "pickup"))
     )
@@ -536,7 +526,6 @@ def _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=None):
         pass
 
     # Submit
-    print(f"[BATCH] Submetendo pesquisa...", file=sys.stderr, flush=True)
     _click_search(driver)
     time.sleep(2)
 
@@ -545,8 +534,6 @@ def _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=None):
 
 def _update_search(driver, start_dt, end_dt, batch_id=None):
     """Atualizar pesquisa na página de resultados (sem voltar à homepage)"""
-    print(f"[BATCH] Modificando datas: {start_dt.strftime('%d/%m/%Y')} → {end_dt.strftime('%d/%m/%Y')}", file=sys.stderr, flush=True)
-
     # Tentar abrir painel de edição
     panel_result = driver.execute_script("""
         // Clicar em "Alterar" / "Modificar pesquisa"
@@ -573,7 +560,6 @@ def _update_search(driver, start_dt, end_dt, batch_id=None):
         }
         return 'no_modify_button';
     """)
-    print(f"[BATCH] Painel: {panel_result}", file=sys.stderr, flush=True)
     time.sleep(1.5)
 
     # Preencher novas datas
@@ -612,7 +598,6 @@ def _update_search(driver, start_dt, end_dt, batch_id=None):
         if (typeof searchCars === 'function') { searchCars(); return 'searchCars()'; }
         return 'no_submit_found';
     """)
-    print(f"[BATCH] Submit: {submit_result}", file=sys.stderr, flush=True)
     time.sleep(2)
 
     return _wait_for_results(driver, batch_id=batch_id)
@@ -690,7 +675,7 @@ def _navigate_categories(driver, batch_id=None):
 
             # Verificar war=
             if 'war=' in driver.current_url:
-                print(f"[BATCH] ❌ war= detectado!", file=sys.stderr, flush=True)
+                print(f"[BATCH] ❌ war=", file=sys.stderr, flush=True)
                 return all_html_parts
 
         except Exception as e:
@@ -771,12 +756,7 @@ def scrape_carjet_batch(
     elif 'albufeira' in location.lower():
         carjet_location = 'Albufeira Cidade'
 
-    print(f"\n{'='*70}", file=sys.stderr, flush=True)
-    print(f"[BATCH] 🚀 Scraping batch: {location} ({len(searches)} pesquisas)", file=sys.stderr, flush=True)
-    print(f"[BATCH] Local CarJet: {carjet_location}", file=sys.stderr, flush=True)
-    for s in searches:
-        print(f"[BATCH]   {s['days']} dias: {s['start_dt'].strftime('%d/%m/%Y')} → {s['end_dt'].strftime('%d/%m/%Y')}", file=sys.stderr, flush=True)
-    print(f"{'='*70}", file=sys.stderr, flush=True)
+    print(f"[BATCH] 🚀 Batch {location}: {len(searches)} pesquisas", file=sys.stderr, flush=True)
 
     results = {}
     driver = None
@@ -838,9 +818,7 @@ def scrape_carjet_batch(
             start_dt = search['start_dt']
             end_dt = search['end_dt']
 
-            print(f"\n{'━'*70}", file=sys.stderr, flush=True)
-            print(f"[BATCH] 📅 Pesquisa {idx+1}/{len(searches)}: {days} dias ({start_dt.strftime('%d/%m')} → {end_dt.strftime('%d/%m')})", file=sys.stderr, flush=True)
-            print(f"{'━'*70}", file=sys.stderr, flush=True)
+            print(f"[BATCH] 📅 {idx+1}/{len(searches)}: {days}d ({start_dt.strftime('%d/%m')} → {end_dt.strftime('%d/%m')})", file=sys.stderr, flush=True)
             _update_progress(day_key=days, status='running')
 
             try:
@@ -876,7 +854,7 @@ def scrape_carjet_batch(
                     else:
                         results[days] = []
                         _update_progress(day_key=days, items=[])
-                        print(f"[BATCH] ⚠️ {days} dias: sem HTML das categorias", file=sys.stderr, flush=True)
+                        print(f"[BATCH] ⚠️ {days} dias: sem categorias", file=sys.stderr, flush=True)
                 else:
                     results[days] = []
                     _update_progress(day_key=days, items=[])
@@ -919,17 +897,13 @@ def scrape_carjet_batch(
         if driver:
             try:
                 driver.quit()
-                print(f"[BATCH] 🧹 Chrome fechado", file=sys.stderr, flush=True)
             except:
                 pass
 
     # Resumo
-    print(f"\n{'='*70}", file=sys.stderr, flush=True)
-    print(f"[BATCH] 📊 RESUMO:", file=sys.stderr, flush=True)
     for days, items in sorted(results.items()):
         status = "✅" if items else "❌"
-        print(f"[BATCH]   {status} {days} dias: {len(items)} carros", file=sys.stderr, flush=True)
-    print(f"{'='*70}", file=sys.stderr, flush=True)
+        print(f"[BATCH] {status} {days}d: {len(items)} carros", file=sys.stderr, flush=True)
 
     # CRÍTICO: SEMPRE marcar status final
     with _batch_progress_lock:
@@ -939,8 +913,6 @@ def scrape_carjet_batch(
             if current_status in ['running', 'starting', 'starting_chrome']:
                 _batch_progress[batch_id]['status'] = 'done'
                 _batch_progress[batch_id]['completed_at'] = time.time()  # Timestamp de conclusão
-                print(f"[BATCH] ✅ Batch {batch_id} marcado como DONE (era {current_status})", file=sys.stderr, flush=True)
-            else:
-                print(f"[BATCH] ℹ️ Batch {batch_id} já tem status final: {current_status}", file=sys.stderr, flush=True)
+                print(f"[BATCH] ✅ Batch {batch_id} DONE", file=sys.stderr, flush=True)
     
     return results

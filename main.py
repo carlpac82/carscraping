@@ -3298,10 +3298,6 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     
     logging.debug(f"📋 [MAP] ENTRADA: car='{car_name}', category='{category}', transmission='{transmission}' | is_auto_by_name={is_auto}")
     
-    # DEBUG: Log específico para carros problemáticos
-    if 'spring' in car_lower or 'dacia' in car_lower:
-        logging.warning(f"🔍 [DACIA-SPRING-DEBUG] car='{car_name}' | category='{category}' | transmission='{transmission}' | is_auto={is_auto}")
-    
     # PRIORIDADE -1: CABRIO/CABRIOLET no NOME → SEMPRE Grupo G
     # Independente da categoria (Luxury, Mini, SUV, etc), se tem "cabrio" no nome = G
     if any(word in car_lower for word in ['cabrio', 'cabriolet', 'convertible', 'conversível']):
@@ -12746,32 +12742,11 @@ async def track_by_params(request: Request):
             
             carjet_url = selected_language['url']
             
-            print(f"[SELENIUM] Idioma: {selected_language['name']} (FIXO - igual ao teste)", file=sys.stderr, flush=True)
-            print(f"[SELENIUM] URL: {carjet_url}", file=sys.stderr, flush=True)
-            print(f"[SELENIUM] Local: {carjet_location}", file=sys.stderr, flush=True)
-            
-            # ============================================
-            # NOTA: Rotação de datas JÁ FOI FEITA anteriormente (linha ~10537)
-            # NÃO fazer rotação duplicada aqui!
-            # ============================================
-            print(f"[SELENIUM] Datas a usar (já rotacionadas): {start_dt.date()} - {end_dt.date()}", file=sys.stderr, flush=True)
-            
-            # ============================================
-            # ROTAÇÃO DE HORAS (14:30-17:00 aleatório)
-            # ============================================
-            # Horas disponíveis no Carjet (de 30 em 30 minutos)
+            # Configuração fixa: Português, iPhone 13 Pro, Europe/Lisbon
             available_hours = ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
             selected_hour = random.choice(available_hours)
-            
-            # Ajustar start_dt e end_dt para usar a hora selecionada
             start_dt = start_dt.replace(hour=int(selected_hour.split(':')[0]), minute=int(selected_hour.split(':')[1]))
             end_dt = end_dt.replace(hour=int(selected_hour.split(':')[0]), minute=int(selected_hour.split(':')[1]))
-            
-            print(f"[SELENIUM] Hora selecionada: {selected_hour}", file=sys.stderr, flush=True)
-            
-            # ============================================
-            # FORÇAR DEVICE E REFERRER IGUAIS AO TESTE
-            # ============================================
             
             selected_device = {
                 'name': 'iPhone 13 Pro',
@@ -12780,14 +12755,7 @@ async def track_by_params(request: Request):
                 'height': 844,
                 'pixelRatio': 3.0
             }
-            
-            selected_timezone = 'Europe/Lisbon'
-            selected_referrer = ''  # SEM REFERRER (igual ao teste)
-            
-            print(f"[SELENIUM] Device: {selected_device['name']}", file=sys.stderr, flush=True)
-            print(f"[SELENIUM] Timezone: {selected_timezone}", file=sys.stderr, flush=True)
-            print(f"[SELENIUM] Language: {selected_language['name']}", file=sys.stderr, flush=True)
-            print(f"[SELENIUM] Referrer: {selected_referrer if selected_referrer else 'Direct'}", file=sys.stderr, flush=True)
+            selected_referrer = ''
             
             chrome_options = Options()
             
@@ -12797,12 +12765,11 @@ async def track_by_params(request: Request):
             
             # Headless apenas em Linux (Render/Docker)
             if system == 'Linux':
-                chrome_options.add_argument('--headless=new')  # Novo modo headless (mais estável)
+                chrome_options.add_argument('--headless=new')
                 chrome_options.add_argument('--disable-gpu')
                 chrome_options.add_argument('--disable-software-rasterizer')
-                print(f"[SELENIUM] Modo headless ativado (Linux)", file=sys.stderr, flush=True)
             else:
-                print(f"[SELENIUM] Modo visual (não-headless) em {system}", file=sys.stderr, flush=True)
+                pass
             
             # Flags essenciais para Docker/Linux
             chrome_options.add_argument('--no-sandbox')
@@ -12868,22 +12835,11 @@ async def track_by_params(request: Request):
             if system == 'Darwin':  # macOS
                 if os.path.exists("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"):
                     chrome_options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-                    print(f"[SELENIUM] Chrome encontrado em: {chrome_options.binary_location}", file=sys.stderr, flush=True)
             elif system == 'Linux':  # Linux (Render/Docker)
-                # Tentar múltiplos caminhos possíveis no Linux
-                linux_chrome_paths = [
-                    '/usr/bin/google-chrome-stable',
-                    '/usr/bin/google-chrome',
-                    '/usr/bin/chromium-browser',
-                    '/usr/bin/chromium',
-                ]
-                for path in linux_chrome_paths:
+                for path in ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium']:
                     if os.path.exists(path):
                         chrome_options.binary_location = path
-                        print(f"[SELENIUM] Chrome encontrado em: {path}", file=sys.stderr, flush=True)
                         break
-                else:
-                    print(f"[SELENIUM] Chrome não encontrado em caminhos padrão, deixando Selenium autodetectar", file=sys.stderr, flush=True)
             
             # Iniciar driver com múltiplas tentativas
             driver = None
@@ -12893,65 +12849,37 @@ async def track_by_params(request: Request):
             try:
                 # Tentativa 1: chromedriver do sistema (Railway/Linux)
                 try:
-                    print(f"[SELENIUM] Tentativa 1: chromedriver do sistema...", file=sys.stderr, flush=True)
                     import shutil
                     chromedriver_path = shutil.which('chromedriver')
                     if chromedriver_path:
-                        print(f"[SELENIUM] chromedriver encontrado em: {chromedriver_path}", file=sys.stderr, flush=True)
-                        driver = webdriver.Chrome(
-                            service=Service(chromedriver_path),
-                            options=chrome_options
-                        )
-                        print(f"[SELENIUM] ✅ Chrome iniciado com chromedriver do sistema!", file=sys.stderr, flush=True)
+                        driver = webdriver.Chrome(service=Service(chromedriver_path), options=chrome_options)
                     else:
                         raise Exception("chromedriver não encontrado no PATH")
                 except Exception as e:
                     last_error = str(e)
-                    print(f"[SELENIUM] ⚠️ Tentativa 1 falhou: {e}", file=sys.stderr, flush=True)
-                    
-                    # Tentativa 2: Chrome do sistema (autodetecção)
                     try:
-                        print(f"[SELENIUM] Tentativa 2: Chrome autodetecção...", file=sys.stderr, flush=True)
                         driver = webdriver.Chrome(options=chrome_options)
-                        print(f"[SELENIUM] ✅ Chrome iniciado com autodetecção!", file=sys.stderr, flush=True)
                     except Exception as e2:
                         last_error = str(e2)
-                        print(f"[SELENIUM] ❌ Tentativa 2 falhou: {e2}", file=sys.stderr, flush=True)
-                        
-                        # Tentativa 3: Sem binary_location
                         try:
-                            print(f"[SELENIUM] Tentativa 3: Sem binary_location...", file=sys.stderr, flush=True)
                             chrome_options_clean = Options()
-                            # Copiar todos os argumentos mas sem binary_location
                             for arg in chrome_options.arguments:
                                 chrome_options_clean.add_argument(arg)
                             for key, value in chrome_options.experimental_options.items():
                                 chrome_options_clean.add_experimental_option(key, value)
-                            
                             driver = webdriver.Chrome(options=chrome_options_clean)
-                            print(f"[SELENIUM] ✅ Chrome iniciado sem binary_location!", file=sys.stderr, flush=True)
                         except Exception as e3:
                             last_error = str(e3)
-                            print(f"[SELENIUM] ❌ Tentativa 3 falhou: {e3}", file=sys.stderr, flush=True)
-                            
-                            # Tentativa 4: ChromeDriverManager (último recurso)
                             try:
-                                print(f"[SELENIUM] Tentativa 4: ChromeDriverManager (último recurso)...", file=sys.stderr, flush=True)
-                                driver = webdriver.Chrome(
-                                    service=Service(ChromeDriverManager().install()),
-                                    options=chrome_options_clean
-                                )
-                                print(f"[SELENIUM] ✅ Chrome iniciado via ChromeDriverManager!", file=sys.stderr, flush=True)
+                                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options_clean)
                             except Exception as e4:
                                 last_error = str(e4)
-                                print(f"[SELENIUM] ❌ Tentativa 4 falhou: {e4}", file=sys.stderr, flush=True)
             
                 # Se nenhuma tentativa funcionou, lançar erro
                 if driver is None:
                     raise Exception(f"Não foi possível iniciar Chrome após 4 tentativas. Último erro: {last_error}")
                 
                 # APLICAR SELENIUM-STEALTH para evitar detecção de bot
-                print(f"[SELENIUM] Aplicando selenium-stealth...", file=sys.stderr, flush=True)
                 stealth(driver,
                     languages=["pt-PT", "pt", "en"],
                     vendor="Apple Computer, Inc.",
@@ -12960,7 +12888,6 @@ async def track_by_params(request: Request):
                     renderer="Apple GPU",
                     fix_hairline=True,
                 )
-                print(f"[SELENIUM] ✅ Stealth aplicado!", file=sys.stderr, flush=True)
                 
                 # FUNÇÃO HELPER: Autodetectar e REJEITAR cookies (mais simples!)
                 def reject_cookies_if_present(step_name=""):
@@ -12992,13 +12919,8 @@ async def track_by_params(request: Request):
                             document.body.style.overflow = 'auto';
                             return found;
                         """)
-                        if result:
-                            print(f"[SELENIUM] ✓ Cookies rejeitados {step_name}", file=sys.stderr, flush=True)
-                        else:
-                            print(f"[SELENIUM] ℹ️  Banner removido {step_name}", file=sys.stderr, flush=True)
                         return result
-                    except Exception as e:
-                        print(f"[SELENIUM] ⚠ Erro ao verificar cookies {step_name}: {e}", file=sys.stderr, flush=True)
+                    except Exception:
                         return False
                 
                 # TIMEOUT GLOBAL: Se ficar preso mais de 60 segundos, abortar
@@ -13021,96 +12943,54 @@ async def track_by_params(request: Request):
                     '''
                 })
                 
-                print(f"[SELENIUM] Configurando Chrome com mobile UA...", file=sys.stderr, flush=True)
-                driver.set_page_load_timeout(60)  # Aumentado para 60s - CarJet pode demorar
-                
-                # LIMPAR CACHE E COOKIES (anti-detecção + fresh state)
-                print(f"[SELENIUM] Limpando cache e cookies...", file=sys.stderr, flush=True)
+                driver.set_page_load_timeout(60)
                 driver.delete_all_cookies()
                 try:
-                    # Limpar cache via Chrome DevTools Protocol
                     driver.execute_cdp_cmd('Network.clearBrowserCache', {})
                     driver.execute_cdp_cmd('Network.clearBrowserCookies', {})
-                    print(f"[SELENIUM] ✓ Cache e cookies limpos via CDP", file=sys.stderr, flush=True)
-                except Exception as e:
-                    print(f"[SELENIUM] ⚠️ CDP clear falhou (não crítico): {e}", file=sys.stderr, flush=True)
-                
-                # Definir referrer se não for direct
+                except Exception:
+                    pass
                 if selected_referrer:
-                    print(f"[SELENIUM] Definindo referrer...", file=sys.stderr, flush=True)
-                    driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
-                        'headers': {'Referer': selected_referrer}
-                    })
-                
-                print(f"[SELENIUM] Acessando CarJet ({selected_language['name']})...", file=sys.stderr, flush=True)
+                    driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': {'Referer': selected_referrer}})
                 driver.get(carjet_url)
-                
-                # Rejeitar cookies (IGUAL AO TESTE)
                 time.sleep(0.5)
-                if reject_cookies_if_present(""):
-                    print(f"[SELENIUM] ✅ Cookies rejeitados", file=sys.stderr, flush=True)
+                reject_cookies_if_present("")
                 time.sleep(0.5)
                 
                 # DETECTAR IDIOMA e ajustar nome da localização
                 page_url = driver.current_url
-                print(f"[SELENIUM] URL atual: {page_url}", file=sys.stderr, flush=True)
-                
-                # Se estiver em inglês, usar nomes em inglês
                 if '/index.htm' in page_url and '/aluguel-carros/' not in page_url and '/aluguer-carros/' not in page_url:
-                    print(f"[SELENIUM] Página em INGLÊS detectada!", file=sys.stderr, flush=True)
                     if carjet_location == 'Albufeira Cidade':
                         carjet_location = 'Albufeira City'
                     elif carjet_location == 'Faro Aeroporto':
                         carjet_location = 'Faro Airport'
-                    print(f"[SELENIUM] Local ajustado para: {carjet_location}", file=sys.stderr, flush=True)
                 
                 try:
                     # ========== ORDEM CORRETA DO TESTE: LOCAL → DROPDOWN → DATAS ==========
-                    
-                    # PASSO 1: Escrever local (IGUAL AO TESTE)
-                    print(f"[SELENIUM] PASSO 1: Escrevendo local...", file=sys.stderr, flush=True)
                     pickup_input = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.ID, "pickup"))
                     )
                     pickup_input.clear()
                     pickup_input.send_keys(carjet_location)
-                    print(f"[SELENIUM] ✓ Local digitado", file=sys.stderr, flush=True)
-                    
-                    # PASSO 2: Aguardar dropdown e clicar (SIMPLIFICADO)
-                    print(f"[SELENIUM] PASSO 2: Aguardando dropdown...", file=sys.stderr, flush=True)
-                    time.sleep(1.5)  # Reduzido para 1.5s
+                    time.sleep(1.5)
                     
                     # Clicar no dropdown via JS diretamente (mais confiável)
                     try:
-                        driver.set_script_timeout(5)  # Timeout de 5s para scripts
-                        js_result = driver.execute_script("""
+                        driver.set_script_timeout(5)
+                        driver.execute_script("""
                             try {
                                 const items = document.querySelectorAll('#recogida_lista li');
                                 if (items.length > 0) {
                                     items[0].querySelector('a')?.click() || items[0].click();
-                                    return 'clicked:' + items.length;
                                 }
-                                return 'no_items';
-                            } catch(e) {
-                                return 'error:' + e.message;
-                            }
+                            } catch(e) {}
                         """)
-                        print(f"[SELENIUM] ✓ Dropdown: {js_result}", file=sys.stderr, flush=True)
-                        
-                        # IMPORTANTE: Clicar na página para confirmar o local
                         time.sleep(0.5)
-                        print(f"[SELENIUM] Clicando na página para confirmar local...", file=sys.stderr, flush=True)
                         driver.find_element(By.CSS_SELECTOR, "h1, h2, .title, header").click()
-                        print(f"[SELENIUM] ✓ Local confirmado", file=sys.stderr, flush=True)
-                        
-                    except Exception as dropdown_err:
-                        print(f"[SELENIUM] ⚠️ Dropdown falhou: {dropdown_err}", file=sys.stderr, flush=True)
-                        # Continuar mesmo assim - o dropdown pode não ser necessário
+                    except Exception:
+                        pass
                     
                     time.sleep(1)
-                    
-                    # PASSO 3: Preencher datas via campos hidden (versão mobile)
-                    print(f"[SELENIUM] PASSO 3: Preenchendo datas via campos hidden...", file=sys.stderr, flush=True)
                     
                     # Formato dd/mm/yyyy para campos hidden
                     fecha_recogida = start_dt.strftime("%d/%m/%Y")
@@ -13121,52 +13001,20 @@ async def track_by_params(request: Request):
                     # Definir timeout curto para evitar hang
                     driver.set_script_timeout(10)
                     
-                    result = driver.execute_script("""
-                        const fechaRecogida = arguments[0];
-                        const fechaDevolucion = arguments[1];
-                        const hourPickup = arguments[2];
-                        const hourDropoff = arguments[3];
-                        
-                        let filled = {};
-                        
-                        // Campos hidden de data (formato dd/mm/yyyy) - PRINCIPAL na versão mobile
+                    driver.execute_script("""
                         const fechaRec = document.querySelector('#fechaRecogida');
                         const fechaDev = document.querySelector('#fechaDevolucion');
-                        
-                        if (fechaRec) { 
-                            fechaRec.value = fechaRecogida; 
-                            filled.fechaRec = fechaRec.value; 
-                        }
-                        if (fechaDev) { 
-                            fechaDev.value = fechaDevolucion; 
-                            filled.fechaDev = fechaDev.value; 
-                        }
-                        
-                        // Horas (selects)
+                        if (fechaRec) { fechaRec.value = arguments[0]; }
+                        if (fechaDev) { fechaDev.value = arguments[1]; }
                         const h1 = document.querySelector('#fechaRecogidaSelHour');
-                        if (h1) { 
-                            h1.value = hourPickup; 
-                            h1.dispatchEvent(new Event('change', {bubbles: true})); 
-                            filled.h1 = h1.value; 
-                        }
-                        
+                        if (h1) { h1.value = arguments[2]; h1.dispatchEvent(new Event('change', {bubbles: true})); }
                         const h2 = document.querySelector('#fechaDevolucionSelHour');
-                        if (h2) { 
-                            h2.value = hourDropoff; 
-                            h2.dispatchEvent(new Event('change', {bubbles: true})); 
-                            filled.h2 = h2.value; 
-                        }
-                        
-                        return filled;
+                        if (h2) { h2.value = arguments[3]; h2.dispatchEvent(new Event('change', {bubbles: true})); }
                     """, fecha_recogida, fecha_devolucion, hour_pickup, hour_dropoff)
-                    
-                    print(f"[SELENIUM] ✓ Datas e horas preenchidas: {result}", file=sys.stderr, flush=True)
-                    
-                except Exception as e:
-                    print(f"[SELENIUM] Erro ao preencher: {e}", file=sys.stderr, flush=True)
+                except Exception:
+                    pass
                 
-                # PASSO 4: Submit via form.submit() (botão pode não existir)
-                print(f"[SELENIUM] PASSO 4: Submetendo...", file=sys.stderr, flush=True)
+                # PASSO 4: Submit via form.submit()
                 
                 # Definir timeout curto para scripts de scroll/submit
                 driver.set_script_timeout(5)
@@ -13202,50 +13050,34 @@ async def track_by_params(request: Request):
                         return 'NO_FORM';
                     """)
                     
-                    if submit_result.startswith('OK'):
-                        print(f"[SELENIUM] ✅ Submetido via: {submit_result}", file=sys.stderr, flush=True)
-                    else:
-                        print(f"[SELENIUM] ❌ Form não encontrado", file=sys.stderr, flush=True)
+                    if not submit_result.startswith('OK'):
                         raise Exception("Form não encontrado")
                         
                 except Exception as e:
                     print(f"[SELENIUM] ❌ Erro ao submeter: {e}", file=sys.stderr, flush=True)
                     raise
                 
-                print(f"[SELENIUM] Aguardando navegação inicial...", file=sys.stderr, flush=True)
                 time.sleep(2)
                 
-                # Aguardar até que a URL contenha /do/list/ (resultado final)
-                print(f"[SELENIUM] Aguardando página de resultados...", file=sys.stderr, flush=True)
-                max_wait = 20  # 20 segundos máximo (reduzido de 40)
+                max_wait = 20
                 waited = 0
                 result_loaded = False
                 while waited < max_wait:
                     current_url = driver.current_url
                     if '/do/list/' in current_url and 's=' in current_url and 'b=' in current_url:
-                        print(f"[SELENIUM] ✅ Página de resultados carregada após {waited}s", file=sys.stderr, flush=True)
                         result_loaded = True
                         break
-                    else:
-                        print(f"[SELENIUM] Aguardando... URL atual: {current_url[:80]}... ({waited}s)", file=sys.stderr, flush=True)
-                        time.sleep(2)
-                        waited += 2
+                    time.sleep(2)
+                    waited += 2
                 
-                # Se timeout, logar e continuar mesmo assim
                 if not result_loaded:
                     current_url = driver.current_url
                     print(f"[SELENIUM] ⏰ Timeout após {max_wait}s. URL final: {current_url}", file=sys.stderr, flush=True)
                 
-                # Aguardar mais um pouco para garantir que o conteúdo carregou
-                print(f"[SELENIUM] Aguardando conteúdo carregar...", file=sys.stderr, flush=True)
                 time.sleep(3)
-                
                 final_url = driver.current_url
                 
-                # DEBUG: Salvar URL e HTML para análise
                 try:
-                    import sys
-                    print(f"[SELENIUM] URL final: {final_url}", file=sys.stderr, flush=True)
                     with open(DEBUG_DIR / f"selenium_url_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt", 'w') as f:
                         f.write(f"Final URL: {final_url}\n")
                         f.write(f"Has s=: {'s=' in final_url}\n")
@@ -13253,14 +13085,7 @@ async def track_by_params(request: Request):
                 except:
                     pass
                 
-                # NÃO fazer retry com war= - aceitar o resultado como está
-                # O retry pode causar cliques extras e bagunçar o formulário
-                if 'war=' in final_url:
-                    print(f"[SELENIUM] ⚠️ war= detectado (sem disponibilidade ou erro)", file=sys.stderr, flush=True)
-                
-                # Se obtivemos URL s/b válida, pegar HTML do driver ANTES de fechar
                 if 's=' in final_url and 'b=' in final_url:
-                    print(f"[SELENIUM] ✅ URL s/b obtida! Navegando por categorias...", file=sys.stderr, flush=True)
                     
                     # NAVEGAR POR CATEGORIAS para capturar TODOS os carros
                     # O CarJet mostra carros diferentes em cada categoria
@@ -13275,7 +13100,6 @@ async def track_by_params(request: Request):
                             var none = document.querySelector('input[name="frmTrans"][value="none"]');
                             if (none) none.checked = true;
                         """)
-                        print(f"[SELENIUM] 🧹 frmTrans=none definido", file=sys.stderr, flush=True)
                     except:
                         pass
                     
@@ -13316,10 +13140,9 @@ async def track_by_params(request: Request):
                             cat_html = driver.page_source
                             cat_articles = cat_html.count('<article')
                             all_html_parts.append(cat_html)
-                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos, {len(cat_html)} bytes (before={_before})", file=sys.stderr, flush=True)
                             _prev_article_count = cat_articles
-                        except Exception as cat_err:
-                            print(f"[SELENIUM]    {cat}: erro - {cat_err}", file=sys.stderr, flush=True)
+                        except Exception:
+                            pass
                     
                     # Usar o HTML com mais conteúdo (combinar todos)
                     # Cada categoria tem carros diferentes, vamos usar o maior como base
@@ -13331,46 +13154,21 @@ async def track_by_params(request: Request):
                             cat_items = parse_prices(cat_html, final_url)
                             if cat_items:
                                 all_items_raw.extend(cat_items)
-                                _cat_sups = {}
-                                for _ci in cat_items:
-                                    _s = _ci.get('supplier', '') or '(empty)'
-                                    _cat_sups[_s] = _cat_sups.get(_s, 0) + 1
-                                print(f"[SELENIUM]    {CATEGORIES[i]}: +{len(cat_items)} carros | suppliers: {dict(sorted(_cat_sups.items(), key=lambda x: -x[1]))}", file=sys.stderr, flush=True)
                         
                         # Deduplicar por (car_name, supplier, price)
                         seen = set()
                         unique_items = []
-                        _dupes = 0
-                        _empty_sup = 0
-                        _dupe_samples = []
                         for item in all_items_raw:
                             key = (
                                 (item.get('car') or item.get('car_name') or '').strip().lower(),
                                 (item.get('supplier') or '').strip().lower(),
                                 str(item.get('price_num') or item.get('price') or '').strip().lower()
                             )
-                            if not key[1]:
-                                _empty_sup += 1
                             if key not in seen and key[0]:
                                 seen.add(key)
                                 unique_items.append(item)
-                            else:
-                                _dupes += 1
-                                if len(_dupe_samples) < 5:
-                                    _dupe_samples.append(f"{key[0][:25]}|{key[1][:15]}|{key[2]}")
                         
-                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos (dupes={_dupes}, empty_supplier={_empty_sup})", file=sys.stderr, flush=True)
-                        if _dupe_samples:
-                            print(f"[SELENIUM] 📊 Dupe samples: {_dupe_samples}", file=sys.stderr, flush=True)
-                        # DEBUG: Supplier breakdown após dedup
-                        _sup_cars = {}
-                        for _it in unique_items:
-                            _s = _it.get('supplier', '') or '(empty)'
-                            if _s not in _sup_cars:
-                                _sup_cars[_s] = []
-                            _sup_cars[_s].append(f"{_it.get('car','')[:30]}|{_it.get('price_num','')}")
-                        for _s, _cars in sorted(_sup_cars.items()):
-                            print(f"[SELENIUM] 🏷️ {_s} ({len(_cars)} carros): {_cars[:5]}", file=sys.stderr, flush=True)
+                        # Categorias parseadas e deduplicadas silenciosamente
                         html_content = all_html_parts[0]  # Para compatibilidade
                     else:
                         # Fallback: usar homepage se categorias falharam
@@ -13382,34 +13180,24 @@ async def track_by_params(request: Request):
                     
                     # Se temos items das categorias, usar esses (mais completos)
                     if unique_items:
-                        print(f"[SELENIUM] Usando {len(unique_items)} carros das categorias", file=sys.stderr, flush=True)
                         items = unique_items
                     else:
                         # Fallback: parse da homepage
-                        print(f"[SELENIUM] Fazendo parse de {len(html_content)} bytes (homepage fallback)...", file=sys.stderr, flush=True)
                         items = parse_prices(html_content, final_url)
-                        print(f"[SELENIUM] Parsed {len(items)} items", file=sys.stderr, flush=True)
                     
                     items = convert_items_gbp_to_eur(items)
-                    print(f"[SELENIUM] {len(items)} após GBP→EUR", file=sys.stderr, flush=True)
                     items = apply_price_adjustments(items, final_url)
-                    print(f"[SELENIUM] {len(items)} após ajustes", file=sys.stderr, flush=True)
                     
                     if items:
                         print(f"[SELENIUM] ✅ {len(items)} carros encontrados!", file=sys.stderr, flush=True)
-                        # APLICAR NORMALIZE_AND_SORT para adicionar campo 'group'
                         items = normalize_and_sort(items, supplier_priority=None)
-                        # FILTRAR APENAS AUTOMÁTICOS
                         items = filter_automatic_only(items)
-                        # DEBUG CRÍTICO: suppliers e AutoPrudente
                         _suppliers = {}
                         for _it in items:
                             _s = _it.get('supplier', '(empty)')
                             _suppliers[_s] = _suppliers.get(_s, 0) + 1
-                        print(f"[API] 🔍 SUPPLIERS: {dict(sorted(_suppliers.items(), key=lambda x: -x[1])[:15])}", file=sys.stderr, flush=True)
-                        _aup = sum(1 for _it in items if 'prudente' in (_it.get('supplier','') or '').lower())
-                        import json as _jd
-                        _resp = {
+                        print(f"[API] SUPPLIERS: {dict(sorted(_suppliers.items(), key=lambda x: -x[1])[:15])}", file=sys.stderr, flush=True)
+                        return _no_store_json({
                             "ok": True,
                             "items": items,
                             "location": location,
@@ -13418,18 +13206,14 @@ async def track_by_params(request: Request):
                             "end_date": end_dt.date().isoformat(),
                             "end_time": end_dt.strftime("%H:%M"),
                             "days": days,
-                        }
-                        _jsz = len(_jd.dumps(_resp))
-                        print(f"[API] 📊 FINAL: {len(items)} items, AutoPrudente={_aup}, JSON={_jsz} bytes ({_jsz/1024:.0f}KB)", file=sys.stderr, flush=True)
-                        if _aup > 0:
-                            _sample = next((_it for _it in items if 'prudente' in (_it.get('supplier','') or '').lower()), None)
-                            if _sample:
-                                print(f"[API] 📊 AUP sample: supplier='{_sample.get('supplier')}', car='{_sample.get('car')}', group='{_sample.get('group')}'", file=sys.stderr, flush=True)
-                        # SUCESSO! Retornar resultados
-                        return _no_store_json(_resp)
+                        })
                 else:
                     print(f"[SELENIUM] ⚠️ URL s/b NÃO obtida! URL: {final_url}", file=sys.stderr, flush=True)
-                    driver.quit()
+                    if driver:
+                        try:
+                            driver.quit()
+                        except Exception:
+                            pass
                     # Fallback: tentar POST direto para /do/list/{lang}
                     try:
                         import requests
@@ -15009,15 +14793,6 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 cards_with_name += 1
             else:
                 logging.debug(f"   ⚠️  [CARD-NAME] Nome NÃO encontrado")
-            # Diagnostic logging for specific problematic cards
-            if car_name and ('ford focus' in car_name.lower() and 'sw' in car_name.lower()):
-                supplier_preview = ""
-                for im in card.select("img[src]"):
-                    src = im.get("src") or ""
-                    if 'logo_' in src:
-                        supplier_preview = src
-                        break
-                logging.warning(f"🔍 [FORD-FOCUS-SW-DEBUG] car='{car_name}' | price='{price_text}' | supplier_imgs={supplier_preview}")
             # supplier: try to extract provider code from logo_XXX.* in img src, then map via alias
             supplier = ""
             try:
