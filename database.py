@@ -46,8 +46,8 @@ if USE_POSTGRES:
         'sslmode': 'require',  # Force SSL for stable connections
         'connect_timeout': 10,
         'keepalives': 1,
-        'keepalives_idle': 30,
-        'keepalives_interval': 10,
+        'keepalives_idle': 5,
+        'keepalives_interval': 5,
         'keepalives_count': 5,
         'application_name': 'carscraping_app',
         'options': '-c statement_timeout=120000 -c idle_in_transaction_session_timeout=60000',
@@ -482,8 +482,7 @@ def release_db(conn, validate=False):
                     logging.info(f"Closing stale connection instead of returning to pool: {e}")
                     try:
                         connection_pool.putconn(actual_conn, close=True)
-                    except Exception as close_err:
-                        # If pool does not recognize the connection, just close it directly
+                    except:
                         try:
                             actual_conn.close()
                         except:
