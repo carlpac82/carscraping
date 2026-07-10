@@ -4248,6 +4248,50 @@ LOCATION_CODES = {
     "aeroporto de faro": "FAO01",
 }
 
+# Global lock ID for application migrations. Only one worker may hold this lock,
+# preventing concurrent DDL (e.g. ALTER TABLE) from causing deadlocks at startup.
+_MIGRATION_LOCK_ID = 4242424242424242
+
+
+def _acquire_migration_lock(conn, max_wait_seconds=30):
+    """Try to acquire a PostgreSQL advisory lock for migrations. Returns True if acquired."""
+    import time
+    if not _is_postgresql_connection(conn):
+        return True
+    cursor = conn.cursor()
+    try:
+        start = time.time()
+        while True:
+            cursor.execute("SELECT pg_try_advisory_lock(%s)", (_MIGRATION_LOCK_ID,))
+            acquired = cursor.fetchone()[0]
+            if acquired:
+                logging.info(f"🔒 Migration advisory lock acquired ({_MIGRATION_LOCK_ID})")
+                return True
+            if time.time() - start > max_wait_seconds:
+                logging.warning(f"⏱️ Timeout waiting for migration advisory lock ({_MIGRATION_LOCK_ID})")
+                return False
+            logging.info(f"⏳ Waiting for migration advisory lock ({_MIGRATION_LOCK_ID})...")
+            time.sleep(0.5)
+    finally:
+        cursor.close()
+
+
+def _release_migration_lock(conn):
+    """Release the PostgreSQL advisory lock acquired by _acquire_migration_lock."""
+    if not _is_postgresql_connection(conn):
+        return
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT pg_advisory_unlock(%s)", (_MIGRATION_LOCK_ID,))
+        released = cursor.fetchone()[0]
+        if released:
+            logging.info(f"🔓 Migration advisory lock released ({_MIGRATION_LOCK_ID})")
+    except Exception as e:
+        logging.warning(f"⚠️ Could not release migration advisory lock: {e}")
+    finally:
+        cursor.close()
+
+
 def init_db():
     """Initialize all database tables (works with both SQLite and PostgreSQL)"""
     
@@ -4264,6 +4308,13 @@ def init_db():
     
     with _db_lock:
         conn = _db_connect()  # Use _db_connect() instead of direct sqlite3.connect()
+        
+        # Serialize migrations across workers to avoid deadlocks on concurrent DDL
+        lock_acquired = _acquire_migration_lock(conn)
+        if not lock_acquired:
+            logging.warning("⏭️ Could not acquire migration lock; skipping init_db")
+            conn.close()
+            return
         
         # Detect if we're using PostgreSQL or SQLite using the robust detection function
         import os
@@ -4978,6 +5029,10 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_notification_history ON notification_history(sent_at DESC, status)", "idx_notification_history")
             
         finally:
+            try:
+                _release_migration_lock(conn)
+            except Exception:
+                pass
             try:
                 # Fazer rollback antes de commit para limpar qualquer transação abortada
                 conn.rollback()
