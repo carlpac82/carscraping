@@ -209,9 +209,14 @@ def _setup_chrome_driver():
 
 def _ensure_eur_currency(driver):
     """Forçar moeda EUR no CarJet via cookies e UI seletor"""
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+
     try:
-        # 1. Definir cookies EUR
-        driver.get("https://www.carjet.com")
+        # 1. Abrir homepage PT e definir cookies EUR
+        driver.get("https://www.carjet.com/aluguel-carros/index.htm")
+        _human_delay(1.0, 2.0)
         driver.add_cookie({"name": "monedaForzada", "value": "EUR", "domain": ".carjet.com"})
         driver.add_cookie({"name": "moneda", "value": "EUR", "domain": ".carjet.com"})
         driver.add_cookie({"name": "currency", "value": "EUR", "domain": ".carjet.com"})
@@ -219,27 +224,82 @@ def _ensure_eur_currency(driver):
         driver.add_cookie({"name": "idioma", "value": "PT", "domain": ".carjet.com"})
         driver.add_cookie({"name": "lang", "value": "pt", "domain": ".carjet.com"})
         print("[BATCH] 🍪 Cookies EUR definidos", file=sys.stderr, flush=True)
+        # Recarregar para que os cookies sejam enviados
+        driver.get("https://www.carjet.com/aluguel-carros/index.htm")
+        _human_delay(1.5, 2.5)
     except Exception as e:
         print(f"[BATCH] ⚠️ Erro a definir cookies EUR: {e}", file=sys.stderr, flush=True)
 
-    # 2. Clicar no seletor de moeda EUR se aparecer
+    # 2. Clicar no dropdown de moeda e selecionar EUR
     try:
-        clicked = driver.execute_script("""
-            // Dropdown / links de moeda
-            const links = document.querySelectorAll('a, button, li, span, div');
-            for (let el of links) {
-                const text = (el.textContent || el.getAttribute('title') || '').trim();
-                const dataVal = (el.getAttribute('data-value') || el.getAttribute('data-currency') || '').toUpperCase();
-                if (text === '€ EUR' || text === 'EUR' || text === '€' || dataVal === 'EUR') {
-                    el.click();
-                    return 'clicked: ' + text;
+        result = driver.execute_script("""
+            // Procurar e clicar no trigger do dropdown de moeda
+            function findAndClickEUR() {
+                const all = document.querySelectorAll('a, button, li, span, div, input, select, option');
+                let trigger = null;
+                for (let el of all) {
+                    const text = (el.textContent || el.getAttribute('title') || '').trim();
+                    const cls = (el.className || '').toLowerCase();
+                    const dataVal = (el.getAttribute('data-value') || el.getAttribute('data-currency') || '').toUpperCase();
+                    const dataToggle = (el.getAttribute('data-toggle') || '').toLowerCase();
+                    if (dataVal === 'EUR' || text === '€ EUR' || text === 'EUR' || text === '€') {
+                        // Clicar diretamente se for a opção EUR
+                        el.click();
+                        return 'clicked_eur_option: ' + text;
+                    }
+                    if (cls.includes('currency') || dataToggle.includes('currency') || text.includes('US$') || text.includes('USD') || text.includes('£') || text.includes('GBP')) {
+                        trigger = el;
+                    }
                 }
+                if (trigger) {
+                    trigger.click();
+                    return 'opened_currency_dropdown: ' + trigger.textContent.trim().substring(0, 50);
+                }
+                return 'no_currency_ui';
             }
-            return 'no_eur_selector';
+            return findAndClickEUR();
         """)
-        if clicked and clicked != 'no_eur_selector':
-            print(f"[BATCH] 💶 Seletor de moeda EUR clicado: {clicked}", file=sys.stderr, flush=True)
+        print(f"[BATCH] 💶 Moeda UI passo 1: {result}", file=sys.stderr, flush=True)
+
+        # Se abrimos dropdown, tentar clicar na opção EUR após aparecer
+        if result and result.startswith('opened_currency_dropdown'):
             time.sleep(1)
+            clicked_eur = driver.execute_script("""
+                const all = document.querySelectorAll('a, button, li, span, div, input, option');
+                for (let el of all) {
+                    const text = (el.textContent || el.getAttribute('title') || '').trim();
+                    const dataVal = (el.getAttribute('data-value') || el.getAttribute('data-currency') || '').toUpperCase();
+                    if (dataVal === 'EUR' || text === '€ EUR' || text === 'EUR' || text === '€') {
+                        el.click();
+                        return 'clicked_eur_after_dropdown: ' + text;
+                    }
+                }
+                return 'no_eur_option_in_dropdown';
+            """)
+            print(f"[BATCH] 💶 Moeda UI passo 2: {clicked_eur}", file=sys.stderr, flush=True)
+            time.sleep(1)
+
+        # Fallback: tentar via WebDriverWait seletores comuns
+        try:
+            wait = WebDriverWait(driver, 5)
+            # Trigger dropdown
+            triggers = driver.find_elements(By.CSS_SELECTOR, "[class*='currency'], [data-toggle*='currency'], .currency-selector, .select-currency")
+            for trig in triggers:
+                if trig.is_displayed():
+                    trig.click()
+                    time.sleep(0.5)
+                    break
+            # Opção EUR
+            eur_options = driver.find_elements(By.XPATH, "//*[contains(text(), '€ EUR') or @data-value='EUR' or @data-currency='EUR']")
+            for opt in eur_options:
+                if opt.is_displayed():
+                    opt.click()
+                    print("[BATCH] 💶 Seletor EUR clicado via WebDriver", file=sys.stderr, flush=True)
+                    time.sleep(1)
+                    break
+        except Exception as e2:
+            print(f"[BATCH] ⚠️ WebDriver moeda fallback falhou: {e2}", file=sys.stderr, flush=True)
+
     except Exception as e:
         print(f"[BATCH] ⚠️ Erro ao clicar seletor EUR: {e}", file=sys.stderr, flush=True)
 
