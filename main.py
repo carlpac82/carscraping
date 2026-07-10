@@ -4226,13 +4226,24 @@ def _fx_rate_gbp_eur(timeout: float = 5.0) -> float:
 
 def _parse_amount(s: str) -> Optional[float]:
     try:
+        s = (s or "").strip()
+        if not s:
+            return None
+
+        # Discount patterns like "-25%US$285,75US$214,31":
+        # the final (last) numeric amount is the price after discount.
+        if "%" in s:
+            matches = re.findall(r"([0-9][0-9\.,\s]*)", s)
+            if matches:
+                s = matches[-1]
+
         m = re.search(r"([0-9][0-9\.,\s]*)", s or "")
         if not m:
             return None
         num = m.group(1).replace("\u00a0", "").replace(" ", "")
         has_comma = "," in num
         has_dot = "." in num
-        
+
         # Formato europeu: 1.234,56 (ponto = milhares, vírgula = decimais)
         if has_comma and has_dot:
             num = num.replace(".", "").replace(",", ".")
@@ -4251,7 +4262,7 @@ def _parse_amount(s: str) -> Optional[float]:
                 num = "".join(parts)
             # Caso contrário, é decimal (12.34)
             # num já está correto
-        
+
         v = float(num)
         return v
     except Exception:
@@ -17240,6 +17251,8 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
             price_curr = "EUR"
         elif "£" in price_text_in or _re2.search(r"\bGBP\b", price_text_in, _re2.I):
             price_curr = "GBP"
+        elif "US$" in price_text_in or _re2.search(r"\bUSD\b", price_text_in, _re2.I):
+            price_curr = "USD"
         # Convert GBP -> EUR for display and sorting
         if price_curr == "GBP" and price_num is not None:
             try:
