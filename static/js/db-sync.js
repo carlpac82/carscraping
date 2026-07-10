@@ -149,7 +149,8 @@
                     try {
                         rules = JSON.parse(currentData.rules || '{}');
                     } catch (e) {
-                        console.error('[DB-SYNC] ❌ Failed to parse rules:', e);
+                        console.error('[DB-SYNC] ❌ Failed to parse rules (corrupted localStorage), clearing:', e);
+                        localStorage.removeItem('automatedPriceRules');
                         return;
                     }
                     

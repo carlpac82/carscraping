@@ -1385,6 +1385,21 @@
         
         // ========== DATABASE BACKUP FOR RULES ==========
         
+        function safeLoadAutomatedPriceRules() {
+            const raw = localStorage.getItem('automatedPriceRules') || '{}';
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    return parsed;
+                }
+                console.warn('[RULES-LOAD] Parsed rules is not an object, resetting');
+            } catch (e) {
+                console.error('[RULES-LOAD] Corrupted automatedPriceRules in localStorage, resetting:', e, raw);
+            }
+            localStorage.removeItem('automatedPriceRules');
+            return {};
+        }
+        
         async function syncRulesToDatabase() {
             /**
              * CRITICAL: Backup automatedPriceRules to database
@@ -5370,7 +5385,7 @@
                 progressFill.style.width = '100%';
                 
                 // STEP 2: Calculate Auto prices based on strategies (using ALL cars from search)
-                const automatedRules = JSON.parse(localStorage.getItem('automatedPriceRules') || '{}');
+                const automatedRules = safeLoadAutomatedPriceRules();
                 const date = new Date(pickupDate);
                 const month = date.getMonth() + 1; // 1-12
                 
@@ -8745,7 +8760,7 @@ Continue?`);
             
             // Apply the strategy to automated price rules
             const location = document.getElementById('aiLocation').value;
-            let rules = JSON.parse(localStorage.getItem('automatedPriceRules') || '{}');
+            let rules = safeLoadAutomatedPriceRules();
             
             if (!rules[location]) rules[location] = {};
             if (!rules[location][group]) rules[location][group] = { months: {} };
