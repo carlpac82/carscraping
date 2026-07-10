@@ -1303,12 +1303,20 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
 
 # LIFESPAN CONTEXT MANAGER (replaces deprecated @app.on_event)
 # ============================================================
+
+# Scheduler advisory lock: only one Uvicorn worker should run the scheduler.
+# Uvicorn --workers does not set WORKER_INDEX, so we use a PostgreSQL lock.
+_SCHEDULER_LOCK_ID = 987654321
+_scheduler_lock_conn = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application startup and shutdown events"""
+    global _scheduler_lock_conn
+
     # STARTUP EVENTS
     logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.now().isoformat()}")
-    
+
     # Start connection auto-cleanup scheduler (PostgreSQL only)
     try:
         if _USE_NEW_DB and USE_POSTGRES:
@@ -1317,7 +1325,7 @@ async def lifespan(app: FastAPI):
             logging.info("✅ PostgreSQL connection auto-cleanup enabled (every 5 minutes)")
     except Exception as e:
         logging.warning(f"⚠️ Auto-cleanup scheduler error: {e}")
-    
+
     # Initialize database tables (ONLY on first worker to avoid race conditions)
     # No Railway, usar WORKER_INDEX para identificar o worker principal
     worker_index = os.environ.get('WORKER_INDEX', '0')
@@ -1451,30 +1459,48 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.error(f"❌ Background Jobs Manager initialization failed: {e}")
     
-    # Automated scheduler - APENAS NO WORKER PRINCIPAL
-    # Evita emails duplicados (cada worker executaria o scheduler)
-    import multiprocessing
-    current_process = multiprocessing.current_process()
+    # Automated scheduler - APENAS NUM WORKER (via PostgreSQL advisory lock)
+    # Uvicorn --workers nao define WORKER_INDEX, por isso usamos um lock da BD.
     worker_pid = os.getpid()
-    
-    # No Railway, usar variável de ambiente WORKER_INDEX para identificar o worker principal
-    # WORKER_INDEX=0 é o worker principal
-    worker_index = os.environ.get('WORKER_INDEX', '0')
-    is_main_worker = worker_index == '0'
-    
-    # Se DISABLE_SCHEDULER=true, não executa o scheduler
     disable_scheduler = os.environ.get('DISABLE_SCHEDULER', 'false').lower() == 'true'
-    
-    if is_main_worker and not disable_scheduler:
+    should_run_scheduler = False
+
+    if not disable_scheduler and _USE_NEW_DB and USE_POSTGRES:
+        try:
+            import psycopg2
+            from database import DB_CONFIG
+            _scheduler_lock_conn = psycopg2.connect(**DB_CONFIG)
+            if _scheduler_lock_conn:
+                lock_cursor = _scheduler_lock_conn.cursor()
+                lock_cursor.execute("SELECT pg_try_advisory_lock(%s)", (_SCHEDULER_LOCK_ID,))
+                got_lock = lock_cursor.fetchone()[0]
+                lock_cursor.close()
+                if got_lock:
+                    should_run_scheduler = True
+                    logging.info(f"🔒 Worker {worker_pid}: scheduler lock acquired")
+                else:
+                    logging.info(f"⏭️ Worker {worker_pid}: another worker holds scheduler lock")
+                    try:
+                        _scheduler_lock_conn.close()
+                    except:
+                        pass
+                    _scheduler_lock_conn = None
+        except Exception as e:
+            logging.warning(f"⚠️ Worker {worker_pid}: could not acquire scheduler lock: {e}")
+    elif not disable_scheduler:
+        # SQLite/local fallback: run scheduler in this worker
+        should_run_scheduler = True
+
+    if should_run_scheduler and not disable_scheduler:
         try:
             from automated_scheduler import setup_scheduled_tasks
             setup_scheduled_tasks()
-            logging.info(f"✅ Automated scheduler initialized (worker {worker_pid}, WORKER_INDEX={worker_index})")
+            logging.info(f"✅ Automated scheduler initialized (worker {worker_pid})")
         except Exception as e:
             logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
     else:
-        logging.info(f"⏭️ Skipping scheduler initialization (worker {worker_pid}, WORKER_INDEX={worker_index}, is_main={is_main_worker}, disabled={disable_scheduler})")
-    
+        logging.info(f"⏭️ Skipping scheduler initialization (worker {worker_pid}, disabled={disable_scheduler})")
+
     # Load AI models
     try:
         import vehicle_damage_ai
@@ -1482,34 +1508,45 @@ async def lifespan(app: FastAPI):
         logging.debug("✅ AI models loaded at startup")
     except Exception as e:
         logging.debug(f"⚠️ Could not load AI models: {e}")
-    
-    # Backup scheduler - APENAS NO WORKER PRINCIPAL
-    # Evita backups duplicados (cada worker executaria o scheduler)
-    if is_main_worker:
+
+    # Backup scheduler - APENAS NO WORKER QUE TEM O LOCK
+    if should_run_scheduler:
         try:
             if scheduler:
                 scheduler.start()
-                logging.info(f"✅ Backup scheduler started (worker {worker_pid} - MAIN ONLY) - {len(scheduler.get_jobs())} jobs")
+                logging.info(f"✅ Backup scheduler started (worker {worker_pid} - LOCK HOLDER) - {len(scheduler.get_jobs())} jobs")
         except Exception as e:
             logging.error(f"❌ Failed to start backup scheduler: {e}")
     else:
-        logging.info(f"⏭️ Skipping backup scheduler (worker {worker_pid} - not main)")
-    
+        logging.info(f"⏭️ Skipping backup scheduler (worker {worker_pid} - not lock holder)")
+
     yield
-    
+
     # SHUTDOWN EVENTS
     try:
         background_jobs.stop_job_manager()
         logging.info("✅ Background Jobs Manager stopped")
     except Exception as e:
         logging.error(f"❌ Error stopping Background Jobs Manager: {e}")
-    
+
     try:
         from automated_scheduler import shutdown_scheduler
         shutdown_scheduler()
         logging.info("✅ Automated scheduler stopped")
     except Exception as e:
         logging.error(f"❌ Error stopping scheduler: {str(e)}")
+
+    # Release scheduler lock
+    try:
+        if _scheduler_lock_conn:
+            lock_cursor = _scheduler_lock_conn.cursor()
+            lock_cursor.execute("SELECT pg_advisory_unlock(%s)", (_SCHEDULER_LOCK_ID,))
+            lock_cursor.close()
+            _scheduler_lock_conn.close()
+            _scheduler_lock_conn = None
+            logging.info("🔓 Scheduler lock released")
+    except Exception as e:
+        logging.warning(f"⚠️ Could not release scheduler lock: {e}")
 
 # Aumentar limite de payload para permitir dados completos (284 carros × ~2KB = ~568KB)
 app = FastAPI(
