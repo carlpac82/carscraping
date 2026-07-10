@@ -46,9 +46,10 @@ if USE_POSTGRES:
         'sslmode': 'require',  # Force SSL for stable connections
         'connect_timeout': 10,
         'keepalives': 1,
-        'keepalives_idle': 10,
+        'keepalives_idle': 5,
         'keepalives_interval': 5,
         'keepalives_count': 5,
+        'application_name': 'carscraping_app',
         'options': '-c statement_timeout=120000 -c idle_in_transaction_session_timeout=60000',
     }
     
@@ -98,7 +99,7 @@ class DatabaseConnection:
                                     cursor.close()
                                     break  # Connection is valid
                                 except Exception as health_err:
-                                    logging.warning(f"Connection from pool is stale: {health_err}. Getting new connection...")
+                                    logging.info(f"Connection from pool is stale: {health_err}. Getting new connection...")
                                     # Return bad connection and close it
                                     try:
                                         connection_pool.putconn(self.conn, close=True)
@@ -424,7 +425,7 @@ def get_db():
                     cursor.close()
                     break  # Connection is valid, exit retry loop
                 except Exception as health_err:
-                    logging.warning(f"⚠️ Connection from pool is stale: {health_err}. Getting fresh connection...")
+                    logging.info(f"Connection from pool is stale: {health_err}. Getting fresh connection...")
                     # Return bad connection and close it
                     try:
                         connection_pool.putconn(conn, close=True)
@@ -478,7 +479,7 @@ def release_db(conn, validate=False):
                     connection_pool.putconn(actual_conn)
                 except Exception as e:
                     # Connection is bad, close it instead of returning to pool
-                    logging.warning(f"⚠️ Closing stale connection instead of returning to pool: {e}")
+                    logging.info(f"Closing stale connection instead of returning to pool: {e}")
                     try:
                         connection_pool.putconn(actual_conn, close=True)
                     except:
