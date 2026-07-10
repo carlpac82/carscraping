@@ -214,7 +214,7 @@ def _ensure_eur_currency(driver):
     from selenium.webdriver.support import expected_conditions as EC
 
     try:
-        # 1. Abrir homepage PT e definir cookies EUR
+        # 1. Abrir homepage PT e definir cookies EUR/PT
         driver.get("https://www.carjet.com/aluguel-carros/index.htm")
         _human_delay(1.0, 2.0)
         driver.add_cookie({"name": "monedaForzada", "value": "EUR", "domain": ".carjet.com"})
@@ -223,14 +223,38 @@ def _ensure_eur_currency(driver):
         driver.add_cookie({"name": "country", "value": "PT", "domain": ".carjet.com"})
         driver.add_cookie({"name": "idioma", "value": "PT", "domain": ".carjet.com"})
         driver.add_cookie({"name": "lang", "value": "pt", "domain": ".carjet.com"})
-        print("[BATCH] 🍪 Cookies EUR definidos", file=sys.stderr, flush=True)
+        print("[BATCH] 🍪 Cookies EUR/PT definidos", file=sys.stderr, flush=True)
         # Recarregar para que os cookies sejam enviados
         driver.get("https://www.carjet.com/aluguel-carros/index.htm")
         _human_delay(1.5, 2.5)
     except Exception as e:
-        print(f"[BATCH] ⚠️ Erro a definir cookies EUR: {e}", file=sys.stderr, flush=True)
+        print(f"[BATCH] ⚠️ Erro a definir cookies EUR/PT: {e}", file=sys.stderr, flush=True)
 
-    # 2. Clicar no dropdown de moeda e selecionar EUR
+    # 2. Forçar idioma Português se o site apareceu noutro idioma
+    try:
+        lang_result = driver.execute_script("""
+            function forcePortuguese() {
+                const all = document.querySelectorAll('a, button, li, span, div');
+                for (let el of all) {
+                    const text = (el.textContent || el.getAttribute('title') || '').trim();
+                    const dataVal = (el.getAttribute('data-value') || el.getAttribute('data-lang') || el.getAttribute('data-language') || '').toUpperCase();
+                    const onclick = (el.getAttribute('onclick') || '').toLowerCase();
+                    if (text === 'Português' || text === 'Portuguese' || dataVal === 'PT' || onclick.includes('pt')) {
+                        el.click();
+                        return 'clicked_portuguese: ' + text;
+                    }
+                }
+                return 'no_portuguese_selector';
+            }
+            return forcePortuguese();
+        """)
+        print(f"[BATCH] 🌐 Idioma: {lang_result}", file=sys.stderr, flush=True)
+        if lang_result and lang_result.startswith('clicked_portuguese'):
+            _human_delay(2.0, 3.0)
+    except Exception as e:
+        print(f"[BATCH] ⚠️ Erro ao clicar Português: {e}", file=sys.stderr, flush=True)
+
+    # 3. Clicar no dropdown de moeda e selecionar EUR
     try:
         result = driver.execute_script("""
             // Procurar e clicar no trigger do dropdown de moeda
