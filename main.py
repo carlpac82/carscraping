@@ -4360,30 +4360,28 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_auto_prices_history ON automated_prices_history(location, grupo, pickup_date, created_at)", "idx_auto_prices_history")
             
             # Add source column to automated_prices_history if it doesn't exist (migration)
-            # NOTA: Esta migração só corre no worker principal (verificado em init_app com WORKER_INDEX)
-            max_retries = 3
-            retry_count = 0
-            while retry_count < max_retries:
-                try:
-                    conn.execute("ALTER TABLE automated_prices_history ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'")
-                    conn.commit()
-                    logging.info("✅ Added 'source' column to automated_prices_history table")
-                    break
-                except Exception as e:
-                    conn.rollback()
-                    error_msg = str(e).lower()
-                    if 'duplicate column' in error_msg or 'already exists' in error_msg:
-                        logging.info("ℹ️ Column 'source' already exists in automated_prices_history")
-                        break
-                    elif 'deadlock' in error_msg:
-                        retry_count += 1
-                        if retry_count >= max_retries:
-                            logging.error(f"❌ Failed to add 'source' column after {max_retries} retries: {e}")
-                            raise
-                        logging.warning(f"⚠️ Deadlock detected, retry {retry_count}/{max_retries}...")
-                        time.sleep(0.5 * retry_count)  # Exponential backoff
-                    else:
-                        logging.error(f"❌ Failed to add 'source' column to automated_prices_history: {e}")
+            # Use DO block to check existence first and avoid deadlocks between concurrent workers
+            try:
+                conn.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'automated_prices_history' AND column_name = 'source'
+                        ) THEN
+                            ALTER TABLE automated_prices_history ADD COLUMN source TEXT DEFAULT 'manual';
+                        END IF;
+                    END $$;
+                """)
+                conn.commit()
+                logging.info("✅ Added 'source' column to automated_prices_history table")
+            except Exception as e:
+                conn.rollback()
+                error_msg = str(e).lower()
+                if 'duplicate column' in error_msg or 'already exists' in error_msg or 'duplicate object' in error_msg:
+                    logging.info("ℹ️ Column 'source' already exists in automated_prices_history")
+                else:
+                    logging.error(f"❌ Failed to add 'source' column to automated_prices_history: {e}")
             
             # Tabela para logs do sistema (evitar perda em disco efêmero)
             conn.execute(
