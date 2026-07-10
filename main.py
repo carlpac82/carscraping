@@ -54493,9 +54493,15 @@ async def get_inspections_history(request: Request):
                             SELECT vs.swap_datetime, vs.old_plate, vs.new_plate, vs.old_kms, vs.old_fuel, 
                                    vs.new_kms, vs.new_fuel, vs.employee_name, vi.inspection_number
                             FROM vehicle_swaps vs
-                            LEFT JOIN vehicle_inspections vi ON vi.vehicle_plate = vs.old_plate 
+                            LEFT JOIN (
+                                SELECT DISTINCT ON (vehicle_plate, contract_number)
+                                       id, inspection_number, vehicle_plate, contract_number
+                                FROM vehicle_inspections
+                                WHERE inspection_type = 'checkin'
+                                  AND COALESCE(status, '') != 'replaced'
+                                ORDER BY vehicle_plate, contract_number, created_at DESC
+                            ) vi ON vi.vehicle_plate = vs.old_plate 
                                 AND vi.contract_number LIKE %s
-                                AND vi.inspection_type = 'checkin'
                             WHERE vs.rental_agreement_number = %s
                             ORDER BY vs.swap_datetime DESC
                         """, (f"{ra_number}%", ra_number))
@@ -54504,9 +54510,23 @@ async def get_inspections_history(request: Request):
                             SELECT vs.swap_datetime, vs.old_plate, vs.new_plate, vs.old_kms, vs.old_fuel, 
                                    vs.new_kms, vs.new_fuel, vs.employee_name, vi.inspection_number
                             FROM vehicle_swaps vs
-                            LEFT JOIN vehicle_inspections vi ON vi.vehicle_plate = vs.old_plate 
+                            LEFT JOIN (
+                                SELECT vi.id, vi.inspection_number, vi.vehicle_plate, vi.contract_number
+                                FROM vehicle_inspections vi
+                                INNER JOIN (
+                                    SELECT vehicle_plate, contract_number, MAX(created_at) AS max_created_at
+                                    FROM vehicle_inspections
+                                    WHERE inspection_type = 'checkin'
+                                      AND COALESCE(status, '') != 'replaced'
+                                    GROUP BY vehicle_plate, contract_number
+                                ) latest ON vi.vehicle_plate = latest.vehicle_plate
+                                    AND vi.contract_number = latest.contract_number
+                                    AND vi.created_at = latest.max_created_at
+                                WHERE vi.inspection_type = 'checkin'
+                                  AND COALESCE(vi.status, '') != 'replaced'
+                                GROUP BY vi.id, vi.inspection_number, vi.vehicle_plate, vi.contract_number
+                            ) vi ON vi.vehicle_plate = vs.old_plate 
                                 AND vi.contract_number LIKE ?
-                                AND vi.inspection_type = 'checkin'
                             WHERE vs.rental_agreement_number = ?
                             ORDER BY vs.swap_datetime DESC
                         """, (f"{ra_number}%", ra_number))
