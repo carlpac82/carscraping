@@ -207,6 +207,43 @@ def _setup_chrome_driver():
     return driver
 
 
+def _ensure_eur_currency(driver):
+    """Forçar moeda EUR no CarJet via cookies e UI seletor"""
+    try:
+        # 1. Definir cookies EUR
+        driver.get("https://www.carjet.com")
+        driver.add_cookie({"name": "monedaForzada", "value": "EUR", "domain": ".carjet.com"})
+        driver.add_cookie({"name": "moneda", "value": "EUR", "domain": ".carjet.com"})
+        driver.add_cookie({"name": "currency", "value": "EUR", "domain": ".carjet.com"})
+        driver.add_cookie({"name": "country", "value": "PT", "domain": ".carjet.com"})
+        driver.add_cookie({"name": "idioma", "value": "PT", "domain": ".carjet.com"})
+        driver.add_cookie({"name": "lang", "value": "pt", "domain": ".carjet.com"})
+        print("[BATCH] 🍪 Cookies EUR definidos", file=sys.stderr, flush=True)
+    except Exception as e:
+        print(f"[BATCH] ⚠️ Erro a definir cookies EUR: {e}", file=sys.stderr, flush=True)
+
+    # 2. Clicar no seletor de moeda EUR se aparecer
+    try:
+        clicked = driver.execute_script("""
+            // Dropdown / links de moeda
+            const links = document.querySelectorAll('a, button, li, span, div');
+            for (let el of links) {
+                const text = (el.textContent || el.getAttribute('title') || '').trim();
+                const dataVal = (el.getAttribute('data-value') || el.getAttribute('data-currency') || '').toUpperCase();
+                if (text === '€ EUR' || text === 'EUR' || text === '€' || dataVal === 'EUR') {
+                    el.click();
+                    return 'clicked: ' + text;
+                }
+            }
+            return 'no_eur_selector';
+        """)
+        if clicked and clicked != 'no_eur_selector':
+            print(f"[BATCH] 💶 Seletor de moeda EUR clicado: {clicked}", file=sys.stderr, flush=True)
+            time.sleep(1)
+    except Exception as e:
+        print(f"[BATCH] ⚠️ Erro ao clicar seletor EUR: {e}", file=sys.stderr, flush=True)
+
+
 def _reject_cookies(driver):
     """Rejeitar cookies se aparecerem"""
     try:
@@ -690,6 +727,7 @@ def scrape_carjet_batch(
     try:
         _update_progress(status='starting_chrome')
         driver = _setup_chrome_driver()
+        _ensure_eur_currency(driver)
 
         # Timeout global (5 min por pesquisa + margem)
         total_timeout = len(searches) * 300 + 60
