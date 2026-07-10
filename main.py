@@ -14999,6 +14999,15 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 cards_with_name += 1
             else:
                 logging.debug(f"   ⚠️  [CARD-NAME] Nome NÃO encontrado")
+            # Diagnostic logging for specific problematic cards
+            if car_name and ('ford focus' in car_name.lower() and 'sw' in car_name.lower()):
+                supplier_preview = ""
+                for im in card.select("img[src]"):
+                    src = im.get("src") or ""
+                    if 'logo_' in src:
+                        supplier_preview = src
+                        break
+                logging.warning(f"🔍 [FORD-FOCUS-SW-DEBUG] car='{car_name}' | price='{price_text}' | supplier_imgs={supplier_preview}")
             # supplier: try to extract provider code from logo_XXX.* in img src, then map via alias
             supplier = ""
             try:
