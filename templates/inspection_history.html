@@ -2769,6 +2769,51 @@
                                             Email
                                         </button>
                                     </div>
+                                    
+                                    <!-- Croqui de Danos da Viatura Antiga -->
+                                    ${swapHistory.old_inspection && swapHistory.old_inspection.damage_croqui ? `
+                                    <div class="mt-4">
+                                        <h5 class="text-sm font-semibold text-orange-900 mb-2">Croqui de Danos da Viatura Antiga (${swapHistory.old_plate})</h5>
+                                        <div class="bg-white border border-gray-200 rounded-lg p-2">
+                                            <img src="${swapHistory.old_inspection.damage_croqui}" 
+                                                 alt="Croqui de Danos" 
+                                                 class="w-full max-w-2xl mx-auto rounded-lg"
+                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-red-500>Erro ao carregar croqui</p>'">
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    <!-- Fotografias da Viatura Antiga -->
+                                    ${swapHistory.old_inspection && swapHistory.old_inspection.photos && swapHistory.old_inspection.photos.length > 0 ? `
+                                    <div class="mt-4">
+                                        <h5 class="text-sm font-semibold text-orange-900 mb-2">Fotografias da Viatura Antiga (${swapHistory.old_plate})</h5>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                            ${swapHistory.old_inspection.photos.map(photo => {
+                                                const photoLabels = {
+                                                    'front': 'Frente',
+                                                    'front_left': 'Frente Direita',
+                                                    'left': 'Lado Esquerdo',
+                                                    'back_left': 'Traseira Esquerda',
+                                                    'back': 'Traseira',
+                                                    'back_right': 'Traseira Direita',
+                                                    'right': 'Lado Direito',
+                                                    'front_right': 'Frente Esquerda',
+                                                    'odometer': 'Conta-Quilómetros'
+                                                };
+                                                const label = photoLabels[photo.photo_type] || photo.photo_type;
+                                                return `
+                                                <div>
+                                                    <h6 class="text-xs font-semibold text-gray-700 mb-1">${label}</h6>
+                                                    <img src="${photo.image_data}" alt="${label}" 
+                                                         class="w-full h-32 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
+                                                         data-photo-key="old_${photo.photo_type}"
+                                                         onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             ` : ''}
@@ -7201,6 +7246,7 @@
                             new_plate: swapData.newPlate,
                             new_kms: swapData.newKms,
                             new_fuel: swapData.newFuel,
+                            create_inspection: true,
                             send_email: false,
                             client_email: '',
                             language: 'pt'
