@@ -75,6 +75,7 @@ SUPPLIER_MAP = {
     'TOP': 'TopCar',
     'LIS': 'Lisbon Cars',
     'GUA': 'Guerin',
+    'GUX': 'Guerin',
     'ADA': 'Ada',
     'IDE': 'Ideamerge',
     # Novos suppliers detectados

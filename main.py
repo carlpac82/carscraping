@@ -15034,6 +15034,7 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "ATR": "Autorent",
                     "AUU": "Auto Union",
                     "THR": "Thrifty",
+                    "GUX": "Guerin",
                     "HER": "Hertz",
                     "LOC": "Million",
                     "ICX": "International Car Hire",
