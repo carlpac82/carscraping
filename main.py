@@ -1539,10 +1539,20 @@ async def lifespan(app: FastAPI):
     # Release scheduler lock
     try:
         if _scheduler_lock_conn:
-            lock_cursor = _scheduler_lock_conn.cursor()
-            lock_cursor.execute("SELECT pg_advisory_unlock(%s)", (_SCHEDULER_LOCK_ID,))
-            lock_cursor.close()
-            _scheduler_lock_conn.close()
+            # If the underlying socket is already closed, PostgreSQL releases the
+            # advisory lock automatically when the session ends, so we can skip.
+            if getattr(_scheduler_lock_conn, 'closed', 0) == 0:
+                try:
+                    lock_cursor = _scheduler_lock_conn.cursor()
+                    lock_cursor.execute("SELECT pg_advisory_unlock(%s)", (_SCHEDULER_LOCK_ID,))
+                    lock_cursor.close()
+                except Exception as inner_e:
+                    # Ignore SSL/closed connection errors; lock will be released by server.
+                    logging.info(f"🔒 Scheduler lock release query skipped (connection closed): {inner_e}")
+            try:
+                _scheduler_lock_conn.close()
+            except Exception:
+                pass
             _scheduler_lock_conn = None
             logging.info("🔓 Scheduler lock released")
     except Exception as e:
