@@ -27,54 +27,126 @@ from typing import List, Dict, Any, Optional, Tuple
 
 CATEGORIES = ['MINI', 'COMP', 'FAMI', 'ESTA', 'SUVS', 'VANS', 'LUXU', 'AUTO']
 
-# Progresso global do batch (partilhado com endpoint de progresso)
-# Estrutura: { batch_id: { 'total': N, 'completed': M, 'status': 'running'|'done', 'results': {days: items}, 'cancelled': bool } }
 import threading
-_batch_progress = {}
-_batch_progress_lock = threading.Lock()
+import json as _json
+import os as _os
+
+# ─── PostgreSQL-backed batch progress (works across Railway replicas) ────────
+
+def _db_conn():
+    """Abrir ligação PostgreSQL rápida para progresso do batch"""
+    import psycopg2
+    url = _os.environ.get('DATABASE_URL', '')
+    if not url:
+        return None
+    try:
+        return psycopg2.connect(url, connect_timeout=5, sslmode='require')
+    except Exception:
+        return None
+
+def _ensure_batch_table():
+    """Criar tabela se não existir (chamado uma vez no startup)"""
+    conn = _db_conn()
+    if not conn:
+        return
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS batch_progress (
+                    batch_id TEXT PRIMARY KEY,
+                    data JSONB NOT NULL,
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """)
+        conn.commit()
+    except Exception as e:
+        print(f"[BATCH] ⚠️ Could not create batch_progress table: {e}", file=sys.stderr, flush=True)
+    finally:
+        conn.close()
+
+# Criar tabela ao importar o módulo
+try:
+    _ensure_batch_table()
+except Exception:
+    pass
 
 def get_batch_progress(batch_id: str) -> dict:
-    """Obter progresso atual de um batch"""
-    with _batch_progress_lock:
-        return _batch_progress.get(batch_id, {}).copy()
+    """Obter progresso atual de um batch (PostgreSQL)"""
+    conn = _db_conn()
+    if not conn:
+        return {}
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT data FROM batch_progress WHERE batch_id = %s", (batch_id,))
+            row = cur.fetchone()
+            return row[0] if row else {}
+    except Exception:
+        return {}
+    finally:
+        conn.close()
+
+def _set_batch_progress(batch_id: str, data: dict):
+    """Guardar/atualizar progresso na BD"""
+    conn = _db_conn()
+    if not conn:
+        return
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO batch_progress (batch_id, data, updated_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (batch_id) DO UPDATE
+                SET data = EXCLUDED.data, updated_at = NOW()
+            """, (batch_id, _json.dumps(data)))
+        conn.commit()
+    except Exception as e:
+        print(f"[BATCH] ⚠️ DB write error: {e}", file=sys.stderr, flush=True)
+    finally:
+        conn.close()
 
 def clear_batch_progress(batch_id: str):
-    """Limpar progresso de um batch terminado (apenas se done/error/cancelled E após 30s)"""
-    with _batch_progress_lock:
-        prog = _batch_progress.get(batch_id)
-        if prog:
-            status = prog.get('status')
-            # CRÍTICO: Só apagar se realmente terminou E passou tempo suficiente
-            if status in ['done', 'error', 'cancelled']:
-                # Verificar se já passou 30s desde que foi marcado como done
-                completed_at = prog.get('completed_at', 0)
-                if completed_at > 0:
-                    elapsed = time.time() - completed_at
-                    if elapsed < 30:
-                        print(f"[BATCH] ⏳ Batch {batch_id} done há {elapsed:.0f}s - aguardando 30s antes de limpar", file=sys.stderr, flush=True)
-                        return
-                _batch_progress.pop(batch_id, None)
-                print(f"[BATCH] ✅ Batch {batch_id} cleared (status={status})", file=sys.stderr, flush=True)
-            else:
-                print(f"[BATCH] ⚠️ Tentativa de apagar batch {batch_id} ainda {status} - IGNORADO", file=sys.stderr, flush=True)
+    """Limpar progresso de um batch terminado (após 30s)"""
+    prog = get_batch_progress(batch_id)
+    if not prog:
+        return
+    status = prog.get('status')
+    if status in ['done', 'error', 'cancelled']:
+        completed_at = prog.get('completed_at', 0)
+        if completed_at > 0:
+            elapsed = time.time() - completed_at
+            if elapsed < 30:
+                print(f"[BATCH] ⏳ Batch {batch_id} done há {elapsed:.0f}s - aguardando 30s antes de limpar", file=sys.stderr, flush=True)
+                return
+        conn = _db_conn()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM batch_progress WHERE batch_id = %s", (batch_id,))
+                conn.commit()
+                print(f"[BATCH] ✅ Batch {batch_id} cleared", file=sys.stderr, flush=True)
+            except Exception:
+                pass
+            finally:
+                conn.close()
+    else:
+        print(f"[BATCH] ⚠️ Tentativa de apagar batch {batch_id} ainda {status} - IGNORADO", file=sys.stderr, flush=True)
 
 def cancel_batch(batch_id: str) -> bool:
     """Cancelar um batch em execução"""
-    with _batch_progress_lock:
-        prog = _batch_progress.get(batch_id)
-        if prog and prog.get('status') == 'running':
-            prog['cancelled'] = True
-            prog['status'] = 'cancelled'
-            return True
-        return False
+    prog = get_batch_progress(batch_id)
+    if prog and prog.get('status') == 'running':
+        prog['cancelled'] = True
+        prog['status'] = 'cancelled'
+        _set_batch_progress(batch_id, prog)
+        return True
+    return False
 
 def is_batch_cancelled(batch_id: str) -> bool:
-    """Verificar se batch foi cancelado (thread-safe)"""
+    """Verificar se batch foi cancelado"""
     if not batch_id:
         return False
-    with _batch_progress_lock:
-        prog = _batch_progress.get(batch_id)
-        return prog and prog.get('cancelled', False)
+    prog = get_batch_progress(batch_id)
+    return bool(prog and prog.get('cancelled', False))
 
 
 def _setup_chrome_driver():
@@ -764,29 +836,28 @@ def scrape_carjet_batch(
     # Inicializar progresso se batch_id fornecido
     batch_id = kwargs.get('batch_id')
     if batch_id:
-        with _batch_progress_lock:
-            _batch_progress[batch_id] = {
-                'total': len(searches),
-                'completed': 0,
-                'status': 'starting',
-                'results': {},
-                'current_day': None,
-            }
+        _set_batch_progress(batch_id, {
+            'total': len(searches),
+            'completed': 0,
+            'status': 'starting',
+            'results': {},
+            'current_day': None,
+        })
 
     def _update_progress(day_key=None, items=None, status=None):
         if not batch_id:
             return
-        with _batch_progress_lock:
-            prog = _batch_progress.get(batch_id)
-            if not prog:
-                return
-            if status:
-                prog['status'] = status
-            if day_key is not None and items is not None:
-                prog['results'][str(day_key)] = items
-                prog['completed'] = len(prog['results'])
-            if day_key is not None and items is None:
-                prog['current_day'] = day_key
+        prog = get_batch_progress(batch_id)
+        if not prog:
+            return
+        if status:
+            prog['status'] = status
+        if day_key is not None and items is not None:
+            prog['results'][str(day_key)] = items
+            prog['completed'] = len(prog['results'])
+        if day_key is not None and items is None:
+            prog['current_day'] = day_key
+        _set_batch_progress(batch_id, prog)
 
     try:
         _update_progress(status='starting_chrome')
@@ -807,12 +878,9 @@ def scrape_carjet_batch(
 
         for idx, search in enumerate(searches):
             # Verificar se foi cancelado
-            if batch_id:
-                with _batch_progress_lock:
-                    prog = _batch_progress.get(batch_id)
-                    if prog and prog.get('cancelled'):
-                        print(f"[BATCH] 🛑 Batch cancelado pelo utilizador", file=sys.stderr, flush=True)
-                        break
+            if batch_id and is_batch_cancelled(batch_id):
+                print(f"[BATCH] 🛑 Batch cancelado pelo utilizador", file=sys.stderr, flush=True)
+                break
             
             days = search['days']
             start_dt = search['start_dt']
@@ -906,13 +974,14 @@ def scrape_carjet_batch(
         print(f"[BATCH] {status} {days}d: {len(items)} carros", file=sys.stderr, flush=True)
 
     # CRÍTICO: SEMPRE marcar status final
-    with _batch_progress_lock:
-        if batch_id and batch_id in _batch_progress:
-            current_status = _batch_progress[batch_id].get('status')
-            # Se ainda está running/starting, marcar como done
+    if batch_id:
+        prog = get_batch_progress(batch_id)
+        if prog:
+            current_status = prog.get('status')
             if current_status in ['running', 'starting', 'starting_chrome']:
-                _batch_progress[batch_id]['status'] = 'done'
-                _batch_progress[batch_id]['completed_at'] = time.time()  # Timestamp de conclusão
+                prog['status'] = 'done'
+                prog['completed_at'] = time.time()
+                _set_batch_progress(batch_id, prog)
                 print(f"[BATCH] ✅ Batch {batch_id} DONE", file=sys.stderr, flush=True)
     
     return results
