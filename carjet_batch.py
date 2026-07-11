@@ -594,7 +594,7 @@ def _update_search(driver, start_dt, end_dt, batch_id=None):
         const form = document.querySelector('#frm_search_cars') ||
                      document.querySelector('form[action*="list"]') ||
                      document.querySelector('form');
-        if (form) { form.submit(); return 'form_submit'; }
+        if (form) { HTMLFormElement.prototype.submit.call(form); return 'form_submit'; }
         if (typeof searchCars === 'function') { searchCars(); return 'searchCars()'; }
         return 'no_submit_found';
     """)
