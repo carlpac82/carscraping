@@ -53106,35 +53106,37 @@ async def save_ai_adjustment(request: Request):
 
 def _parse_price(price_value):
     """Parse price from various formats: '1.041,50 €', '21,35 €', '21.35', 21.35, etc.
-    
-    Handles European format with thousands separator:
-    - '1.041,50 €' → 1041.50 (dot = thousands, comma = decimal)
-    - '21,35 €' → 21.35 (only comma = decimal)
-    - '25.50' → 25.50 (dot = decimal, US format)
+    Also handles discount+USD strings like '-25%US$285,75US$214,31' (extracts final price).
     """
     if isinstance(price_value, (int, float)):
         return float(price_value)
     if not price_value:
         return 0.0
-    
-    # Convert to string and clean
-    price_str = str(price_value)
+
+    import re as _re
+    price_str = str(price_value).strip()
+
+    # Discount pattern: '-25%US$285,75US$214,31' → extract last numeric amount
+    if '%' in price_str:
+        nums = _re.findall(r'[0-9][0-9\.,]*', price_str)
+        if nums:
+            price_str = nums[-1]
+        else:
+            return 0.0
+
     # Remove currency symbols and whitespace
-    price_str = price_str.replace('€', '').replace('$', '').replace('£', '').strip()
-    price_str = price_str.replace(' ', '')
-    
-    # Handle European format with thousands separator
-    # Example: "1.041,50" (dot = thousands, comma = decimal)
+    price_str = _re.sub(r'[^\d\.,]', '', price_str).strip()
+
+    if not price_str:
+        return 0.0
+
+    # European format: 1.041,50 → dot=thousands, comma=decimal
     if ',' in price_str:
-        # European format: remove dots (thousands separator), replace comma with dot (decimal)
-        price_str = price_str.replace('.', '')  # Remove thousands separator
-        price_str = price_str.replace(',', '.')  # Convert decimal separator
-    # Otherwise assume dot is decimal separator (US format already correct)
-    
+        price_str = price_str.replace('.', '').replace(',', '.')
+
     try:
         return float(price_str)
     except (ValueError, AttributeError):
-        logging.warning(f"⚠️ Could not parse price: {price_value}")
         return 0.0
 
 @app.get("/api/ai/initialize-from-history")
