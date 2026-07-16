@@ -3947,8 +3947,18 @@
         // Close edit modal
         function closeEditModal() {
             if (window.currentEditModal) {
+                const savedPreviewModal = window.currentPreviewModal;
                 applyMacOSMinimizeAnimation(window.currentEditModal, currentTriggerButton);
                 window.currentEditModal = null;
+                // applyMacOSMinimizeAnimation always nullifies window.currentPreviewModal,
+                // so restore it after the animation finishes (450ms)
+                if (savedPreviewModal) {
+                    setTimeout(() => {
+                        if (!window.currentPreviewModal) {
+                            window.currentPreviewModal = savedPreviewModal;
+                        }
+                    }, 460);
+                }
             }
         }
         
@@ -4054,15 +4064,10 @@
                         }
                     }
                     
-                    // Close both modals after a short delay
+                    // Close only the edit modal after a short delay; leave preview modal open
                     setTimeout(() => {
-                        console.log('✅ Closing all modals...');
+                        console.log('✅ Closing edit modal...');
                         closeEditModal();
-                        // Also close view modal if it exists
-                        const viewModal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
-                        if (viewModal && viewModal !== window.currentEditModal) {
-                            document.body.removeChild(viewModal);
-                        }
                     }, 500);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
