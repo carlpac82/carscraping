@@ -274,17 +274,22 @@ def _detect_language_from_country(country: str) -> str:
     
     country_lower = country.lower().strip()
     
-    # French-speaking countries
-    french_countries = ['france', 'frança', 'belgium', 'bélgica', 'switzerland', 'suíça', 
+    # French-speaking countries (excluding Switzerland - handled separately)
+    french_countries = ['france', 'frança', 'belgium', 'bélgica', 'suisse',
                        'luxembourg', 'luxemburgo', 'monaco', 'mónaco']
     if any(fc in country_lower for fc in french_countries):
         return 'fr'
     
-    # German-speaking countries
+    # German-speaking countries (excluding Switzerland - handled separately)
     german_countries = ['germany', 'alemanha', 'deutschland', 'austria', 'áustria', 'österreich',
-                       'switzerland', 'suíça', 'schweiz']
+                       'schweiz']
     if any(gc in country_lower for gc in german_countries):
         return 'de'
+    
+    # Switzerland generic (switzerland / suíça / svizzera) -> English as neutral fallback
+    swiss_generic = ['switzerland', 'suíça', 'svizzera']
+    if any(sw in country_lower for sw in swiss_generic):
+        return 'en'
     
     # French-speaking countries (Switzerland excluded above for German)
     # English-speaking countries (including European countries that typically prefer English over Portuguese)
