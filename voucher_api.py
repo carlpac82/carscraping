@@ -425,13 +425,24 @@ async def send_new_booking_notification(booking_id: int, booking_data: dict):
             from jinja2 import Template as _Tc
             client_html = _Tc(client_tpl).render(**{**booking_data, **ci, 'language': client_lang})
 
+            # Load agent template (same as notification but without confirm button)
+            agent_tpl_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_new_booking_agent.html')
+            with open(agent_tpl_path, 'r', encoding='utf-8') as _f:
+                agent_tpl = _f.read()
+            from jinja2 import Template as _Ta
+            agent_html = _Ta(agent_tpl).render(**notification_data)
+
             for recipient in recipients:
                 is_client = recipient == client_email
                 is_agent = recipient == agent_email
                 use_pdf = client_pdf_content if is_client else pdf_content
                 use_subject = ci['subject_line'] if is_client else subject
-                # Agent gets client template (no confirm button) in PT; only Auto Prudente gets notification with confirm button
-                use_html = client_html if (is_client or is_agent) else html_content
+                if is_client:
+                    use_html = client_html
+                elif is_agent:
+                    use_html = agent_html
+                else:
+                    use_html = html_content
                 if use_pdf:
                     msg = create_message_with_attachment(
                         credentials,

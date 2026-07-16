@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Reserva - {{ voucher_number }}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            min-width: 320px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        @media only screen and (max-width: 600px) {
+            .details-grid {
+                display: block !important;
+            }
+            .grid-item {
+                width: 100% !important;
+                margin-bottom: 15px !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#009cb6" style="background:#009cb6;background: linear-gradient(135deg, #009cb6 0%, #007a91 100%);">
+        <tr>
+            <td bgcolor="#009cb6" style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="http://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">{{ voucher_number }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Agent Info -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Nova Reserva Recebida</h2>
+        <div style="background-color: rgba(0, 156, 182, 0.1); border: 1px solid rgba(0, 156, 182, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                <tr>
+                    <td style="font-weight: bold; color: #009cb6; padding-bottom: 5px;">Agente:</td>
+                    <td style="padding-bottom: 5px; color: #009cb6; font-weight: 600;">{{ agent_name }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #009cb6;">Data:</td>
+                    <td style="color: #009cb6;">{{ booking_date }}</td>
+                </tr>
+            </table>
+        </div>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">A sua reserva foi submetida com sucesso. Aguarda confirmação por parte da Auto Prudente.</p>
+    </div>
+
+    <!-- Resumo da Reserva -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Detalhes da Reserva</h3>
+        
+        <!-- Vehicle Info with Image -->
+        <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td style="width: 65%; vertical-align: top; padding-right: 15px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Cliente:</td>
+                                <td style="padding-bottom: 8px; color: #1f2937; font-weight: 600;">{{ client_name }}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Email:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ client_email }}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Telefone:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ client_phone }}</td>
+                            </tr>
+                            {% if hotel %}
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Hotel:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </td>
+                    <td style="width: 35%; vertical-align: middle; text-align: center;">
+                        {% if vehicle_image %}
+                        <div style="margin-bottom: 10px;">
+                            <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 120px; height: auto; border-radius: 8px; border: 1px solid #e0e0e0; max-width: 100%;">
+                        </div>
+                        <div style="font-size: 16px; font-weight: bold; color: #00bcd4; margin-bottom: 3px;">GRUPO {{ vehicle_group }}</div>
+                        <div style="font-size: 14px; color: #666666;">{{ vehicle_model }}</div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Dates and Times Grid -->
+        <div class="details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <!-- Pickup -->
+            <div class="grid-item" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Levantamento</h4>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{ pickup_date }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333;">Hora:</td>
+                        <td style="color: #666666;">{{ pickup_time }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-top: 8px;">Local:</td>
+                        <td style="padding-top: 8px; color: #666666;">{{ pickup_location }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Dropoff -->
+            <div class="grid-item" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Devolução</h4>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{ dropoff_date }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333;">Hora:</td>
+                        <td style="color: #666666;">{{ dropoff_time }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-top: 8px;">Local:</td>
+                        <td style="padding-top: 8px; color: #666666;">{{ dropoff_location }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Prices -->
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 20px;">
+            <h4 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 16px;">Valores</h4>
+            <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">Preço Base:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ base_price }}</td>
+                </tr>
+                {% if insurance_type == 'premium' and premium_insurance and premium_insurance != '0.00' %}
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">Seguro Premium:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ premium_insurance }}</td>
+                </tr>
+                {% endif %}
+                {% if road_tax and road_tax != '0.00' %}
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">Taxa de Estrada:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ road_tax }}</td>
+                </tr>
+                {% endif %}
+                {% for extra in extras %}
+                <tr>
+                    <td style="color: #333333; padding-bottom: 8px;">{{ extra.name }}{% if extra.quantity and extra.quantity > 1 %} x{{ extra.quantity }}{% endif %}:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ '%.2f'|format((extra.price or extra.total or 0)|float) }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="font-weight: bold; color: #00bcd4; font-size: 15px; padding-top: 8px;">Total:</td>
+                    <td style="color: #00bcd4; font-size: 15px; font-weight: bold; padding-top: 8px;">€{{ total_price }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #333333; padding-top: 6px;">A Pagar no Levantamento:</td>
+                    <td style="color: #666666; padding-top: 6px;">€{{ amount_to_pay }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if observations %}
+        <!-- Observations -->
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <h4 style="color: #856404; margin: 0 0 10px 0; font-size: 16px;">Observações</h4>
+            <p style="color: #856404; margin: 0; font-size: 14px;">{{ observations }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Footer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 20px; text-align: center;">
+                <p style="color: #666666; margin: 0 0 10px 0; font-size: 12px;">Este email foi gerado automaticamente pelo sistema de reservas da Auto Prudente.</p>
+                <p style="color: #666666; margin: 0; font-size: 12px;">© 2026 Auto Prudente Rent a Car - Todos os direitos reservados</p>
+            </td>
+        </tr>
+    </table>
+
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
