@@ -280,14 +280,21 @@ def _detect_language_from_country(country: str) -> str:
     if any(fc in country_lower for fc in french_countries):
         return 'fr'
     
+    # German-speaking countries
+    german_countries = ['germany', 'alemanha', 'deutschland', 'austria', 'áustria', 'österreich',
+                       'switzerland', 'suíça', 'schweiz']
+    if any(gc in country_lower for gc in german_countries):
+        return 'de'
+    
+    # French-speaking countries (Switzerland excluded above for German)
     # English-speaking countries (including European countries that typically prefer English over Portuguese)
     english_countries = ['united kingdom', 'reino unido', 'uk', 'england', 'inglaterra',
                         'ireland', 'irlanda', 'usa', 'united states', 'estados unidos',
                         'canada', 'canadá', 'australia', 'austrália', 'new zealand',
                         'nova zelândia', 'south africa', 'áfrica do sul',
-                        'germany', 'alemanha', 'netherlands', 'holanda', 'países baixos',
+                        'netherlands', 'holanda', 'países baixos',
                         'denmark', 'dinamarca', 'sweden', 'suécia', 'norway', 'noruega',
-                        'finland', 'finlândia', 'austria', 'áustria', 'poland', 'polónia',
+                        'finland', 'finlândia', 'poland', 'polónia',
                         'czech', 'checa', 'hungary', 'hungria', 'romania', 'roménia',
                         'italy', 'itália', 'spain', 'espanha']
     if any(ec in country_lower for ec in english_countries):
@@ -5674,9 +5681,10 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         subjects = {
             'pt': f"Self Check-Out Disponível - RA {ra_number}",
             'en': f"Self Check-Out Available - RA {ra_number}",
-            'fr': f"Self Check-Out Disponible - RA {ra_number}"
+            'fr': f"Self Check-Out Disponible - RA {ra_number}",
+            'de': f"Self Check-Out Verfügbar - RA {ra_number}"
         }
-        subject = subjects.get(language, subjects['pt'])
+        subject = subjects.get(language, subjects['en'])
         
         _send_notification_email(to_email, subject, html_content)
         logging.info(f"✅ Self check-in invitation email sent to {to_email} for RA {ra_number} (language: {language})")
@@ -5709,25 +5717,28 @@ def _send_self_checkin_confirmation_email(
         subjects = {
             'pt': f"Self Checkout Validado - R.A. {ra_data['ra_number']}",
             'en': f"Self Checkout Validated - R.A. {ra_data['ra_number']}",
-            'fr': f"Self Checkout Validé - R.A. {ra_data['ra_number']}"
+            'fr': f"Self Checkout Validé - R.A. {ra_data['ra_number']}",
+            'de': f"Self Checkout Validiert - R.A. {ra_data['ra_number']}"
         }
-        subject = subjects.get(language, subjects['pt'])
+        subject = subjects.get(language, subjects['en'])
         
         # Template files por idioma
         template_files = {
             'pt': 'email_selfcheckout_validated_pt.html',
             'en': 'email_selfcheckout_validated_en.html',
-            'fr': 'email_selfcheckout_validated_fr.html'
+            'fr': 'email_selfcheckout_validated_fr.html',
+            'de': 'email_selfcheckout_validated_de.html'
         }
-        template_file = template_files.get(language, template_files['pt'])
+        template_file = template_files.get(language, template_files['en'])
         
         # Greetings por idioma
         greetings = {
             'pt': 'Estimado(a)',
             'en': 'Dear',
-            'fr': 'Cher(e)'
+            'fr': 'Cher(e)',
+            'de': 'Sehr geehrte/r'
         }
-        greeting = greetings.get(language, greetings['pt'])
+        greeting = greetings.get(language, greetings['en'])
         
         # Gerar gauge de combustível (barra horizontal R---F)
         fuel_level_raw = inspection_data.get('fuel_level', 100)
@@ -5757,10 +5768,11 @@ def _send_self_checkin_confirmation_email(
         fuel_texts = {
             'pt': {100: 'Cheio', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserva'},
             'en': {100: 'Full', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserve'},
-            'fr': {100: 'Plein', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Réserve'}
+            'fr': {100: 'Plein', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Réserve'},
+            'de': {100: 'Voll', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserve'}
         }
-        fuel_text_map = fuel_texts.get(language, fuel_texts['pt'])
-        fuel_text = 'Cheio'
+        fuel_text_map = fuel_texts.get(language, fuel_texts['en'])
+        fuel_text = 'Full'
         for threshold, text in sorted(fuel_text_map.items(), reverse=True):
             if fuel_percentage >= threshold:
                 fuel_text = text
@@ -6081,25 +6093,28 @@ def _send_self_checkout_submitted_email(
         subjects = {
             'pt': f"Self Checkout Recebido - R.A. {ra_data['ra_number']}",
             'en': f"Self Checkout Received - R.A. {ra_data['ra_number']}",
-            'fr': f"Self Checkout Reçu - R.A. {ra_data['ra_number']}"
+            'fr': f"Self Checkout Reçu - R.A. {ra_data['ra_number']}",
+            'de': f"Self Checkout Erhalten - R.A. {ra_data['ra_number']}"
         }
-        subject = subjects.get(language, subjects['pt'])
+        subject = subjects.get(language, subjects['en'])
         
         # Template files por idioma
         template_files = {
             'pt': 'email_selfcheckout_submitted_pt.html',
             'en': 'email_selfcheckout_submitted_en.html',
-            'fr': 'email_selfcheckout_submitted_fr.html'
+            'fr': 'email_selfcheckout_submitted_fr.html',
+            'de': 'email_selfcheckout_submitted_de.html'
         }
-        template_file = template_files.get(language, template_files['pt'])
+        template_file = template_files.get(language, template_files['en'])
         
         # Greetings por idioma
         greetings = {
             'pt': 'Estimado(a)',
             'en': 'Dear',
-            'fr': 'Cher(e)'
+            'fr': 'Cher(e)',
+            'de': 'Sehr geehrte/r'
         }
-        greeting = greetings.get(language, greetings['pt'])
+        greeting = greetings.get(language, greetings['en'])
         
         # Gerar gauge de combustível (barra horizontal R---F)
         fuel_level_raw = inspection_data.get('fuel_level', 100)
@@ -6129,7 +6144,8 @@ def _send_self_checkout_submitted_email(
         fuel_texts = {
             'pt': {100: 'Cheio', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserva'},
             'en': {100: 'Full', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserve'},
-            'fr': {100: 'Plein', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Réserve'}
+            'fr': {100: 'Plein', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Réserve'},
+            'de': {100: 'Voll', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserve'}
         }
         fuel_text_map = fuel_texts.get(language, fuel_texts['pt'])
         fuel_text = 'Cheio'

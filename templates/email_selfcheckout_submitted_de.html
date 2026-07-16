@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Checkout erhalten - Auto Prudente</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            min-width: 320px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {{RA_NUMBER}}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Success Alert -->
+    <div style="background: #10b98115; border-left: 4px solid #10b981; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #10b981; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            Self Checkout erfolgreich erhalten
+        </h3>
+        <p style="color: #065f46; margin: 0; font-size: 13px; line-height: 1.5;">
+            Ihre Inspektion wurde erfolgreich empfangen. Unser Team wird alle eingereichten Daten prüfen und Sie bei Bedarf kontaktieren.
+        </p>
+    </div>
+
+    <!-- Greeting -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">{{GREETING}} {{CLIENT_NAME}},</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Vielen Dank, dass Sie den Self Checkout des Fahrzeugs <strong>{{LICENSE_PLATE}}</strong> abgeschlossen haben.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Ihre Inspektion wurde erfolgreich empfangen und wird derzeit von unserem Team geprüft.</p>
+    </div>
+
+    <!-- Summary Section -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Inspektionszusammenfassung</h3>
+        
+        <!-- Vehicle Info -->
+        <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333; width: 40%;">Fahrzeug:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{VEHICLE_BRAND}} {{VEHICLE_MODEL}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Kennzeichen:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{LICENSE_PLATE}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Rückgabedatum:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{PICKUP_DATE}} um {{PICKUP_TIME}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Rückgabeort:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{LOCATION}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Kilometerstand bei Rückgabe:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{ODOMETER_READING}} km</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Gefahrene Kilometer:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{KMS_DRIVEN}} km</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; font-weight: bold; color: #333333;">Inspektion durchgeführt von:</td>
+                <td style="color: #666666;">{{CLIENT_FIRST_NAME}} {{CLIENT_LAST_NAME}}</td>
+            </tr>
+        </table>
+    </div>
+
+    </div>
+
+    <!-- Fuel Level -->
+    <div style="padding: 20px;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px; text-align: center;">Kraftstoffstand</h3>
+        <div style="text-align: center;">
+            {{FUEL_GAUGE_SVG | safe}}
+        </div>
+    </div>
+
+    <!-- Vehicle Photos -->
+    <div style="padding: 20px;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Fahrzeugfotos</h3>
+        {{PHOTOS_HTML | safe}}
+    </div>
+
+    <!-- Next Steps -->
+    <div style="background: #fef3c715; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Nächste Schritte
+        </h3>
+        <p style="color: #92400e; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
+            Unser Team wird das Fahrzeug vom Parkplatz abholen und alle eingereichten Daten prüfen.
+        </p>
+        <p style="color: #92400e; margin: 0; font-size: 13px; line-height: 1.5;">
+            Sie erhalten eine Bestätigungs-E-Mail, sobald die Prüfung abgeschlossen und der Vertrag abgeschlossen ist.
+        </p>
+    </div>
+
+    <!-- Closing -->
+    <div style="padding: 20px;">
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">Vielen Dank für Ihre Treue und wir hoffen, Sie bald wiederzusehen!</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;"><strong>Mit freundlichen Grüßen,</strong><br>Auto Prudente Rent a Car</p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Google Reviews Section -->
+    <div style="padding: 30px 20px; background-color: #00bcd4; text-align: center;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 36px; color: #ffffff; font-weight: bold;">Google</div>
+            </div>
+            <h3 style="color: #ffffff; margin: 0 0 12px 0; font-size: 22px; font-weight: bold;">
+                Ihre Meinung zählt!
+            </h3>
+            <p style="color: #ffffff; margin: 0 0 20px 0; font-size: 15px; line-height: 1.5; opacity: 0.95;">
+                Helfen Sie uns, unseren Service zu verbessern, indem Sie Ihre Erfahrung auf Google Reviews teilen.
+            </p>
+            
+            <!-- Reviews Cards -->
+            <div style="margin: 25px 0;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; padding: 0 5px 10px 0; vertical-align: top;">
+                            <div style="background-color: #0097a7; border-radius: 8px; padding: 12px; text-align: left;">
+                                <div style="margin-bottom: 6px; color: #FFC107; font-size: 14px;">★★★★★</div>
+                                <p style="color: #ffffff; margin: 0; font-size: 12px; line-height: 1.4; font-style: italic;">
+                                    "Ausgezeichneter Service! Sehr aufmerksame Mitarbeiter und Fahrzeuge in einwandfreiem Zustand."
+                                </p>
+                            </div>
+                        </td>
+                        <td style="width: 50%; padding: 0 0 10px 5px; vertical-align: top;">
+                            <div style="background-color: #0097a7; border-radius: 8px; padding: 12px; text-align: left;">
+                                <div style="margin-bottom: 6px; color: #FFC107; font-size: 14px;">★★★★★</div>
+                                <p style="color: #ffffff; margin: 0; font-size: 12px; line-height: 1.4; font-style: italic;">
+                                    "Sehr empfehlenswert! Schneller und unkomplizierter Prozess. Ich komme definitiv wieder."
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width: 50%; padding: 0 5px 0 0; vertical-align: top;">
+                            <div style="background-color: #0097a7; border-radius: 8px; padding: 12px; text-align: left;">
+                                <div style="margin-bottom: 6px; color: #FFC107; font-size: 14px;">★★★★★</div>
+                                <p style="color: #ffffff; margin: 0; font-size: 12px; line-height: 1.4; font-style: italic;">
+                                    "Sehr zufrieden mit dem Service. Freundliches und hilfsbereites Team."
+                                </p>
+                            </div>
+                        </td>
+                        <td style="width: 50%; padding: 0 0 0 5px; vertical-align: top;">
+                            <div style="background-color: #0097a7; border-radius: 8px; padding: 12px; text-align: left;">
+                                <div style="margin-bottom: 6px; color: #FFC107; font-size: 14px;">★★★★★</div>
+                                <p style="color: #ffffff; margin: 0; font-size: 12px; line-height: 1.4; font-style: italic;">
+                                    "Saubere und gut gepflegte Fahrzeuge. Qualitätsservice!"
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <a href="https://g.page/r/CZIKQNKLjxrDEAE/review" style="display: inline-block; background-color: #ffffff; color: #00bcd4; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-top: 10px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                Bewertung abgeben
+            </a>
+        </div>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Useful Contacts Section -->
+    <div style="padding: 20px; background-color: #f0f9fb;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Nützliche Kontakte</h3>
+        <div style="max-width: 500px; margin: 0 auto;">
+            <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">BÜRO</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">PANNENHILFE</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">E-MAIL</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">info@auto-prudente.com</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+        <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Alle Rechte vorbehalten.</p>
+    </div>
+    
+    <!-- Legal Footer -->
+    <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Steuernummer: PT 503 539 791<br>
+                Hauptsitz: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                Tel. +351 289 542 160 | E-Mail: info@auto-prudente.com
+            </p>
+        </div>
+    </div>
+    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
