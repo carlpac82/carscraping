@@ -427,9 +427,11 @@ async def send_new_booking_notification(booking_id: int, booking_data: dict):
 
             for recipient in recipients:
                 is_client = recipient == client_email
+                is_agent = recipient == agent_email
                 use_pdf = client_pdf_content if is_client else pdf_content
                 use_subject = ci['subject_line'] if is_client else subject
-                use_html = client_html if is_client else html_content
+                # Agent gets client template (no confirm button) in PT; only Auto Prudente gets notification with confirm button
+                use_html = client_html if (is_client or is_agent) else html_content
                 if use_pdf:
                     msg = create_message_with_attachment(
                         credentials,
