@@ -54850,13 +54850,13 @@ async def get_inspection_details(inspection_number: str, request: Request):
             cursor.execute("""
                 SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number,
                        inspector_name, inspector_notes, damage_count, odometer_reading, fuel_level,
-                       created_at, status
+                       created_at, status, client_email
                 FROM vehicle_inspections
                 WHERE inspection_number = %s
             """ if is_postgres else """
                 SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number,
                        inspector_name, inspector_notes, damage_count, odometer_reading, fuel_level,
-                       created_at, status
+                       created_at, status, client_email
                 FROM vehicle_inspections
                 WHERE inspection_number = ?
             """, (inspection_number,))
@@ -55102,8 +55102,26 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 "damage_croqui": damage_croqui,
                 "damage_photos": damage_photos,
                 "signature": signature,
-                "expected_return_date": expected_return_date
+                "expected_return_date": expected_return_date,
+                "client_email": inspection_row[12] if len(inspection_row) > 12 else None
             }
+            
+            # If client_email not stored in inspection row, try fetching from RA
+            if not inspection["client_email"] and contract_number:
+                ra_base_email = contract_number.split('-')[0]
+                cursor.execute("""
+                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
+                """ if is_postgres else """
+                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ? LIMIT 1
+                """, (f"{ra_base_email}%",))
+                ra_email_row = cursor.fetchone()
+                if ra_email_row and ra_email_row[0]:
+                    try:
+                        import json
+                        ra_ex = json.loads(ra_email_row[0])
+                        inspection["client_email"] = ra_ex.get('clientEmail') or ra_ex.get('client_email') or ra_ex.get('email')
+                    except:
+                        pass
             
             # Debug logging
             logging.info(f"🔍 Returning inspection {inspection_row[1]}: has_damage_croqui={damage_croqui is not None}, croqui_length={len(damage_croqui) if damage_croqui else 0}")
@@ -55694,6 +55712,10 @@ async def update_inspection(inspection_number: str, request: Request):
             update_fields.append("observations = %s" if _USE_NEW_DB else "observations = ?")
             update_values.append(data['damage_notes'])
         
+        if 'client_email' in data and data['client_email']:
+            update_fields.append("client_email = %s" if _USE_NEW_DB else "client_email = ?")
+            update_values.append(data['client_email'].strip())
+        
         if update_fields:
             update_values.append(inspection_number)
             query = f"UPDATE vehicle_inspections SET {', '.join(update_fields)} WHERE inspection_number = {'%s' if _USE_NEW_DB else '?'}"
@@ -55831,6 +55853,36 @@ async def update_inspection(inspection_number: str, request: Request):
                                 logging.warning(f"⚠️ Could not find check-in data for rescheduling")
                         else:
                             logging.info(f"⏭️ Not Faro Airport, skipping email reschedule")
+        
+        # Update client_email in rental_agreements if email was changed
+        if 'client_email' in data and data['client_email']:
+            new_email = data['client_email'].strip()
+            # Get contract_number from the inspection
+            if _USE_NEW_DB:
+                cursor.execute("SELECT contract_number FROM vehicle_inspections WHERE inspection_number = %s", (inspection_number,))
+            else:
+                cursor.execute("SELECT contract_number FROM vehicle_inspections WHERE inspection_number = ?", (inspection_number,))
+            contract_row = cursor.fetchone()
+            if contract_row and contract_row[0]:
+                ra_base = contract_row[0].split('-')[0]
+                if _USE_NEW_DB:
+                    cursor.execute("SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = %s", (ra_base,))
+                else:
+                    cursor.execute("SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = ?", (ra_base,))
+                ra_row = cursor.fetchone()
+                if ra_row and ra_row[0]:
+                    import json as _json
+                    try:
+                        ex_data = _json.loads(ra_row[0])
+                        ex_data['clientEmail'] = new_email
+                        ex_data['client_email'] = new_email
+                        if _USE_NEW_DB:
+                            cursor.execute("UPDATE rental_agreements SET extracted_data = %s WHERE rental_agreement_number = %s", (_json.dumps(ex_data), ra_base))
+                        else:
+                            cursor.execute("UPDATE rental_agreements SET extracted_data = ? WHERE rental_agreement_number = ?", (_json.dumps(ex_data), ra_base))
+                        logging.info(f"✅ Updated client_email in rental_agreements RA {ra_base}: {new_email}")
+                    except Exception as email_ex:
+                        logging.warning(f"⚠️ Could not update email in rental_agreements: {email_ex}")
         
         # Update damage croqui if provided
         if 'damage_croqui' in data and data['damage_croqui']:
