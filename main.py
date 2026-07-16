@@ -42597,7 +42597,7 @@ async def export_abbycar_excel(request: Request):
             current_month_name = 'January'
         
         # Headers
-        headers = ['Stations', 'Start Date', 'End Date', 'Group', 'Model Example (optional)', 'CURRENCY',
+        headers = ['Stations', 'Start Date', 'End Date', 'Group',
                    '1 day fixed', '2 days fixed', '3 days fixed', '4 days fixed', '5 days fixed',
                    '6 days fixed', '7 days fixed', '8-10 daily', '11-12 daily', '13-14 daily',
                    '15-21 daily', '22-28 daily']
@@ -42857,9 +42857,7 @@ async def export_abbycar_excel(request: Request):
                     station,
                     start_date,
                     end_date,
-                    sipp_code,
-                    row_data.get('model', ''),
-                    row_data.get('currency', 'EUR')
+                    sipp_code
                 ]
                 
                 # Add prices
@@ -42911,7 +42909,7 @@ async def export_abbycar_excel(request: Request):
                     if category == 'Standard':
                         # Standard: just show base price (no insurance)
                         if base_price_val and float(str(base_price_val).replace(',', '.')) > 0:
-                            row_values.append(str(base_price_val).replace('.', ','))
+                            row_values.append(round(float(str(base_price_val).replace(',', '.')), 2))
                         else:
                             row_values.append('')
                     else:
@@ -42945,10 +42943,10 @@ async def export_abbycar_excel(request: Request):
                                             final_price = base_price + insurance_total
                                         else:
                                             final_price = base_price + insurance_price
-                                        row_values.append(str(round(final_price, 2)).replace('.', ','))
+                                        row_values.append(round(final_price, 2))
                                     else:
                                         # No insurance, just show fixed price
-                                        row_values.append(str(base_price).replace('.', ','))
+                                        row_values.append(round(base_price, 2))
                                 else:
                                     # Regular prices from DB: add insurance
                                     insurance_price = get_insurance_price_for_month_and_sipp(
@@ -42962,10 +42960,10 @@ async def export_abbycar_excel(request: Request):
                                         else:
                                             final_price = base_price + insurance_price
                                         
-                                        row_values.append(str(round(final_price, 2)).replace('.', ','))
+                                        row_values.append(round(final_price, 2))
                                     else:
                                         # No insurance configured, just show base price
-                                        row_values.append(str(base_price_val).replace('.', ','))
+                                        row_values.append(round(base_price, 2))
                             else:
                                 # Base price is 0, don't add insurance
                                 row_values.append('')
