@@ -8874,7 +8874,11 @@ function openFuelChargeModal(ra) {
     document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
     document.getElementById('fc-invoice-name').classList.add('hidden');
     const pdfInput = document.getElementById('fc-invoice-file');
-    if (pdfInput) pdfInput.value = '';
+    if (pdfInput) {
+        pdfInput.value = '';
+        pdfInput.onchange = null;
+        pdfInput.addEventListener('change', fuelSelectInvoicePDF, { once: false });
+    }
 
     document.getElementById('fc-plate').textContent = c.vehicle_plate || '';
     document.getElementById('fc-plate-card').textContent = c.vehicle_plate || '';
@@ -8939,8 +8943,10 @@ async function _loadFuelOdometerPhoto(c, direction) {
 }
 
 function fuelSelectInvoicePDF(event) {
+    console.log('[PDF] fuelSelectInvoicePDF called, files:', event.target.files);
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) { console.log('[PDF] no file selected'); return; }
+    console.log('[PDF] file selected:', file.name, file.size);
     const reader = new FileReader();
     reader.onload = function(e) {
         _fcInvoicePdfB64 = e.target.result;
@@ -8949,6 +8955,7 @@ function fuelSelectInvoicePDF(event) {
         const nameEl = document.getElementById('fc-invoice-name');
         document.getElementById('fc-invoice-name-text').textContent = file.name;
         nameEl.classList.remove('hidden');
+        console.log('[PDF] base64 ready, length:', _fcInvoicePdfB64.length);
     };
     reader.readAsDataURL(file);
 }
