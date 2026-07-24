@@ -8570,7 +8570,8 @@ async def send_fuel_charge_email(
             logging.info(f"📎 PDF ready to attach: {invoice_pdf.filename}, {len(pdf_bytes)} bytes")
         else:
             logging.info("📄 No invoice PDF provided")
-        _send_notification_email(client_email, t["subject"], html_body, attachments=attachments if attachments else None)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: _send_notification_email(client_email, t["subject"], html_body, attachments=attachments if attachments else None))
 
         _ensure_fuel_charges_table()
         from datetime import datetime
