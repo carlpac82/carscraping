@@ -8646,74 +8646,103 @@
     </script>
 
 <!-- FUEL CHARGE MODAL -->
-<div id="fuelChargeModal" class="hidden fixed inset-0 bg-black/60 z-[9000] flex items-start justify-center overflow-y-auto py-6">
-  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
-    <!-- Header -->
-    <div class="bg-[#009cb6] px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        <h2 class="text-white font-bold text-lg">Cobrar Combustível</h2>
+<div id="fuelChargeModal" class="hidden fixed inset-0 flex items-center justify-center z-[9000] p-4" style="background-color:rgba(0,0,0,0.1);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);">
+  <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+    <!-- Header (sticky, same as entrega modal) -->
+    <div class="sticky top-0 bg-white border-b px-3 py-3 md:px-6 md:py-4 flex justify-between items-center z-10">
+      <h2 class="text-lg md:text-xl font-bold text-[#009cb6] truncate flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        Cobrar Combustível — <span id="fc-plate" class="ml-1"></span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <button onclick="closeFuelChargeModal()" title="Fechar" class="text-gray-500 hover:text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
       </div>
-      <button onclick="closeFuelChargeModal()" title="Fechar" class="text-white/80 hover:text-white">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
     </div>
-    <!-- Contract Info -->
-    <div class="px-6 py-3 bg-gray-50 border-b flex flex-wrap gap-4 text-sm">
-      <span><span class="font-semibold text-gray-600">Matrícula:</span> <span id="fc-plate" class="font-bold text-gray-900"></span></span>
-      <span><span class="font-semibold text-gray-600">R.A.:</span> <span id="fc-ra" class="text-gray-700"></span></span>
-      <span><span class="font-semibold text-gray-600">Cliente:</span> <span id="fc-client" class="text-gray-700"></span></span>
-    </div>
-    <!-- Body -->
-    <div class="px-6 py-4 space-y-5">
-      <!-- Fuel Bars -->
-      <div>
-        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <svg class="w-4 h-4 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
-          Nível de Combustível
-        </h3>
-        <div class="grid grid-cols-2 gap-4">
-          <div class="bg-gray-50 rounded-lg p-3 border">
-            <p class="text-xs font-semibold text-gray-500 mb-2">ENTREGA</p>
-            <div class="h-4 bg-gray-200 rounded-full overflow-hidden mb-1"><div id="fc-bar-in" class="h-full bg-[#009cb6] rounded-full transition-all" style="width:0%"></div></div>
-            <p class="text-xs text-center text-gray-600" id="fc-label-in">—</p>
+
+    <!-- Content -->
+    <div class="p-3 md:p-6">
+
+      <!-- Contract Info card -->
+      <div class="bg-gray-50 rounded-lg p-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div>
+            <p class="text-sm text-gray-600">Matrícula</p>
+            <p class="font-bold text-gray-900" id="fc-plate-card"></p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3 border">
-            <p class="text-xs font-semibold text-gray-500 mb-2">RECOLHA</p>
-            <div class="h-4 bg-gray-200 rounded-full overflow-hidden mb-1"><div id="fc-bar-out" class="h-full bg-orange-400 rounded-full transition-all" style="width:0%"></div></div>
-            <p class="text-xs text-center text-gray-600" id="fc-label-out">—</p>
+          <div>
+            <p class="text-sm text-gray-600">Contrato (RA)</p>
+            <p class="font-bold text-gray-900" id="fc-ra"></p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Cliente</p>
+            <p class="font-bold text-gray-900" id="fc-client"></p>
           </div>
         </div>
       </div>
-      <!-- Odometer Photos -->
-      <div>
-        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <svg class="w-4 h-4 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          Fotos do Odómetro
-        </h3>
-        <div class="grid grid-cols-2 gap-4">
+
+      <!-- Resumo Combustível -->
+      <div class="mb-6">
+        <h4 class="text-lg font-bold text-gray-900 mb-4">Nível de Combustível</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Entrega -->
+          <div class="bg-[#e6f7fa] border border-[#009cb6] rounded-lg p-4">
+            <h5 class="font-bold text-[#009cb6] mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Entrega (Check-In)
+            </h5>
+            <div class="h-4 bg-white border border-[#009cb6] rounded-full overflow-hidden mb-2">
+              <div id="fc-bar-in" class="h-full bg-[#009cb6] rounded-full transition-all" style="width:0%"></div>
+            </div>
+            <p class="text-center text-sm font-bold text-[#009cb6]" id="fc-label-in">—</p>
+          </div>
+          <!-- Recolha -->
+          <div class="bg-yellow-50 border border-yellow-400 rounded-lg p-4">
+            <h5 class="font-bold text-yellow-600 mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Recolha (Check-Out)
+            </h5>
+            <div class="h-4 bg-white border border-yellow-400 rounded-full overflow-hidden mb-2">
+              <div id="fc-bar-out" class="h-full bg-yellow-400 rounded-full transition-all" style="width:0%"></div>
+            </div>
+            <p class="text-center text-sm font-bold text-yellow-600" id="fc-label-out">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fotos do Odómetro -->
+      <div class="mb-6">
+        <h4 class="text-lg font-bold text-gray-900 mb-4">Fotos do Odómetro</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Entrega photo -->
-          <div class="border rounded-lg p-3 bg-gray-50">
-            <p class="text-xs font-semibold text-gray-500 mb-2">ENTREGA</p>
+          <div class="bg-[#e6f7fa] border border-[#009cb6] rounded-lg p-4">
+            <h5 class="font-bold text-[#009cb6] mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Entrega (Check-In)
+            </h5>
             <div id="fc-odo-in-container">
-              <div id="fc-odo-in-placeholder" class="text-center py-4 text-gray-400 text-xs">Sem foto</div>
-              <img id="fc-odo-in-img" src="" alt="Odómetro Entrega" class="w-full rounded hidden border" style="max-height:140px;object-fit:contain;">
+              <div id="fc-odo-in-placeholder" class="text-center py-6 text-gray-400 text-sm">Sem foto</div>
+              <img id="fc-odo-in-img" src="" alt="Odómetro Entrega" class="w-full rounded-lg hidden border border-[#009cb6]" style="max-height:160px;object-fit:contain;">
             </div>
           </div>
           <!-- Recolha photo -->
-          <div class="border rounded-lg p-3 bg-gray-50">
-            <p class="text-xs font-semibold text-gray-500 mb-2">RECOLHA</p>
+          <div class="bg-yellow-50 border border-yellow-400 rounded-lg p-4">
+            <h5 class="font-bold text-yellow-600 mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Recolha (Check-Out)
+            </h5>
             <div id="fc-odo-out-container">
-              <div id="fc-odo-out-placeholder" class="text-center py-4 text-gray-400 text-xs">Sem foto</div>
-              <img id="fc-odo-out-img" src="" alt="Odómetro Recolha" class="w-full rounded hidden border" style="max-height:140px;object-fit:contain;">
+              <div id="fc-odo-out-placeholder" class="text-center py-6 text-gray-400 text-sm">Sem foto</div>
+              <img id="fc-odo-out-img" src="" alt="Odómetro Recolha" class="w-full rounded-lg hidden border border-yellow-400" style="max-height:160px;object-fit:contain;">
             </div>
             <!-- Buttons to capture/upload if no photo -->
-            <div id="fc-odo-out-actions" class="hidden mt-2 flex flex-col gap-2">
-              <button onclick="startFuelCameraCapture()" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#009cb6] text-white text-xs rounded-lg hover:bg-[#0077a3] transition-colors">
+            <div id="fc-odo-out-actions" class="hidden mt-3 flex flex-col gap-2">
+              <button onclick="startFuelCameraCapture()" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#0077a3] transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Tirar Fotografia
               </button>
-              <label class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">
+              <label class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                 Carregar Foto
                 <input type="file" accept="image/*" class="hidden" onchange="fuelUploadOdometerPhoto(event)">
@@ -8722,48 +8751,68 @@
           </div>
         </div>
       </div>
-      <!-- Charge Calculation -->
-      <div class="bg-gray-50 rounded-lg p-4 border">
-        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <svg class="w-4 h-4 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-          Detalhe da Cobrança
-        </h3>
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Litros em falta</label>
-            <input type="number" id="fc-liters" min="0.1" step="0.1" placeholder="0.0" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+
+      <!-- Detalhe da Cobrança -->
+      <div class="mb-6">
+        <h4 class="text-lg font-bold text-gray-900 mb-4">Detalhe da Cobrança</h4>
+        <div class="bg-gray-50 rounded-lg p-4 border">
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-600 mb-1">Litros em falta</label>
+              <input type="number" id="fc-liters" min="0.1" step="0.1" placeholder="0.0" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-600 mb-1">Preço por litro (€)</label>
+              <input type="number" id="fc-price" min="0.01" step="0.001" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-600 mb-1">Taxa administrativa (€)</label>
+              <input type="number" id="fc-admin-fee" min="0" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+            </div>
+            <div class="flex flex-col justify-end">
+              <label class="block text-sm font-semibold text-gray-600 mb-1">Subtotal (€)</label>
+              <div id="fc-subtotal" class="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-sm text-gray-700 font-semibold">0.00 €</div>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Preço por litro (€)</label>
-            <input type="number" id="fc-price" min="0.01" step="0.001" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Taxa administrativa (€)</label>
-            <input type="number" id="fc-admin-fee" min="0" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
-          </div>
-          <div class="flex flex-col justify-end">
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Subtotal (€)</label>
-            <div id="fc-subtotal" class="w-full border border-gray-300 bg-gray-100 rounded-lg px-3 py-2 text-sm text-gray-700 font-semibold">0.00 €</div>
+          <div class="bg-[#009cb6] rounded-lg px-4 py-3 flex items-center justify-between">
+            <span class="text-white font-bold">TOTAL A COBRAR</span>
+            <span id="fc-total" class="text-white font-bold text-xl">0.00 €</span>
           </div>
         </div>
-        <div class="bg-[#009cb6] rounded-lg px-4 py-3 flex items-center justify-between">
-          <span class="text-white font-bold">TOTAL A COBRAR</span>
-          <span id="fc-total" class="text-white font-bold text-xl">0.00 €</span>
+      </div>
+
+      <!-- Email e PDF -->
+      <div class="mb-6">
+        <h4 class="text-lg font-bold text-gray-900 mb-4">Envio de Email</h4>
+        <div class="bg-gray-50 rounded-lg p-4 border space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">Email do Cliente</label>
+            <input type="email" id="fc-email" placeholder="email@exemplo.com" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-1">Anexar Fatura (PDF) — Opcional</label>
+            <label class="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors w-full">
+              <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              <span id="fc-invoice-label" class="text-sm text-gray-600 truncate">Selecionar ficheiro PDF...</span>
+              <input type="file" id="fc-invoice-file" accept="application/pdf,.pdf" class="hidden" onchange="fuelSelectInvoicePDF(event)">
+            </label>
+            <p id="fc-invoice-name" class="hidden text-xs text-[#009cb6] mt-1 flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span id="fc-invoice-name-text"></span>
+            </p>
+          </div>
         </div>
       </div>
-      <!-- Client Email -->
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Email do Cliente</label>
-        <input type="email" id="fc-email" placeholder="email@exemplo.com" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]">
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
+        <button onclick="closeFuelChargeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+        <button onclick="submitFuelCharge()" id="fc-send-btn" class="flex items-center gap-2 px-5 py-2 bg-[#009cb6] text-white font-semibold text-sm rounded-lg hover:bg-[#0077a3] transition-colors disabled:opacity-50">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Enviar Email ao Cliente
+        </button>
       </div>
-    </div>
-    <!-- Footer -->
-    <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between gap-3">
-      <button onclick="closeFuelChargeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
-      <button onclick="submitFuelCharge()" id="fc-send-btn" class="flex items-center gap-2 px-5 py-2 bg-[#009cb6] text-white font-semibold text-sm rounded-lg hover:bg-[#0077a3] transition-colors disabled:opacity-50">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-        Enviar Email ao Cliente
-      </button>
+
     </div>
   </div>
 </div>
@@ -8789,6 +8838,8 @@ let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
 let _fuelCameraStream = null;
+let _fcInvoicePdfB64 = '';
+let _fcInvoicePdfFilename = '';
 
 function parseFuelLevelPct(fuel) {
     if (!fuel) return 0;
@@ -8808,8 +8859,25 @@ function openFuelChargeModal(ra) {
     _fcCurrentRA = ra;
     _fcOdometerOutB64 = '';
     _fcOdometerInB64 = '';
+    _fcInvoicePdfB64 = '';
+    _fcInvoicePdfFilename = '';
+
+    // Reset photo containers
+    const inImg = document.getElementById('fc-odo-in-img');
+    const outImg = document.getElementById('fc-odo-out-img');
+    inImg.src = ''; inImg.classList.add('hidden');
+    outImg.src = ''; outImg.classList.add('hidden');
+    document.getElementById('fc-odo-in-placeholder').classList.remove('hidden');
+    document.getElementById('fc-odo-out-placeholder').classList.remove('hidden');
+    document.getElementById('fc-odo-out-actions').classList.add('hidden');
+    // Reset PDF input
+    document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
+    document.getElementById('fc-invoice-name').classList.add('hidden');
+    const pdfInput = document.getElementById('fc-invoice-file');
+    if (pdfInput) pdfInput.value = '';
 
     document.getElementById('fc-plate').textContent = c.vehicle_plate || '';
+    document.getElementById('fc-plate-card').textContent = c.vehicle_plate || '';
     document.getElementById('fc-ra').textContent = c.contract_number || '';
     document.getElementById('fc-client').textContent = c.client_name || '';
     document.getElementById('fc-email').value = c.client_email || '';
@@ -8870,6 +8938,21 @@ async function _loadFuelOdometerPhoto(c, direction) {
     if (actions) actions.classList.remove('hidden');
 }
 
+function fuelSelectInvoicePDF(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        _fcInvoicePdfB64 = e.target.result;
+        _fcInvoicePdfFilename = file.name;
+        document.getElementById('fc-invoice-label').textContent = file.name;
+        const nameEl = document.getElementById('fc-invoice-name');
+        document.getElementById('fc-invoice-name-text').textContent = file.name;
+        nameEl.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
 function closeFuelChargeModal() {
     document.getElementById('fuelChargeModal').classList.add('hidden');
     closeFuelCamera();
@@ -8925,7 +9008,9 @@ async function submitFuelCharge() {
             odometer_photo_checkin: _fcOdometerInB64,
             odometer_photo_checkout: _fcOdometerOutB64,
             fuel_level_checkin: c.checkin ? (c.checkin.fuel_level || '') : '',
-            fuel_level_checkout: checkout ? (checkout.fuel_level || '') : ''
+            fuel_level_checkout: checkout ? (checkout.fuel_level || '') : '',
+            invoice_pdf_b64: _fcInvoicePdfB64 || '',
+            invoice_pdf_filename: _fcInvoicePdfFilename || ''
         };
         const r = await fetch('/api/fuel-charges/send', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         const d = await r.json();
