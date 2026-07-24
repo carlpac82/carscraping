@@ -8613,6 +8613,26 @@ async def send_fuel_charge_email(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.delete("/api/fuel-charges/delete")
+async def delete_fuel_charge(request: Request):
+    try:
+        body = await request.json()
+        contract_number = body.get("contract_number", "")
+        if not contract_number:
+            return JSONResponse({"ok": False, "error": "contract_number required"}, status_code=400)
+        with _db_lock:
+            con = _db_connect()
+            try:
+                placeholder = "%s" if _USE_NEW_DB else "?"
+                con.execute(f"DELETE FROM fuel_charges WHERE contract_number = {placeholder}", (contract_number,))
+                con.commit()
+                logging.info(f"🗑️ Fuel charge deleted for contract {contract_number}")
+            finally:
+                con.close()
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 # --- Admin UI ---
 @app.get("/test/carjet-mobile", response_class=HTMLResponse)
 async def test_carjet_mobile(request: Request):
