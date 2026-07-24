@@ -8456,6 +8456,8 @@ async def send_fuel_charge_email(request: Request):
         odometer_photo_checkout = body.get("odometer_photo_checkout", "")
         fuel_level_checkin = body.get("fuel_level_checkin", "")
         fuel_level_checkout = body.get("fuel_level_checkout", "")
+        invoice_pdf_b64 = body.get("invoice_pdf_b64", "")
+        invoice_pdf_filename = body.get("invoice_pdf_filename", "") or "fatura.pdf"
         sent_by = request.session.get("username", "system")
 
         if not client_email:
@@ -8498,159 +8500,50 @@ async def send_fuel_charge_email(request: Request):
         pct_in = fuel_level_to_pct(fuel_level_checkin)
         pct_out = fuel_level_to_pct(fuel_level_checkout)
 
-        templates_map = {
-            "pt": {
-                "subject": f"Auto Prudente - Cobrança de Combustível - R.A. {contract_number}",
-                "greeting": f"Olá {first_name},",
-                "intro": "No momento da recolha da viatura foi registada uma diferença no nível de combustível. Segue abaixo o detalhe da cobrança.",
-                "fuel_section_title": "Nível de Combustível",
-                "label_checkin": "Entrega",
-                "label_checkout": "Recolha",
-                "odometer_title": "Fotos do Odómetro",
-                "label_odo_checkin": "Odómetro - Entrega",
-                "label_odo_checkout": "Odómetro - Recolha",
-                "charge_title": "Detalhe da Cobrança",
-                "label_liters": "Litros em falta",
-                "label_price": "Preço por litro",
-                "label_subtotal": "Subtotal",
-                "label_admin_fee": "Taxa administrativa",
-                "label_total": "TOTAL A COBRAR",
-                "footer_note": "Para qualquer questão, contacte-nos através dos nossos canais habituais.",
-            },
-            "en": {
-                "subject": f"Auto Prudente - Fuel Charge - R.A. {contract_number}",
-                "greeting": f"Dear {first_name},",
-                "intro": "During the vehicle return inspection, a fuel level difference was recorded. Please find below the charge details.",
-                "fuel_section_title": "Fuel Level",
-                "label_checkin": "Delivery",
-                "label_checkout": "Return",
-                "odometer_title": "Odometer Photos",
-                "label_odo_checkin": "Odometer - Delivery",
-                "label_odo_checkout": "Odometer - Return",
-                "charge_title": "Charge Details",
-                "label_liters": "Missing liters",
-                "label_price": "Price per liter",
-                "label_subtotal": "Subtotal",
-                "label_admin_fee": "Administrative fee",
-                "label_total": "TOTAL CHARGE",
-                "footer_note": "For any questions, please contact us through our usual channels.",
-            },
-            "fr": {
-                "subject": f"Auto Prudente - Facturation Carburant - R.A. {contract_number}",
-                "greeting": f"Bonjour {first_name},",
-                "intro": "Lors de la restitution du véhicule, une différence de niveau de carburant a été enregistrée. Veuillez trouver ci-dessous le détail de la facturation.",
-                "fuel_section_title": "Niveau de Carburant",
-                "label_checkin": "Livraison",
-                "label_checkout": "Retour",
-                "odometer_title": "Photos du Compteur Kilométrique",
-                "label_odo_checkin": "Compteur - Livraison",
-                "label_odo_checkout": "Compteur - Retour",
-                "charge_title": "Détail de la Facturation",
-                "label_liters": "Litres manquants",
-                "label_price": "Prix par litre",
-                "label_subtotal": "Sous-total",
-                "label_admin_fee": "Frais administratifs",
-                "label_total": "TOTAL À FACTURER",
-                "footer_note": "Pour toute question, veuillez nous contacter via nos canaux habituels.",
-            },
-            "de": {
-                "subject": f"Auto Prudente - Kraftstoffrechnung - R.A. {contract_number}",
-                "greeting": f"Sehr geehrte(r) {first_name},",
-                "intro": "Bei der Fahrzeugrückgabe wurde ein Unterschied im Kraftstoffstand festgestellt. Nachfolgend finden Sie die Rechnungsdetails.",
-                "fuel_section_title": "Kraftstoffstand",
-                "label_checkin": "Übergabe",
-                "label_checkout": "Rückgabe",
-                "odometer_title": "Tacho-Fotos",
-                "label_odo_checkin": "Tacho - Übergabe",
-                "label_odo_checkout": "Tacho - Rückgabe",
-                "charge_title": "Rechnungsdetails",
-                "label_liters": "Fehlende Liter",
-                "label_price": "Preis pro Liter",
-                "label_subtotal": "Zwischensumme",
-                "label_admin_fee": "Verwaltungsgebühr",
-                "label_total": "GESAMTBETRAG",
-                "footer_note": "Bei Fragen kontaktieren Sie uns bitte über unsere üblichen Kanäle.",
-            },
+        subjects_map = {
+            "pt": f"Auto Prudente - Cobrança de Combustível - R.A. {contract_number}",
+            "en": f"Auto Prudente - Fuel Charge - R.A. {contract_number}",
+            "fr": f"Auto Prudente - Facturation Carburant - R.A. {contract_number}",
+            "de": f"Auto Prudente - Kraftstoffrechnung - R.A. {contract_number}",
         }
+        lang = language if language in subjects_map else "en"
+        subject = subjects_map[lang]
 
-        t = templates_map.get(language, templates_map["en"])
+        logo_url = "https://carscraping.up.railway.app/static/ap-heather.png"
+        label_checkin_map = {"pt": "Odómetro - Entrega", "en": "Odometer - Delivery", "fr": "Compteur - Livraison", "de": "Tacho - Übergabe"}
+        label_checkout_map = {"pt": "Odómetro - Recolha", "en": "Odometer - Return", "fr": "Compteur - Retour", "de": "Tacho - Rückgabe"}
+        label_fuel_in_map = {"pt": "Entrega", "en": "Delivery", "fr": "Livraison", "de": "Übergabe"}
+        label_fuel_out_map = {"pt": "Recolha", "en": "Return", "fr": "Retour", "de": "Rückgabe"}
 
-        html_body = f"""<!DOCTYPE html>
-<html lang="{language}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{t['subject']}</title></head>
-<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f4f4f4;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr><td align="center" style="padding:20px 0;">
-<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-  <!-- Header -->
-  <tr><td style="background:linear-gradient(135deg,#00bcd4 0%,#0097a7 100%);padding:20px;">
-    <table width="100%"><tr>
-      <td><img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height:50px;width:auto;"></td>
-      <td style="text-align:right;"><div style="background:rgba(255,255,255,0.2);padding:10px 15px;border-radius:6px;display:inline-block;"><span style="color:#fff;font-size:16px;font-weight:bold;">R.A.: {contract_number}</span></div></td>
-    </tr></table>
-  </td></tr>
-  <!-- Orange alert banner -->
-  <tr><td style="background:#fff3cd;border-left:4px solid #f59e0b;padding:16px 20px;">
-    <table><tr>
-      <td style="padding-right:12px;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      </td>
-      <td><span style="color:#92400e;font-weight:600;font-size:15px;">{t['greeting']}</span><br><span style="color:#92400e;font-size:13px;">{t['intro']}</span></td>
-    </tr></table>
-  </td></tr>
-  <!-- Vehicle info -->
-  <tr><td style="padding:20px;background:#f9f9f9;">
-    <table width="100%" cellpadding="8" cellspacing="0" style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;">
-      <tr><td style="font-weight:bold;color:#333;width:40%;border-bottom:1px solid #eee;">Matrícula / Plate:</td><td style="border-bottom:1px solid #eee;color:#1f2937;font-weight:600;">{vehicle_plate}</td></tr>
-      <tr><td style="font-weight:bold;color:#333;border-bottom:1px solid #eee;">R.A.:</td><td style="border-bottom:1px solid #eee;color:#666;">{contract_number}</td></tr>
-      <tr><td style="font-weight:bold;color:#333;">Cliente / Client:</td><td style="color:#666;">{client_name}</td></tr>
-    </table>
-  </td></tr>
-  <!-- Fuel bars -->
-  <tr><td style="padding:20px;">
-    <h3 style="color:#00bcd4;margin:0 0 15px 0;font-size:17px;">{t['fuel_section_title']}</h3>
-    <table width="100%" cellpadding="10" cellspacing="0" style="background:#f9f9f9;border-radius:8px;border:1px solid #e0e0e0;">
-      <tr>
-        <td width="50%" style="border-right:1px solid #e0e0e0;">{fuel_bar_html(pct_in, t['label_checkin'])}</td>
-        <td width="50%" style="padding-left:15px;">{fuel_bar_html(pct_out, t['label_checkout'])}</td>
-      </tr>
-    </table>
-  </td></tr>
-  <!-- Odometer photos -->
-  <tr><td style="padding:20px;background:#f9f9f9;">
-    <h3 style="color:#00bcd4;margin:0 0 15px 0;font-size:17px;">{t['odometer_title']}</h3>
-    <table width="100%" cellpadding="10" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e0e0e0;">
-      <tr>
-        <td width="50%" style="border-right:1px solid #e0e0e0;">{odometer_img_html(odometer_photo_checkin, t['label_odo_checkin'])}</td>
-        <td width="50%" style="padding-left:15px;">{odometer_img_html(odometer_photo_checkout, t['label_odo_checkout'])}</td>
-      </tr>
-    </table>
-  </td></tr>
-  <!-- Charge table -->
-  <tr><td style="padding:20px;">
-    <h3 style="color:#00bcd4;margin:0 0 15px 0;font-size:17px;">{t['charge_title']}</h3>
-    <table width="100%" cellpadding="10" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:8px;font-size:14px;">
-      <tr style="background:#f9f9f9;"><td style="border-bottom:1px solid #eee;">{t['label_liters']}</td><td style="text-align:right;border-bottom:1px solid #eee;font-weight:600;">{liters_missing:.1f} L</td></tr>
-      <tr><td style="border-bottom:1px solid #eee;">{t['label_price']}</td><td style="text-align:right;border-bottom:1px solid #eee;">{price_per_liter:.3f} €/L</td></tr>
-      <tr style="background:#f9f9f9;"><td style="border-bottom:1px solid #eee;">{t['label_subtotal']}</td><td style="text-align:right;border-bottom:1px solid #eee;">{subtotal:.2f} €</td></tr>
-      <tr><td style="border-bottom:2px solid #00bcd4;">{t['label_admin_fee']}</td><td style="text-align:right;border-bottom:2px solid #00bcd4;">{admin_fee:.2f} €</td></tr>
-      <tr style="background:#00bcd4;"><td style="color:#fff;font-weight:bold;font-size:15px;border-radius:0 0 0 8px;">{t['label_total']}</td><td style="text-align:right;color:#fff;font-weight:bold;font-size:18px;border-radius:0 0 8px 0;">{total_amount:.2f} €</td></tr>
-    </table>
-  </td></tr>
-  <!-- Footer note -->
-  <tr><td style="padding:16px 20px;background:#f0f9fb;">
-    <p style="color:#666;font-size:13px;margin:0;">{t['footer_note']}</p>
-  </td></tr>
-  <!-- Footer -->
-  <tr><td style="background:#00bcd4;padding:20px;text-align:center;">
-    <p style="color:#fff;margin:0;font-size:11px;">© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.</p>
-  </td></tr>
-</table>
-</td></tr>
-</table>
-</body></html>"""
+        import os as _os
+        tpl_path = _os.path.join(_os.path.dirname(__file__), "templates", f"email_fuel_charge_{lang}.html")
+        with open(tpl_path, "r", encoding="utf-8") as _f:
+            html_body = _f.read()
 
-        _send_notification_email_smtp(client_email, t["subject"], html_body)
+        html_body = html_body.replace("{{LOGO_URL}}", logo_url)
+        html_body = html_body.replace("{{RA_NUMBER}}", str(contract_number))
+        html_body = html_body.replace("{{FIRST_NAME}}", first_name)
+        html_body = html_body.replace("{{CUSTOMER_NAME}}", client_name)
+        html_body = html_body.replace("{{VEHICLE_PLATE}}", vehicle_plate)
+        html_body = html_body.replace("{{FUEL_BAR_IN}}", fuel_bar_html(pct_in, label_fuel_in_map[lang]))
+        html_body = html_body.replace("{{FUEL_BAR_OUT}}", fuel_bar_html(pct_out, label_fuel_out_map[lang]))
+        html_body = html_body.replace("{{ODO_IMG_IN}}", odometer_img_html(odometer_photo_checkin, label_checkin_map[lang]))
+        html_body = html_body.replace("{{ODO_IMG_OUT}}", odometer_img_html(odometer_photo_checkout, label_checkout_map[lang]))
+        html_body = html_body.replace("{{LITERS_MISSING}}", f"{liters_missing:.1f}")
+        html_body = html_body.replace("{{PRICE_PER_LITER}}", f"{price_per_liter:.3f}")
+        html_body = html_body.replace("{{SUBTOTAL}}", f"{subtotal:.2f}")
+        html_body = html_body.replace("{{ADMIN_FEE}}", f"{admin_fee:.2f}")
+        html_body = html_body.replace("{{TOTAL_AMOUNT}}", f"{total_amount:.2f}")
+
+        t = {"subject": subject}
+
+        attachments = []
+        if invoice_pdf_b64:
+            import base64 as _b64
+            pdf_data_str = invoice_pdf_b64.split(',', 1)[1] if ',' in invoice_pdf_b64 else invoice_pdf_b64
+            pdf_bytes = _b64.b64decode(pdf_data_str)
+            attachments.append({'filename': invoice_pdf_filename, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
+        _send_notification_email_smtp(client_email, t["subject"], html_body, attachments=attachments if attachments else None)
 
         _ensure_fuel_charges_table()
         from datetime import datetime
