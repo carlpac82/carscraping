@@ -8501,10 +8501,10 @@ async def send_fuel_charge_email(request: Request):
         pct_out = fuel_level_to_pct(fuel_level_checkout)
 
         subjects_map = {
-            "pt": f"Auto Prudente - Cobrança de Combustível - R.A. {contract_number}",
-            "en": f"Auto Prudente - Fuel Charge - R.A. {contract_number}",
-            "fr": f"Auto Prudente - Facturation Carburant - R.A. {contract_number}",
-            "de": f"Auto Prudente - Kraftstoffrechnung - R.A. {contract_number}",
+            "pt": f"Combustível em Falta - RA {contract_number}",
+            "en": f"Missing Fuel - RA {contract_number}",
+            "fr": f"Carburant Manquant - RA {contract_number}",
+            "de": f"Fehlender Kraftstoff - RA {contract_number}",
         }
         lang = language if language in subjects_map else "en"
         subject = subjects_map[lang]
@@ -8543,7 +8543,7 @@ async def send_fuel_charge_email(request: Request):
             pdf_data_str = invoice_pdf_b64.split(',', 1)[1] if ',' in invoice_pdf_b64 else invoice_pdf_b64
             pdf_bytes = _b64.b64decode(pdf_data_str)
             attachments.append({'filename': invoice_pdf_filename, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
-        _send_notification_email_smtp(client_email, t["subject"], html_body, attachments=attachments if attachments else None)
+        _send_notification_email(client_email, t["subject"], html_body, attachments=attachments if attachments else None)
 
         _ensure_fuel_charges_table()
         from datetime import datetime
