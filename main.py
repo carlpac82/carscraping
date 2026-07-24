@@ -8397,8 +8397,11 @@ async def list_fuel_charges(request: Request):
                     rows = cur.fetchall()
                     cols = [d[0] for d in cur.description]
                     from decimal import Decimal
+                    from datetime import datetime as _dt, date as _date
                     def _fix(v):
-                        return float(v) if isinstance(v, Decimal) else v
+                        if isinstance(v, Decimal): return float(v)
+                        if isinstance(v, (_dt, _date)): return v.isoformat()
+                        return v
                     charges = [{k: _fix(v) for k, v in zip(cols, r)} for r in rows]
                 else:
                     cur = con.execute("""
