@@ -8840,6 +8840,7 @@ let _fcOdometerInB64 = '';
 let _fuelCameraStream = null;
 let _fcInvoicePdfB64 = '';
 let _fcInvoicePdfFilename = '';
+let _fcInvoiceFile = null;
 
 function parseFuelLevelPct(fuel) {
     if (!fuel) return 0;
@@ -8861,6 +8862,7 @@ function openFuelChargeModal(ra) {
     _fcOdometerInB64 = '';
     _fcInvoicePdfB64 = '';
     _fcInvoicePdfFilename = '';
+    _fcInvoiceFile = null;
 
     // Reset photo containers
     const inImg = document.getElementById('fc-odo-in-img');
@@ -8941,24 +8943,14 @@ async function _loadFuelOdometerPhoto(c, direction) {
     if (actions) actions.classList.remove('hidden');
 }
 
-async function fuelSelectInvoicePDF(event) {
+function fuelSelectInvoicePDF(event) {
     const file = event.target.files[0];
     if (!file) return;
-    try {
-        const buffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i += 8192) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
-        }
-        _fcInvoicePdfB64 = 'data:application/pdf;base64,' + btoa(binary);
-        _fcInvoicePdfFilename = file.name;
-        document.getElementById('fc-invoice-label').textContent = file.name;
-        document.getElementById('fc-invoice-name-text').textContent = file.name;
-        document.getElementById('fc-invoice-name').classList.remove('hidden');
-    } catch(err) {
-        console.error('[PDF] erro ao ler ficheiro:', err);
-    }
+    _fcInvoiceFile = file;
+    _fcInvoicePdfFilename = file.name;
+    document.getElementById('fc-invoice-label').textContent = file.name;
+    document.getElementById('fc-invoice-name-text').textContent = file.name;
+    document.getElementById('fc-invoice-name').classList.remove('hidden');
 }
 
 function closeFuelChargeModal() {
@@ -9002,25 +8994,24 @@ async function submitFuelCharge() {
     }
 
     try {
-        const payload = {
-            checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '',
-            checkin_inspection_number: c.checkin ? (c.checkin.inspection_number || '') : '',
-            vehicle_plate: c.vehicle_plate || '',
-            contract_number: c.contract_number || '',
-            client_name: c.client_name || '',
-            client_email: email,
-            liters_missing: liters,
-            price_per_liter: price,
-            admin_fee: fee,
-            language: lang,
-            odometer_photo_checkin: _fcOdometerInB64,
-            odometer_photo_checkout: _fcOdometerOutB64,
-            fuel_level_checkin: c.checkin ? (c.checkin.fuel_level || '') : '',
-            fuel_level_checkout: checkout ? (checkout.fuel_level || '') : '',
-            invoice_pdf_b64: _fcInvoicePdfB64 || '',
-            invoice_pdf_filename: _fcInvoicePdfFilename || ''
-        };
-        const r = await fetch('/api/fuel-charges/send', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const fd = new FormData();
+        fd.append('checkout_inspection_number', checkout ? (checkout.inspection_number || '') : '');
+        fd.append('checkin_inspection_number', c.checkin ? (c.checkin.inspection_number || '') : '');
+        fd.append('vehicle_plate', c.vehicle_plate || '');
+        fd.append('contract_number', c.contract_number || '');
+        fd.append('client_name', c.client_name || '');
+        fd.append('client_email', email);
+        fd.append('liters_missing', liters);
+        fd.append('price_per_liter', price);
+        fd.append('admin_fee', fee);
+        fd.append('language', lang);
+        fd.append('odometer_photo_checkin', _fcOdometerInB64 || '');
+        fd.append('odometer_photo_checkout', _fcOdometerOutB64 || '');
+        fd.append('fuel_level_checkin', c.checkin ? (c.checkin.fuel_level || '') : '');
+        fd.append('fuel_level_checkout', checkout ? (checkout.fuel_level || '') : '');
+        if (_fcInvoiceFile) fd.append('invoice_pdf', _fcInvoiceFile);
+        const payload = { contract_number: c.contract_number, checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '' };
+        const r = await fetch('/api/fuel-charges/send', { method: 'POST', body: fd });
         const d = await r.json();
         if (d.ok) {
             // Update badge to green
