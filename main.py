@@ -8455,7 +8455,8 @@ async def send_fuel_charge_email(
     odometer_photo_checkout: str = Form(""),
     fuel_level_checkin: str = Form(""),
     fuel_level_checkout: str = Form(""),
-    invoice_pdf: Optional[UploadFile] = File(None)
+    invoice_pdf_b64: str = Form(""),
+    invoice_pdf_filename: str = Form("")
 ):
     try:
         sent_by = request.session.get("username", "system")
@@ -8564,10 +8565,12 @@ async def send_fuel_charge_email(
         t = {"subject": subject}
 
         attachments = []
-        if invoice_pdf and invoice_pdf.filename:
-            pdf_bytes = await invoice_pdf.read()
-            attachments.append({'filename': invoice_pdf.filename, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
-            logging.info(f"📎 PDF ready to attach: {invoice_pdf.filename}, {len(pdf_bytes)} bytes")
+        if invoice_pdf_b64:
+            import base64 as _b64
+            pdf_bytes = _b64.b64decode(invoice_pdf_b64)
+            fname = invoice_pdf_filename or "invoice.pdf"
+            attachments.append({'filename': fname, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
+            logging.info(f"📎 PDF ready to attach: {fname}, {len(pdf_bytes)} bytes")
         else:
             logging.info("📄 No invoice PDF provided")
         loop = asyncio.get_event_loop()

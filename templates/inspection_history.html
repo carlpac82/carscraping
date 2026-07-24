@@ -9009,7 +9009,17 @@ async function submitFuelCharge() {
         fd.append('odometer_photo_checkout', _fcOdometerOutB64 || '');
         fd.append('fuel_level_checkin', c.checkin ? (c.checkin.fuel_level || '') : '');
         fd.append('fuel_level_checkout', checkout ? (checkout.fuel_level || '') : '');
-        if (_fcInvoiceFile) fd.append('invoice_pdf', _fcInvoiceFile);
+        if (_fcInvoiceFile) {
+            const ab = await _fcInvoiceFile.arrayBuffer();
+            const uint8 = new Uint8Array(ab);
+            let binary = '';
+            const chunk = 8192;
+            for (let i = 0; i < uint8.length; i += chunk) {
+                binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunk));
+            }
+            fd.append('invoice_pdf_b64', btoa(binary));
+            fd.append('invoice_pdf_filename', _fcInvoiceFile.name);
+        }
         const payload = { contract_number: c.contract_number, checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '' };
         const r = await fetch('/api/fuel-charges/send', { method: 'POST', body: fd });
         const d = await r.json();
