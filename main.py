@@ -8481,16 +8481,42 @@ async def send_fuel_charge_email(request: Request):
             try: return int(fuel_str)
             except: return 0
 
-        def fuel_bar_html(pct, label):
-            color = "#22c55e" if pct >= 75 else "#f59e0b" if pct >= 25 else "#ef4444"
+        def fuel_bar_html(pct, label, is_return=False):
+            fill_width_px = int(200 * pct / 100)
+            empty_width_px = 200 - fill_width_px
+            if is_return:
+                fuel_color = "#f59e0b"
+            else:
+                fuel_color = "#10b981" if pct >= 75 else "#f59e0b" if pct >= 50 else "#ef4444"
             return f"""
-            <div style="margin-bottom:12px;">
-                <div style="font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">{label}</div>
-                <div style="background:#e5e7eb;border-radius:6px;height:20px;width:100%;position:relative;">
-                    <div style="background:{color};border-radius:6px;height:20px;width:{pct}%;"></div>
-                </div>
-                <div style="font-size:12px;color:#666;margin-top:2px;">{pct}%</div>
-            </div>"""
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0;">
+                <tr><td align="center">
+                    <div style="font-size:13px;color:#555555;margin-bottom:8px;font-weight:600;">{label}</div>
+                    <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                        <tr>
+                            <td style="padding-right:12px;vertical-align:middle;">
+                                <span style="color:#009cb6;font-size:14px;font-weight:600;">R</span>
+                            </td>
+                            <td style="vertical-align:middle;">
+                                <table cellpadding="0" cellspacing="0" width="200" style="border:1px solid #ccc;border-radius:10px;background:#e5e7eb;">
+                                    <tr>
+                                        <td width="{fill_width_px}" style="background:{fuel_color};height:20px;border-radius:10px;"></td>
+                                        <td width="{empty_width_px}" style="height:20px;"></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td style="padding-left:12px;vertical-align:middle;">
+                                <span style="color:#009cb6;font-size:14px;font-weight:600;">F</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" align="center" style="padding-top:8px;">
+                                <span style="color:#333333;font-size:14px;font-weight:700;">{pct}%</span>
+                            </td>
+                        </tr>
+                    </table>
+                </td></tr>
+            </table>"""
 
         def odometer_img_html(photo_b64, label):
             if photo_b64 and photo_b64.startswith("data:image"):
@@ -8526,7 +8552,7 @@ async def send_fuel_charge_email(request: Request):
         html_body = html_body.replace("{{CUSTOMER_NAME}}", client_name)
         html_body = html_body.replace("{{VEHICLE_PLATE}}", vehicle_plate)
         html_body = html_body.replace("{{FUEL_BAR_IN}}", fuel_bar_html(pct_in, label_fuel_in_map[lang]))
-        html_body = html_body.replace("{{FUEL_BAR_OUT}}", fuel_bar_html(pct_out, label_fuel_out_map[lang]))
+        html_body = html_body.replace("{{FUEL_BAR_OUT}}", fuel_bar_html(pct_out, label_fuel_out_map[lang], is_return=True))
         html_body = html_body.replace("{{ODO_IMG_IN}}", odometer_img_html(odometer_photo_checkin, label_checkin_map[lang]))
         html_body = html_body.replace("{{ODO_IMG_OUT}}", odometer_img_html(odometer_photo_checkout, label_checkout_map[lang]))
         html_body = html_body.replace("{{LITERS_MISSING}}", f"{liters_missing:.1f}")
