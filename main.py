@@ -55716,6 +55716,11 @@ async def update_inspection(inspection_number: str, request: Request):
             update_fields.append("client_email = %s" if _USE_NEW_DB else "client_email = ?")
             update_values.append(data['client_email'].strip())
         
+        if 'contract_number' in data and data['contract_number']:
+            update_fields.append("contract_number = %s" if _USE_NEW_DB else "contract_number = ?")
+            update_values.append(data['contract_number'].strip())
+            logging.info(f"📝 Updating contract_number to: {data['contract_number'].strip()}")
+        
         if update_fields:
             update_values.append(inspection_number)
             query = f"UPDATE vehicle_inspections SET {', '.join(update_fields)} WHERE inspection_number = {'%s' if _USE_NEW_DB else '?'}"
