@@ -8459,6 +8459,7 @@ async def send_fuel_charge_email(request: Request):
         invoice_pdf_b64 = body.get("invoice_pdf_b64", "")
         invoice_pdf_filename = body.get("invoice_pdf_filename", "") or "fatura.pdf"
         sent_by = request.session.get("username", "system")
+        logging.info(f"📄 FC invoice_pdf_b64 len={len(invoice_pdf_b64)} filename={invoice_pdf_filename}")
 
         if not client_email:
             return JSONResponse({"ok": False, "error": "Client email is required"}, status_code=400)
@@ -8569,6 +8570,9 @@ async def send_fuel_charge_email(request: Request):
             pdf_data_str = invoice_pdf_b64.split(',', 1)[1] if ',' in invoice_pdf_b64 else invoice_pdf_b64
             pdf_bytes = _b64.b64decode(pdf_data_str)
             attachments.append({'filename': invoice_pdf_filename, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
+            logging.info(f"📎 PDF ready to attach: {invoice_pdf_filename}, {len(pdf_bytes)} bytes")
+        else:
+            logging.info("📄 No invoice PDF provided (invoice_pdf_b64 is empty)")
         _send_notification_email(client_email, t["subject"], html_body, attachments=attachments if attachments else None)
 
         _ensure_fuel_charges_table()
