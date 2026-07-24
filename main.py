@@ -5572,16 +5572,13 @@ def _send_notification_email(to_email: str, subject: str, message: str, attachme
         
         # Adicionar anexos se fornecidos
         if attachments:
+            from email.mime.application import MIMEApplication
             for attachment in attachments:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(attachment['content'])
-                encoders.encode_base64(part)
-                part.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename={attachment["filename"]}'
-                )
+                fname = attachment["filename"]
+                part = MIMEApplication(attachment['content'], Name=fname)
+                part['Content-Disposition'] = f'attachment; filename="{fname}"'
                 email_message.attach(part)
-                logging.info(f"📎 Attached file: {attachment['filename']}")
+                logging.info(f"📎 Attached file: {fname}, {len(attachment['content'])} bytes")
         
         # Enviar via Gmail API (credentials já carregadas com refresh capability)
         service = build('gmail', 'v1', credentials=credentials)
@@ -5597,13 +5594,14 @@ def _send_notification_email(to_email: str, subject: str, message: str, attachme
         
     except Exception as e:
         logging.error(f"❌ Failed to send notification email via OAuth: {str(e)}")
+        import traceback; traceback.print_exc()
         # Tentar SMTP como fallback
         try:
             _send_notification_email_smtp(to_email, subject, message, attachments)
             return True
         except Exception as smtp_error:
             logging.error(f"❌ SMTP fallback also failed: {str(smtp_error)}")
-            return False
+            raise RuntimeError(f"Email failed. OAuth: {str(e)} | SMTP: {str(smtp_error)}")
 
 def _send_notification_email_smtp(to_email: str, subject: str, message: str, attachments: list = None):
     """Enviar email de notificação via SMTP (fallback)
