@@ -76,6 +76,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label class="flex items-center gap-2"><input type="checkbox" name="is_admin" value="1" {% if u.is_admin %}checked{% endif %} class="rounded border-gray-300" /> <span class="text-sm">Admin</span></label>
           <label class="flex items-center gap-2"><input type="checkbox" name="enabled" value="1" {% if u.enabled %}checked{% endif %} class="rounded border-gray-300" /> <span class="text-sm">Enabled</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="can_fuel_charge" value="1" {% if u.can_fuel_charge %}checked{% endif %} class="rounded border-gray-300" /> <span class="text-sm">Cobrar Combustível</span></label>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">New password (optional)</label>

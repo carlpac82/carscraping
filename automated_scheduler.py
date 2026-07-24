@@ -51,9 +51,9 @@ def _get_db_connection():
                 connect_timeout=10,  # 10 seconds timeout for connection
                 options='-c statement_timeout=30000',  # 30 seconds for queries
                 sslmode='require',  # Force SSL for stable connections
-                keepalives_idle=30,  # Send keepalive after 30 seconds of idle
-                keepalives_interval=10,  # Send keepalive every 10 seconds if no response
-                keepalives_count=5  # Give up after 5 failed keepalives
+                keepalives_idle=10,  # Send keepalive after 10 seconds of idle
+                keepalives_interval=5,  # Send keepalive every 5 seconds if no response
+                keepalives_count=3  # Give up after 3 failed keepalives
             )
             
             # Test connection is alive

@@ -2787,7 +2787,7 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions, can_manage_commissioners FROM users WHERE username=?", (username,))
+                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions, can_manage_commissioners, can_fuel_charge FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
                     return None
@@ -2806,6 +2806,7 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                     "has_commissioner_access": bool(r[10]) if r[10] is not None else False,
                     "can_manage_commissions": bool(r[11]) if r[11] is not None else False,
                     "can_manage_commissioners": bool(r[12]) if r[12] is not None else False,
+                    "can_fuel_charge": bool(r[13]) if len(r) > 13 and r[13] is not None else False,
                 }
                 
                 return user_data
@@ -8151,6 +8152,7 @@ async def admin_users_edit_post(
     email: str = Form(""),
     is_admin: str = Form("0"),
     enabled: str = Form("1"),
+    can_fuel_charge: str = Form("0"),
     new_password: str = Form(""),
     picture: Optional[UploadFile] = File(None),
 ):
@@ -8176,17 +8178,18 @@ async def admin_users_edit_post(
                 # Converter para integer (0 ou 1) para compatibilidade PostgreSQL/SQLite
                 is_admin_val = 1 if is_admin in ("1","true","on") else 0
                 enabled_val = 1 if enabled in ("1","true","on") else 0
+                can_fuel_charge_val = 1 if can_fuel_charge in ("1","true","on") else 0
                 
                 if pic_data:
                     print(f"[UPLOAD] 💾 Saving to DB: user_id={user_id}, blob_size={len(pic_data)}", file=sys.stderr, flush=True)
                     con.execute(
-                        "UPDATE users SET first_name=?, last_name=?, mobile=?, email=?, profile_picture_path=?, profile_picture_data=?, is_admin=?, enabled=? WHERE id=?",
-                        (first_name, last_name, mobile, email, pic_path, pic_data, is_admin_val, enabled_val, user_id)
+                        "UPDATE users SET first_name=?, last_name=?, mobile=?, email=?, profile_picture_path=?, profile_picture_data=?, is_admin=?, enabled=?, can_fuel_charge=? WHERE id=?",
+                        (first_name, last_name, mobile, email, pic_path, pic_data, is_admin_val, enabled_val, can_fuel_charge_val, user_id)
                     )
                 else:
                     con.execute(
-                        "UPDATE users SET first_name=?, last_name=?, mobile=?, email=?, is_admin=?, enabled=? WHERE id=?",
-                        (first_name, last_name, mobile, email, is_admin_val, enabled_val, user_id)
+                        "UPDATE users SET first_name=?, last_name=?, mobile=?, email=?, is_admin=?, enabled=?, can_fuel_charge=? WHERE id=?",
+                        (first_name, last_name, mobile, email, is_admin_val, enabled_val, can_fuel_charge_val, user_id)
                     )
                 # Optional password change
                 if new_password and new_password.strip():
@@ -8230,7 +8233,7 @@ async def admin_users_delete(request: Request, user_id: int):
 async def admin_update_inspection_permissions(request: Request, user_id: int):
     """
     Update user role and inspection access permission.
-    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1, can_manage_commissions: 0|1, can_manage_commissioners: 0|1}
+    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1, can_manage_commissions: 0|1, can_manage_commissioners: 0|1, can_fuel_charge: 0|1}
     """
     try:
         require_commissions_management(request)
@@ -8244,6 +8247,7 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
         has_commissioner_access = bool(int(body.get("has_commissioner_access", 0)))
         can_manage_commissions = bool(int(body.get("can_manage_commissions", 0)))
         can_manage_commissioners = bool(int(body.get("can_manage_commissioners", 0)))
+        can_fuel_charge = bool(int(body.get("can_fuel_charge", 0)))
         
         # Validate role
         if role not in ["user", "receptionist", "support", "admin"]:
@@ -8258,16 +8262,432 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
                     return JSONResponse({"ok": False, "error": "User not found"}, status_code=404)
                 
                 # Update role and permissions
-                con.execute(
-                    "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=?, can_manage_commissions=?, can_manage_commissioners=? WHERE id=?",
-                    (role, can_access, int(has_commissioner_access), bool(can_manage_commissions), bool(can_manage_commissioners), user_id)
-                )
+                try:
+                    con.execute(
+                        "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=?, can_manage_commissions=?, can_manage_commissioners=?, can_fuel_charge=? WHERE id=?",
+                        (role, can_access, int(has_commissioner_access), bool(can_manage_commissions), bool(can_manage_commissioners), bool(can_fuel_charge), user_id)
+                    )
+                except Exception:
+                    con.execute(
+                        "ALTER TABLE users ADD COLUMN can_fuel_charge BOOLEAN DEFAULT FALSE"
+                    )
+                    con.execute(
+                        "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=?, can_manage_commissions=?, can_manage_commissioners=?, can_fuel_charge=? WHERE id=?",
+                        (role, can_access, int(has_commissioner_access), bool(can_manage_commissions), bool(can_manage_commissioners), bool(can_fuel_charge), user_id)
+                    )
                 con.commit()
                 
                 return JSONResponse({"ok": True, "message": "Permissions updated successfully"})
             finally:
                 con.close()
     except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+# ============================================================
+# FUEL CHARGE SYSTEM
+# ============================================================
+
+def _ensure_fuel_charges_table():
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                placeholder = "%s" if _USE_NEW_DB else "?"
+                if _USE_NEW_DB:
+                    con.execute("""
+                        CREATE TABLE IF NOT EXISTS fuel_charges (
+                            id SERIAL PRIMARY KEY,
+                            checkout_inspection_number VARCHAR(100),
+                            checkin_inspection_number VARCHAR(100),
+                            vehicle_plate VARCHAR(20),
+                            contract_number VARCHAR(50),
+                            client_name VARCHAR(200),
+                            client_email VARCHAR(200),
+                            liters_missing DECIMAL(10,2),
+                            price_per_liter DECIMAL(10,4),
+                            admin_fee DECIMAL(10,2),
+                            total_amount DECIMAL(10,2),
+                            language VARCHAR(10) DEFAULT 'en',
+                            email_sent_at TIMESTAMP DEFAULT NOW(),
+                            sent_by VARCHAR(100),
+                            odometer_photo_checkin TEXT,
+                            odometer_photo_checkout TEXT,
+                            created_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """)
+                else:
+                    con.execute("""
+                        CREATE TABLE IF NOT EXISTS fuel_charges (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            checkout_inspection_number TEXT,
+                            checkin_inspection_number TEXT,
+                            vehicle_plate TEXT,
+                            contract_number TEXT,
+                            client_name TEXT,
+                            client_email TEXT,
+                            liters_missing REAL,
+                            price_per_liter REAL,
+                            admin_fee REAL,
+                            total_amount REAL,
+                            language TEXT DEFAULT 'en',
+                            email_sent_at TEXT,
+                            sent_by TEXT,
+                            odometer_photo_checkin TEXT,
+                            odometer_photo_checkout TEXT,
+                            created_at TEXT DEFAULT (datetime('now'))
+                        )
+                    """)
+                con.commit()
+            finally:
+                con.close()
+    except Exception as e:
+        logging.error(f"Error ensuring fuel_charges table: {e}")
+
+@app.get("/api/fuel-settings")
+async def get_fuel_settings(request: Request):
+    try:
+        price_per_liter = float(_get_setting("fuel_price_per_liter", "1.89") or 1.89)
+        admin_fee = float(_get_setting("fuel_admin_fee", "25.00") or 25.00)
+        updated_at = _get_setting("fuel_settings_updated_at", "")
+        updated_by = _get_setting("fuel_settings_updated_by", "")
+        return JSONResponse({
+            "ok": True,
+            "price_per_liter": price_per_liter,
+            "admin_fee": admin_fee,
+            "updated_at": updated_at,
+            "updated_by": updated_by
+        })
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/fuel-settings")
+async def update_fuel_settings(request: Request):
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    try:
+        body = await request.json()
+        price_per_liter = float(body.get("price_per_liter", 1.89))
+        admin_fee = float(body.get("admin_fee", 25.00))
+        username = request.session.get("username", "admin")
+        from datetime import datetime
+        now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+        _set_setting("fuel_price_per_liter", str(price_per_liter))
+        _set_setting("fuel_admin_fee", str(admin_fee))
+        _set_setting("fuel_settings_updated_at", now_str)
+        _set_setting("fuel_settings_updated_by", username)
+        return JSONResponse({"ok": True, "price_per_liter": price_per_liter, "admin_fee": admin_fee})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/fuel-charges")
+async def list_fuel_charges(request: Request):
+    try:
+        _ensure_fuel_charges_table()
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if _USE_NEW_DB:
+                    cur = con.cursor()
+                    cur.execute("""
+                        SELECT id, checkout_inspection_number, vehicle_plate, contract_number,
+                               client_name, client_email, liters_missing, price_per_liter,
+                               admin_fee, total_amount, language, email_sent_at, sent_by, created_at
+                        FROM fuel_charges ORDER BY created_at DESC LIMIT 200
+                    """)
+                    rows = cur.fetchall()
+                    cols = [d[0] for d in cur.description]
+                    charges = [dict(zip(cols, r)) for r in rows]
+                else:
+                    cur = con.execute("""
+                        SELECT id, checkout_inspection_number, vehicle_plate, contract_number,
+                               client_name, client_email, liters_missing, price_per_liter,
+                               admin_fee, total_amount, language, email_sent_at, sent_by, created_at
+                        FROM fuel_charges ORDER BY created_at DESC LIMIT 200
+                    """)
+                    cols = [d[0] for d in cur.description]
+                    charges = [dict(zip(cols, r)) for r in cur.fetchall()]
+                return JSONResponse({"ok": True, "charges": charges})
+            finally:
+                con.close()
+    except Exception as e:
+        logging.error(f"Error listing fuel charges: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/fuel-charges/check/{inspection_number}")
+async def check_fuel_charge(request: Request, inspection_number: str):
+    try:
+        _ensure_fuel_charges_table()
+        with _db_lock:
+            con = _db_connect()
+            try:
+                placeholder = "%s" if _USE_NEW_DB else "?"
+                if _USE_NEW_DB:
+                    cur = con.cursor()
+                    cur.execute(f"SELECT id, email_sent_at, total_amount FROM fuel_charges WHERE checkout_inspection_number = {placeholder} LIMIT 1", (inspection_number,))
+                    row = cur.fetchone()
+                else:
+                    cur = con.execute(f"SELECT id, email_sent_at, total_amount FROM fuel_charges WHERE checkout_inspection_number = {placeholder} LIMIT 1", (inspection_number,))
+                    row = cur.fetchone()
+                if row:
+                    return JSONResponse({"ok": True, "charged": True, "sent_at": str(row[1]), "total": float(row[2]) if row[2] else 0})
+                return JSONResponse({"ok": True, "charged": False})
+            finally:
+                con.close()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/fuel-charges/send")
+async def send_fuel_charge_email(request: Request):
+    try:
+        body = await request.json()
+        checkout_inspection_number = body.get("checkout_inspection_number", "")
+        checkin_inspection_number = body.get("checkin_inspection_number", "")
+        vehicle_plate = body.get("vehicle_plate", "")
+        contract_number = body.get("contract_number", "")
+        client_name = body.get("client_name", "")
+        client_email = body.get("client_email", "")
+        liters_missing = float(body.get("liters_missing", 0))
+        price_per_liter = float(body.get("price_per_liter", 1.89))
+        admin_fee = float(body.get("admin_fee", 25.00))
+        language = body.get("language", "en")
+        odometer_photo_checkin = body.get("odometer_photo_checkin", "")
+        odometer_photo_checkout = body.get("odometer_photo_checkout", "")
+        fuel_level_checkin = body.get("fuel_level_checkin", "")
+        fuel_level_checkout = body.get("fuel_level_checkout", "")
+        sent_by = request.session.get("username", "system")
+
+        if not client_email:
+            return JSONResponse({"ok": False, "error": "Client email is required"}, status_code=400)
+        if liters_missing <= 0:
+            return JSONResponse({"ok": False, "error": "Liters missing must be greater than 0"}, status_code=400)
+
+        subtotal = round(liters_missing * price_per_liter, 2)
+        total_amount = round(subtotal + admin_fee, 2)
+        first_name = client_name.split()[0] if client_name and ' ' in client_name else (client_name or "Cliente")
+
+        def fuel_level_to_pct(fuel):
+            if not fuel:
+                return 0
+            fuel_str = str(fuel).lower().strip()
+            if fuel_str in ('full', 'cheio', 'f', '100'): return 100
+            if fuel_str == '3/4': return 75
+            if fuel_str == '1/2': return 50
+            if fuel_str == '1/4': return 25
+            if fuel_str in ('reserva', 'reserve', 'r', 'empty', '0'): return 0
+            try: return int(fuel_str)
+            except: return 0
+
+        def fuel_bar_html(pct, label):
+            color = "#22c55e" if pct >= 75 else "#f59e0b" if pct >= 25 else "#ef4444"
+            return f"""
+            <div style="margin-bottom:12px;">
+                <div style="font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">{label}</div>
+                <div style="background:#e5e7eb;border-radius:6px;height:20px;width:100%;position:relative;">
+                    <div style="background:{color};border-radius:6px;height:20px;width:{pct}%;"></div>
+                </div>
+                <div style="font-size:12px;color:#666;margin-top:2px;">{pct}%</div>
+            </div>"""
+
+        def odometer_img_html(photo_b64, label):
+            if photo_b64 and photo_b64.startswith("data:image"):
+                return f'<div style="margin-bottom:8px;"><div style="font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">{label}</div><img src="{photo_b64}" style="max-width:100%;border-radius:8px;border:1px solid #e0e0e0;"></div>'
+            return f'<div style="margin-bottom:8px;"><div style="font-size:13px;color:#555;margin-bottom:4px;font-weight:600;">{label}</div><div style="background:#f3f4f6;padding:20px;text-align:center;border-radius:8px;color:#9ca3af;font-size:13px;">Foto não disponível</div></div>'
+
+        pct_in = fuel_level_to_pct(fuel_level_checkin)
+        pct_out = fuel_level_to_pct(fuel_level_checkout)
+
+        templates_map = {
+            "pt": {
+                "subject": f"Auto Prudente - Cobrança de Combustível - R.A. {contract_number}",
+                "greeting": f"Olá {first_name},",
+                "intro": "No momento da recolha da viatura foi registada uma diferença no nível de combustível. Segue abaixo o detalhe da cobrança.",
+                "fuel_section_title": "Nível de Combustível",
+                "label_checkin": "Entrega",
+                "label_checkout": "Recolha",
+                "odometer_title": "Fotos do Odómetro",
+                "label_odo_checkin": "Odómetro - Entrega",
+                "label_odo_checkout": "Odómetro - Recolha",
+                "charge_title": "Detalhe da Cobrança",
+                "label_liters": "Litros em falta",
+                "label_price": "Preço por litro",
+                "label_subtotal": "Subtotal",
+                "label_admin_fee": "Taxa administrativa",
+                "label_total": "TOTAL A COBRAR",
+                "footer_note": "Para qualquer questão, contacte-nos através dos nossos canais habituais.",
+            },
+            "en": {
+                "subject": f"Auto Prudente - Fuel Charge - R.A. {contract_number}",
+                "greeting": f"Dear {first_name},",
+                "intro": "During the vehicle return inspection, a fuel level difference was recorded. Please find below the charge details.",
+                "fuel_section_title": "Fuel Level",
+                "label_checkin": "Delivery",
+                "label_checkout": "Return",
+                "odometer_title": "Odometer Photos",
+                "label_odo_checkin": "Odometer - Delivery",
+                "label_odo_checkout": "Odometer - Return",
+                "charge_title": "Charge Details",
+                "label_liters": "Missing liters",
+                "label_price": "Price per liter",
+                "label_subtotal": "Subtotal",
+                "label_admin_fee": "Administrative fee",
+                "label_total": "TOTAL CHARGE",
+                "footer_note": "For any questions, please contact us through our usual channels.",
+            },
+            "fr": {
+                "subject": f"Auto Prudente - Facturation Carburant - R.A. {contract_number}",
+                "greeting": f"Bonjour {first_name},",
+                "intro": "Lors de la restitution du véhicule, une différence de niveau de carburant a été enregistrée. Veuillez trouver ci-dessous le détail de la facturation.",
+                "fuel_section_title": "Niveau de Carburant",
+                "label_checkin": "Livraison",
+                "label_checkout": "Retour",
+                "odometer_title": "Photos du Compteur Kilométrique",
+                "label_odo_checkin": "Compteur - Livraison",
+                "label_odo_checkout": "Compteur - Retour",
+                "charge_title": "Détail de la Facturation",
+                "label_liters": "Litres manquants",
+                "label_price": "Prix par litre",
+                "label_subtotal": "Sous-total",
+                "label_admin_fee": "Frais administratifs",
+                "label_total": "TOTAL À FACTURER",
+                "footer_note": "Pour toute question, veuillez nous contacter via nos canaux habituels.",
+            },
+            "de": {
+                "subject": f"Auto Prudente - Kraftstoffrechnung - R.A. {contract_number}",
+                "greeting": f"Sehr geehrte(r) {first_name},",
+                "intro": "Bei der Fahrzeugrückgabe wurde ein Unterschied im Kraftstoffstand festgestellt. Nachfolgend finden Sie die Rechnungsdetails.",
+                "fuel_section_title": "Kraftstoffstand",
+                "label_checkin": "Übergabe",
+                "label_checkout": "Rückgabe",
+                "odometer_title": "Tacho-Fotos",
+                "label_odo_checkin": "Tacho - Übergabe",
+                "label_odo_checkout": "Tacho - Rückgabe",
+                "charge_title": "Rechnungsdetails",
+                "label_liters": "Fehlende Liter",
+                "label_price": "Preis pro Liter",
+                "label_subtotal": "Zwischensumme",
+                "label_admin_fee": "Verwaltungsgebühr",
+                "label_total": "GESAMTBETRAG",
+                "footer_note": "Bei Fragen kontaktieren Sie uns bitte über unsere üblichen Kanäle.",
+            },
+        }
+
+        t = templates_map.get(language, templates_map["en"])
+
+        html_body = f"""<!DOCTYPE html>
+<html lang="{language}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{t['subject']}</title></head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f4f4f4;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td align="center" style="padding:20px 0;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+  <!-- Header -->
+  <tr><td style="background:linear-gradient(135deg,#00bcd4 0%,#0097a7 100%);padding:20px;">
+    <table width="100%"><tr>
+      <td><img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height:50px;width:auto;"></td>
+      <td style="text-align:right;"><div style="background:rgba(255,255,255,0.2);padding:10px 15px;border-radius:6px;display:inline-block;"><span style="color:#fff;font-size:16px;font-weight:bold;">R.A.: {contract_number}</span></div></td>
+    </tr></table>
+  </td></tr>
+  <!-- Orange alert banner -->
+  <tr><td style="background:#fff3cd;border-left:4px solid #f59e0b;padding:16px 20px;">
+    <table><tr>
+      <td style="padding-right:12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </td>
+      <td><span style="color:#92400e;font-weight:600;font-size:15px;">{t['greeting']}</span><br><span style="color:#92400e;font-size:13px;">{t['intro']}</span></td>
+    </tr></table>
+  </td></tr>
+  <!-- Vehicle info -->
+  <tr><td style="padding:20px;background:#f9f9f9;">
+    <table width="100%" cellpadding="8" cellspacing="0" style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;">
+      <tr><td style="font-weight:bold;color:#333;width:40%;border-bottom:1px solid #eee;">Matrícula / Plate:</td><td style="border-bottom:1px solid #eee;color:#1f2937;font-weight:600;">{vehicle_plate}</td></tr>
+      <tr><td style="font-weight:bold;color:#333;border-bottom:1px solid #eee;">R.A.:</td><td style="border-bottom:1px solid #eee;color:#666;">{contract_number}</td></tr>
+      <tr><td style="font-weight:bold;color:#333;">Cliente / Client:</td><td style="color:#666;">{client_name}</td></tr>
+    </table>
+  </td></tr>
+  <!-- Fuel bars -->
+  <tr><td style="padding:20px;">
+    <h3 style="color:#00bcd4;margin:0 0 15px 0;font-size:17px;">{t['fuel_section_title']}</h3>
+    <table width="100%" cellpadding="10" cellspacing="0" style="background:#f9f9f9;border-radius:8px;border:1px solid #e0e0e0;">
+      <tr>
+        <td width="50%" style="border-right:1px solid #e0e0e0;">{fuel_bar_html(pct_in, t['label_checkin'])}</td>
+        <td width="50%" style="padding-left:15px;">{fuel_bar_html(pct_out, t['label_checkout'])}</td>
+      </tr>
+    </table>
+  </td></tr>
+  <!-- Odometer photos -->
+  <tr><td style="padding:20px;background:#f9f9f9;">
+    <h3 style="color:#00bcd4;margin:0 0 15px 0;font-size:17px;">{t['odometer_title']}</h3>
+    <table width="100%" cellpadding="10" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e0e0e0;">
+      <tr>
+        <td width="50%" style="border-right:1px solid #e0e0e0;">{odometer_img_html(odometer_photo_checkin, t['label_odo_checkin'])}</td>
+        <td width="50%" style="padding-left:15px;">{odometer_img_html(odometer_photo_checkout, t['label_odo_checkout'])}</td>
+      </tr>
+    </table>
+  </td></tr>
+  <!-- Charge table -->
+  <tr><td style="padding:20px;">
+    <h3 style="color:#00bcd4;margin:0 0 15px 0;font-size:17px;">{t['charge_title']}</h3>
+    <table width="100%" cellpadding="10" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:8px;font-size:14px;">
+      <tr style="background:#f9f9f9;"><td style="border-bottom:1px solid #eee;">{t['label_liters']}</td><td style="text-align:right;border-bottom:1px solid #eee;font-weight:600;">{liters_missing:.1f} L</td></tr>
+      <tr><td style="border-bottom:1px solid #eee;">{t['label_price']}</td><td style="text-align:right;border-bottom:1px solid #eee;">{price_per_liter:.3f} €/L</td></tr>
+      <tr style="background:#f9f9f9;"><td style="border-bottom:1px solid #eee;">{t['label_subtotal']}</td><td style="text-align:right;border-bottom:1px solid #eee;">{subtotal:.2f} €</td></tr>
+      <tr><td style="border-bottom:2px solid #00bcd4;">{t['label_admin_fee']}</td><td style="text-align:right;border-bottom:2px solid #00bcd4;">{admin_fee:.2f} €</td></tr>
+      <tr style="background:#00bcd4;"><td style="color:#fff;font-weight:bold;font-size:15px;border-radius:0 0 0 8px;">{t['label_total']}</td><td style="text-align:right;color:#fff;font-weight:bold;font-size:18px;border-radius:0 0 8px 0;">{total_amount:.2f} €</td></tr>
+    </table>
+  </td></tr>
+  <!-- Footer note -->
+  <tr><td style="padding:16px 20px;background:#f0f9fb;">
+    <p style="color:#666;font-size:13px;margin:0;">{t['footer_note']}</p>
+  </td></tr>
+  <!-- Footer -->
+  <tr><td style="background:#00bcd4;padding:20px;text-align:center;">
+    <p style="color:#fff;margin:0;font-size:11px;">© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>"""
+
+        _send_notification_email_smtp(client_email, t["subject"], html_body)
+
+        _ensure_fuel_charges_table()
+        from datetime import datetime
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with _db_lock:
+            con = _db_connect()
+            try:
+                placeholder = "%s" if _USE_NEW_DB else "?"
+                if _USE_NEW_DB:
+                    cur = con.cursor()
+                    cur.execute(f"""
+                        INSERT INTO fuel_charges (checkout_inspection_number, checkin_inspection_number, vehicle_plate, contract_number,
+                            client_name, client_email, liters_missing, price_per_liter, admin_fee, total_amount, language, email_sent_at, sent_by,
+                            odometer_photo_checkin, odometer_photo_checkout)
+                        VALUES ({placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder},{placeholder})
+                    """, (checkout_inspection_number, checkin_inspection_number, vehicle_plate, contract_number,
+                          client_name, client_email, liters_missing, price_per_liter, admin_fee, total_amount,
+                          language, now_str, sent_by, odometer_photo_checkin[:500] if odometer_photo_checkin else "", odometer_photo_checkout[:500] if odometer_photo_checkout else ""))
+                else:
+                    con.execute("""
+                        INSERT INTO fuel_charges (checkout_inspection_number, checkin_inspection_number, vehicle_plate, contract_number,
+                            client_name, client_email, liters_missing, price_per_liter, admin_fee, total_amount, language, email_sent_at, sent_by,
+                            odometer_photo_checkin, odometer_photo_checkout)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """, (checkout_inspection_number, checkin_inspection_number, vehicle_plate, contract_number,
+                          client_name, client_email, liters_missing, price_per_liter, admin_fee, total_amount,
+                          language, now_str, sent_by, odometer_photo_checkin[:500] if odometer_photo_checkin else "", odometer_photo_checkout[:500] if odometer_photo_checkout else ""))
+                con.commit()
+                logging.info(f"Fuel charge recorded: {vehicle_plate} {contract_number} {total_amount}EUR by {sent_by}")
+            finally:
+                con.close()
+
+        return JSONResponse({"ok": True, "total_amount": total_amount, "message": "Email sent successfully"})
+    except Exception as e:
+        logging.error(f"Error sending fuel charge email: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 # --- Admin UI ---
@@ -8392,14 +8812,15 @@ async def admin_users(request: Request):
             try:
                 # Try with has_commissioner_access column first
                 try:
-                    cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access, can_manage_commissions FROM users ORDER BY id DESC")
+                    cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access, can_manage_commissions, can_fuel_charge FROM users ORDER BY id DESC")
                     for r in cur.fetchall():
                         users.append({
                             "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
                             "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
                             "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
                             "has_commissioner_access": bool(r[10] if r[10] is not None else 0),
-                            "can_manage_commissions": bool(r[11] if r[11] is not None else 0)
+                            "can_manage_commissions": bool(r[11] if r[11] is not None else 0),
+                            "can_fuel_charge": bool(r[12] if r[12] is not None else 0)
                         })
                 except Exception:
                     # Fallback: column doesn't exist yet
@@ -8410,7 +8831,8 @@ async def admin_users(request: Request):
                             "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
                             "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
                             "has_commissioner_access": False,
-                            "can_manage_commissions": False
+                            "can_manage_commissions": False,
+                            "can_fuel_charge": False
                         })
             finally:
                 con.close()

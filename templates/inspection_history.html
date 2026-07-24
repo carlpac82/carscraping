@@ -447,6 +447,27 @@
         const isAdmin = {{ 'true' if current_user and (current_user.get('role') == 'admin' or current_user.get('is_admin')) else 'false' }};
         console.log('👤 Current user:', currentUser);
         console.log('🔐 Is admin:', isAdmin);
+        const canFuelCharge = !!(currentUser && currentUser.can_fuel_charge);
+        let chargedInspections = new Set();
+        let fuelSettings = { price_per_liter: 1.89, admin_fee: 25.00 };
+        window.fuelChargeContracts = {};
+
+        async function loadFuelSettings() {
+            try {
+                const r = await fetch('/api/fuel-settings');
+                const d = await r.json();
+                if (d.ok) { fuelSettings.price_per_liter = d.price_per_liter; fuelSettings.admin_fee = d.admin_fee; }
+            } catch(e) {}
+        }
+        async function loadChargedInspections() {
+            try {
+                const r = await fetch('/api/fuel-charges');
+                const d = await r.json();
+                if (d.ok && d.charges) {
+                    d.charges.forEach(c => { if (c.checkout_inspection_number) chargedInspections.add(c.checkout_inspection_number); });
+                }
+            } catch(e) {}
+        }
 
         // Modal de confirmação personalizado
         function showConfirmModal(title, message, confirmText = 'Confirmar', cancelText = 'Cancelar') {
@@ -1142,10 +1163,24 @@
                         }
                         
                         if (fuelToCompare !== null && fuelToCompare < checkinFuel) {
-                            fuelWarningBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                COMBUSTÍVEL ABAIXO
-                            </span>`;
+                            const checkoutInspectionNum = hasCheckout ? (contract.checkout.inspection_number || '') : (hasSelfCheckout ? (contract.self_checkout.inspection_number || '') : '');
+                            const alreadyCharged = checkoutInspectionNum && chargedInspections.has(checkoutInspectionNum);
+                            // Store contract data for modal access
+                            window.fuelChargeContracts[contract.contract_number] = contract;
+                            if (alreadyCharged) {
+                                fuelWarningBadge = `<span id="fuelBadge-${contract.contract_number}" class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    COMBUSTÍVEL COBRADO
+                                </span>`;
+                            } else {
+                                fuelWarningBadge = `<span id="fuelBadge-${contract.contract_number}" class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    COMBUSTÍVEL ABAIXO
+                                </span>${canFuelCharge ? `<button onclick="openFuelChargeModal('${contract.contract_number}')" class="px-2 py-1 rounded-full text-xs font-semibold bg-[#009cb6] text-white flex items-center gap-1 hover:bg-[#0077a3] transition-colors ml-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                    COBRAR COMBUSTÍVEL
+                                </button>` : ''}`;
+                            }
                         }
                     }
                     
@@ -8600,8 +8635,379 @@
                 });
             }
             
-            loadHistory();
+            loadFuelSettings();
+            loadChargedInspections().then(() => loadHistory());
         });
     </script>
+
+<!-- FUEL CHARGE MODAL -->
+<div id="fuelChargeModal" class="hidden fixed inset-0 bg-black/60 z-[9000] flex items-start justify-center overflow-y-auto py-6">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+    <!-- Header -->
+    <div class="bg-[#009cb6] px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <h2 class="text-white font-bold text-lg">Cobrar Combustível</h2>
+      </div>
+      <button onclick="closeFuelChargeModal()" title="Fechar" class="text-white/80 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <!-- Contract Info -->
+    <div class="px-6 py-3 bg-gray-50 border-b flex flex-wrap gap-4 text-sm">
+      <span><span class="font-semibold text-gray-600">Matrícula:</span> <span id="fc-plate" class="font-bold text-gray-900"></span></span>
+      <span><span class="font-semibold text-gray-600">R.A.:</span> <span id="fc-ra" class="text-gray-700"></span></span>
+      <span><span class="font-semibold text-gray-600">Cliente:</span> <span id="fc-client" class="text-gray-700"></span></span>
+    </div>
+    <!-- Body -->
+    <div class="px-6 py-4 space-y-5">
+      <!-- Fuel Bars -->
+      <div>
+        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          Nível de Combustível
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-gray-50 rounded-lg p-3 border">
+            <p class="text-xs font-semibold text-gray-500 mb-2">ENTREGA</p>
+            <div class="h-4 bg-gray-200 rounded-full overflow-hidden mb-1"><div id="fc-bar-in" class="h-full bg-[#009cb6] rounded-full transition-all" style="width:0%"></div></div>
+            <p class="text-xs text-center text-gray-600" id="fc-label-in">—</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3 border">
+            <p class="text-xs font-semibold text-gray-500 mb-2">RECOLHA</p>
+            <div class="h-4 bg-gray-200 rounded-full overflow-hidden mb-1"><div id="fc-bar-out" class="h-full bg-orange-400 rounded-full transition-all" style="width:0%"></div></div>
+            <p class="text-xs text-center text-gray-600" id="fc-label-out">—</p>
+          </div>
+        </div>
+      </div>
+      <!-- Odometer Photos -->
+      <div>
+        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Fotos do Odómetro
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Entrega photo -->
+          <div class="border rounded-lg p-3 bg-gray-50">
+            <p class="text-xs font-semibold text-gray-500 mb-2">ENTREGA</p>
+            <div id="fc-odo-in-container">
+              <div id="fc-odo-in-placeholder" class="text-center py-4 text-gray-400 text-xs">Sem foto</div>
+              <img id="fc-odo-in-img" src="" alt="Odómetro Entrega" class="w-full rounded hidden border" style="max-height:140px;object-fit:contain;">
+            </div>
+          </div>
+          <!-- Recolha photo -->
+          <div class="border rounded-lg p-3 bg-gray-50">
+            <p class="text-xs font-semibold text-gray-500 mb-2">RECOLHA</p>
+            <div id="fc-odo-out-container">
+              <div id="fc-odo-out-placeholder" class="text-center py-4 text-gray-400 text-xs">Sem foto</div>
+              <img id="fc-odo-out-img" src="" alt="Odómetro Recolha" class="w-full rounded hidden border" style="max-height:140px;object-fit:contain;">
+            </div>
+            <!-- Buttons to capture/upload if no photo -->
+            <div id="fc-odo-out-actions" class="hidden mt-2 flex flex-col gap-2">
+              <button onclick="startFuelCameraCapture()" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#009cb6] text-white text-xs rounded-lg hover:bg-[#0077a3] transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Tirar Fotografia
+              </button>
+              <label class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Carregar Foto
+                <input type="file" accept="image/*" class="hidden" onchange="fuelUploadOdometerPhoto(event)">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Charge Calculation -->
+      <div class="bg-gray-50 rounded-lg p-4 border">
+        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Detalhe da Cobrança
+        </h3>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Litros em falta</label>
+            <input type="number" id="fc-liters" min="0.1" step="0.1" placeholder="0.0" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Preço por litro (€)</label>
+            <input type="number" id="fc-price" min="0.01" step="0.001" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Taxa administrativa (€)</label>
+            <input type="number" id="fc-admin-fee" min="0" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+          </div>
+          <div class="flex flex-col justify-end">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Subtotal (€)</label>
+            <div id="fc-subtotal" class="w-full border border-gray-300 bg-gray-100 rounded-lg px-3 py-2 text-sm text-gray-700 font-semibold">0.00 €</div>
+          </div>
+        </div>
+        <div class="bg-[#009cb6] rounded-lg px-4 py-3 flex items-center justify-between">
+          <span class="text-white font-bold">TOTAL A COBRAR</span>
+          <span id="fc-total" class="text-white font-bold text-xl">0.00 €</span>
+        </div>
+      </div>
+      <!-- Client Email -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Email do Cliente</label>
+        <input type="email" id="fc-email" placeholder="email@exemplo.com" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]">
+      </div>
+    </div>
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between gap-3">
+      <button onclick="closeFuelChargeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+      <button onclick="submitFuelCharge()" id="fc-send-btn" class="flex items-center gap-2 px-5 py-2 bg-[#009cb6] text-white font-semibold text-sm rounded-lg hover:bg-[#0077a3] transition-colors disabled:opacity-50">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Enviar Email ao Cliente
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CAMERA MODAL FOR FUEL ODOMETER -->
+<div id="fuelCameraModal" class="hidden fixed inset-0 bg-black z-[9500] flex flex-col items-center justify-center">
+  <div class="relative w-full max-w-md">
+    <video id="fuelCameraVideo" autoplay playsinline class="w-full rounded-lg" style="max-height:60vh;"></video>
+    <canvas id="fuelCameraCanvas" class="hidden"></canvas>
+    <div id="fuelCameraCountdown" class="absolute inset-0 flex items-center justify-center text-white font-bold hidden" style="font-size:6rem;text-shadow:0 0 20px rgba(0,0,0,0.8);"></div>
+  </div>
+  <div class="flex gap-4 mt-6">
+    <button onclick="takeFuelPhoto()" id="fuelCameraShutterBtn" class="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 font-bold rounded-full hover:bg-gray-100 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Fotografar
+    </button>
+    <button onclick="closeFuelCamera()" class="px-6 py-3 bg-gray-700 text-white font-bold rounded-full hover:bg-gray-600 transition-colors">Cancelar</button>
+  </div>
+</div>
+
+<script>
+let _fcCurrentRA = '';
+let _fcOdometerOutB64 = '';
+let _fcOdometerInB64 = '';
+let _fuelCameraStream = null;
+
+function parseFuelLevelPct(fuel) {
+    if (!fuel) return 0;
+    const s = String(fuel).toLowerCase().trim();
+    if (s === 'full' || s === 'cheio' || s === 'f') return 100;
+    if (s === '3/4') return 75;
+    if (s === '1/2') return 50;
+    if (s === '1/4') return 25;
+    if (s === 'reserva' || s === 'reserve' || s === 'r' || s === 'empty') return 0;
+    const n = parseInt(s);
+    return isNaN(n) ? 0 : n;
+}
+
+function openFuelChargeModal(ra) {
+    const c = window.fuelChargeContracts[ra];
+    if (!c) return;
+    _fcCurrentRA = ra;
+    _fcOdometerOutB64 = '';
+    _fcOdometerInB64 = '';
+
+    document.getElementById('fc-plate').textContent = c.vehicle_plate || '';
+    document.getElementById('fc-ra').textContent = c.contract_number || '';
+    document.getElementById('fc-client').textContent = c.client_name || '';
+    document.getElementById('fc-email').value = c.client_email || '';
+    document.getElementById('fc-price').value = fuelSettings.price_per_liter.toFixed(3);
+    document.getElementById('fc-admin-fee').value = fuelSettings.admin_fee.toFixed(2);
+    document.getElementById('fc-liters').value = '';
+    recalcFuelCharge();
+
+    // Fuel bars
+    const checkinFuel = c.checkin ? c.checkin.fuel_level : '';
+    const checkoutFuel = (c.checkout || c.self_checkout) ? ((c.checkout || c.self_checkout).fuel_level || '') : '';
+    const pctIn = parseFuelLevelPct(checkinFuel);
+    const pctOut = parseFuelLevelPct(checkoutFuel);
+    const colorIn = pctIn >= 75 ? '#22c55e' : pctIn >= 25 ? '#f59e0b' : '#ef4444';
+    const colorOut = pctOut >= 75 ? '#22c55e' : pctOut >= 25 ? '#f59e0b' : '#ef4444';
+    document.getElementById('fc-bar-in').style.width = pctIn + '%';
+    document.getElementById('fc-bar-in').style.background = colorIn;
+    document.getElementById('fc-label-in').textContent = checkinFuel || '—';
+    document.getElementById('fc-bar-out').style.width = pctOut + '%';
+    document.getElementById('fc-bar-out').style.background = colorOut;
+    document.getElementById('fc-label-out').textContent = checkoutFuel || '—';
+
+    // Odometer photos - find from inspection photos
+    // Check checkin odometer
+    _loadFuelOdometerPhoto(c, 'in');
+    _loadFuelOdometerPhoto(c, 'out');
+
+    document.getElementById('fuelChargeModal').classList.remove('hidden');
+}
+
+async function _loadFuelOdometerPhoto(c, direction) {
+    const inspection = direction === 'in' ? c.checkin : (c.checkout || c.self_checkout);
+    const imgEl = document.getElementById('fc-odo-' + (direction === 'in' ? 'in' : 'out') + '-img');
+    const placeholder = document.getElementById('fc-odo-' + (direction === 'in' ? 'in' : 'out') + '-placeholder');
+    const actions = direction === 'out' ? document.getElementById('fc-odo-out-actions') : null;
+
+    if (!inspection || !inspection.inspection_number) {
+        if (actions) actions.classList.remove('hidden');
+        return;
+    }
+    try {
+        const r = await fetch('/api/inspections/' + inspection.inspection_number);
+        const d = await r.json();
+        if (d.ok && d.inspection && d.inspection.photos) {
+            // Try 'odometer', fallback to 'interior'
+            const odoUrl = d.inspection.photos['odometer'] || d.inspection.photos['interior'];
+            if (odoUrl) {
+                imgEl.src = odoUrl;
+                imgEl.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                if (direction === 'in') _fcOdometerInB64 = odoUrl;
+                else _fcOdometerOutB64 = odoUrl;
+                if (actions) actions.classList.add('hidden');
+                return;
+            }
+        }
+    } catch(e) {}
+    if (actions) actions.classList.remove('hidden');
+}
+
+function closeFuelChargeModal() {
+    document.getElementById('fuelChargeModal').classList.add('hidden');
+    closeFuelCamera();
+}
+
+function recalcFuelCharge() {
+    const liters = parseFloat(document.getElementById('fc-liters').value) || 0;
+    const price = parseFloat(document.getElementById('fc-price').value) || 0;
+    const fee = parseFloat(document.getElementById('fc-admin-fee').value) || 0;
+    const subtotal = liters * price;
+    const total = subtotal + fee;
+    document.getElementById('fc-subtotal').textContent = subtotal.toFixed(2) + ' €';
+    document.getElementById('fc-total').textContent = total.toFixed(2) + ' €';
+}
+
+async function submitFuelCharge() {
+    const c = window.fuelChargeContracts[_fcCurrentRA];
+    if (!c) return;
+    const liters = parseFloat(document.getElementById('fc-liters').value);
+    const price = parseFloat(document.getElementById('fc-price').value);
+    const fee = parseFloat(document.getElementById('fc-admin-fee').value);
+    const email = document.getElementById('fc-email').value.trim();
+    if (!email) { alert('Introduza o email do cliente'); return; }
+    if (!liters || liters <= 0) { alert('Introduza os litros em falta'); return; }
+
+    const checkout = c.checkout || c.self_checkout;
+    const btn = document.getElementById('fc-send-btn');
+    btn.disabled = true;
+    btn.textContent = 'A enviar...';
+
+    // Detect language from country
+    const country = c.client_country || c.country || '';
+    let lang = 'en';
+    if (country) {
+        const cl = country.toLowerCase();
+        if (cl.includes('portugal') || cl.includes('brasil') || cl.includes('angola') || cl.includes('mocambique')) lang = 'pt';
+        else if (cl.includes('france') || cl.includes('belgi') || cl.includes('luxembourg')) lang = 'fr';
+        else if (cl.includes('german') || cl.includes('deutsch') || cl.includes('austria') || cl.includes('osterreich')) lang = 'de';
+    }
+
+    try {
+        const payload = {
+            checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '',
+            checkin_inspection_number: c.checkin ? (c.checkin.inspection_number || '') : '',
+            vehicle_plate: c.vehicle_plate || '',
+            contract_number: c.contract_number || '',
+            client_name: c.client_name || '',
+            client_email: email,
+            liters_missing: liters,
+            price_per_liter: price,
+            admin_fee: fee,
+            language: lang,
+            odometer_photo_checkin: _fcOdometerInB64,
+            odometer_photo_checkout: _fcOdometerOutB64,
+            fuel_level_checkin: c.checkin ? (c.checkin.fuel_level || '') : '',
+            fuel_level_checkout: checkout ? (checkout.fuel_level || '') : ''
+        };
+        const r = await fetch('/api/fuel-charges/send', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const d = await r.json();
+        if (d.ok) {
+            // Update badge to green
+            const badge = document.getElementById('fuelBadge-' + _fcCurrentRA);
+            if (badge) {
+                badge.className = 'px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1';
+                badge.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> COMBUSTÍVEL COBRADO';
+                // Remove the charge button if present
+                const btn2 = badge.nextElementSibling;
+                if (btn2 && btn2.tagName === 'BUTTON') btn2.remove();
+            }
+            // Add to chargedInspections set
+            if (payload.checkout_inspection_number) chargedInspections.add(payload.checkout_inspection_number);
+            closeFuelChargeModal();
+            if (typeof showNotification === 'function') showNotification('Email de cobrança enviado com sucesso! Total: ' + d.total_amount.toFixed(2) + ' €', 'success');
+        } else {
+            alert('Erro ao enviar: ' + (d.error || 'Erro desconhecido'));
+        }
+    } catch(e) {
+        alert('Erro de rede: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> Enviar Email ao Cliente';
+    }
+}
+
+function fuelUploadOdometerPhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        _fcOdometerOutB64 = e.target.result;
+        const img = document.getElementById('fc-odo-out-img');
+        img.src = _fcOdometerOutB64;
+        img.classList.remove('hidden');
+        document.getElementById('fc-odo-out-placeholder').classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function startFuelCameraCapture() {
+    try {
+        _fuelCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        document.getElementById('fuelCameraVideo').srcObject = _fuelCameraStream;
+        document.getElementById('fuelCameraModal').classList.remove('hidden');
+    } catch(e) {
+        alert('Não foi possível aceder à câmara: ' + e.message);
+    }
+}
+
+function closeFuelCamera() {
+    if (_fuelCameraStream) { _fuelCameraStream.getTracks().forEach(t => t.stop()); _fuelCameraStream = null; }
+    document.getElementById('fuelCameraModal').classList.add('hidden');
+}
+
+function takeFuelPhoto() {
+    const video = document.getElementById('fuelCameraVideo');
+    const canvas = document.getElementById('fuelCameraCanvas');
+    const countdown = document.getElementById('fuelCameraCountdown');
+    const shutterBtn = document.getElementById('fuelCameraShutterBtn');
+    shutterBtn.disabled = true;
+    countdown.classList.remove('hidden');
+    let count = 3;
+    countdown.textContent = count;
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdown.textContent = count;
+        } else {
+            clearInterval(interval);
+            countdown.classList.add('hidden');
+            // Capture
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            _fcOdometerOutB64 = canvas.toDataURL('image/jpeg', 0.85);
+            const img = document.getElementById('fc-odo-out-img');
+            img.src = _fcOdometerOutB64;
+            img.classList.remove('hidden');
+            document.getElementById('fc-odo-out-placeholder').classList.add('hidden');
+            closeFuelCamera();
+            shutterBtn.disabled = false;
+        }
+    }, 1000);
+}
+</script>
 </body>
 </html>

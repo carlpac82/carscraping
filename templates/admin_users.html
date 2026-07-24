@@ -64,6 +64,7 @@
               <th class="text-left px-4 py-2">Commissioner</th>
               <th class="text-left px-4 py-2">Commissions</th>
               <th class="text-left px-4 py-2">Gestão de Comissionistas</th>
+              <th class="text-left px-4 py-2">Fuel Charge</th>
               <th class="text-left px-4 py-2">Enabled</th>
               <th class="text-left px-4 py-2">Actions</th>
             </tr>
@@ -106,6 +107,12 @@
                   <span class="ml-2 text-xs">{% if u.can_manage_commissioners %}Yes{% else %}No{% endif %}</span>
                 </label>
               </td>
+              <td class="px-4 py-2">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="fuel-charge-toggle" data-user-id="{{ u.id }}" {% if u.can_fuel_charge %}checked{% endif %} onchange="handlePermissionChange({{ u.id }})">
+                  <span class="ml-2 text-xs">{% if u.can_fuel_charge %}Yes{% else %}No{% endif %}</span>
+                </label>
+              </td>
               <td class="px-4 py-2">{% if u.enabled %}Yes{% else %}No{% endif %}</td>
               <td class="px-4 py-2">
                 <div class="flex items-center gap-3">
@@ -136,17 +143,19 @@
         const commissionerToggle = row.querySelector('.commissioner-toggle');
         const commissionsToggle = row.querySelector('.commissions-toggle');
         const commissionerManagementToggle = row.querySelector('.commissioner-management-toggle');
+        const fuelChargeToggle = row.querySelector('.fuel-charge-toggle');
         
         const role = roleSelect.value;
         const canAccess = inspectionToggle.checked ? 1 : 0;
         const hasCommissionerAccess = commissionerToggle.checked ? 1 : 0;
         const canManageCommissions = commissionsToggle.checked ? 1 : 0;
         const canManageCommissioners = commissionerManagementToggle.checked ? 1 : 0;
+        const canFuelCharge = fuelChargeToggle ? (fuelChargeToggle.checked ? 1 : 0) : 0;
         
-        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions, canManageCommissioners);
+        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions, canManageCommissioners, canFuelCharge);
       }
       
-      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions, canManageCommissioners) {
+      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions, canManageCommissioners, canFuelCharge) {
         const submitButton = document.querySelector(`button[onclick="submitNewUser()"]`);
         const originalButtonText = submitButton ? submitButton.innerHTML : '';
         
@@ -161,7 +170,8 @@
               can_access_inspection: canAccess,
               has_commissioner_access: hasCommissionerAccess,
               can_manage_commissions: canManageCommissions,
-              can_manage_commissioners: canManageCommissioners
+              can_manage_commissioners: canManageCommissioners,
+              can_fuel_charge: canFuelCharge
             }),
           });
 
@@ -178,6 +188,7 @@
               const commissionerCell = row.querySelector('.commissioner-toggle').nextElementSibling;
               const commissionsCell = row.querySelector('.commissions-toggle').nextElementSibling;
               const commissionerManagementCell = row.querySelector('.commissioner-management-toggle').nextElementSibling;
+              const fuelChargeCell = row.querySelector('.fuel-charge-toggle') ? row.querySelector('.fuel-charge-toggle').nextElementSibling : null;
               
               if (inspectionCell) {
                 inspectionCell.textContent = canAccess ? 'Yes' : 'No';
@@ -190,6 +201,9 @@
               }
               if (commissionerManagementCell) {
                 commissionerManagementCell.textContent = canManageCommissioners ? 'Yes' : 'No';
+              }
+              if (fuelChargeCell) {
+                fuelChargeCell.textContent = canFuelCharge ? 'Yes' : 'No';
               }
             }
             
