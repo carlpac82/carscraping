@@ -743,9 +743,13 @@
             if (fuelToCompare === null) return returnReason ? 'no_checkout' : false;
             if (fuelToCompare >= checkinFuel) return returnReason ? `fuel_${fuelToCompare}_not_below_${checkinFuel}` : false;
             const inspNum = c.checkout ? (c.checkout.inspection_number || '') : (c.self_checkout ? (c.self_checkout.inspection_number || '') : '');
-            const alreadyCharged = inspNum && chargedInspections.has(inspNum);
+            const checkoutCreatedAt = c.checkout ? (c.checkout.created_at || '') : (c.self_checkout ? (c.self_checkout.created_at || '') : '');
+            const checkoutDate = checkoutCreatedAt ? String(checkoutCreatedAt).slice(0, 10) : '';
+            const today = new Date().toLocaleDateString('sv-SE');
+            const isLegacyCharged = checkoutDate && checkoutDate < today;
+            const alreadyCharged = (inspNum && chargedInspections.has(inspNum)) || isLegacyCharged;
             if (returnReason) {
-                return { checkinFuel, fuelToCompare, source, inspNum, alreadyCharged };
+                return { checkinFuel, fuelToCompare, source, inspNum, alreadyCharged, isLegacyCharged };
             }
             return !alreadyCharged;
         }
@@ -1242,7 +1246,11 @@
                         
                         if (fuelToCompare !== null && fuelToCompare < checkinFuel) {
                             const checkoutInspectionNum = hasCheckout ? (contract.checkout.inspection_number || '') : (hasSelfCheckout ? (contract.self_checkout.inspection_number || '') : '');
-                            const alreadyCharged = checkoutInspectionNum && chargedInspections.has(checkoutInspectionNum);
+                            const checkoutCreatedAt = hasCheckout ? (contract.checkout.created_at || '') : (hasSelfCheckout ? (contract.self_checkout.created_at || '') : '');
+                            const checkoutDate = checkoutCreatedAt ? String(checkoutCreatedAt).slice(0, 10) : '';
+                            const today = new Date().toLocaleDateString('sv-SE');
+                            const isLegacyCharged = checkoutDate && checkoutDate < today;
+                            const alreadyCharged = (checkoutInspectionNum && chargedInspections.has(checkoutInspectionNum)) || isLegacyCharged;
                             // Store contract data for modal access
                             window.fuelChargeContracts[contract.contract_number] = contract;
                             if (alreadyCharged) {

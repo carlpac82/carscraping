@@ -54994,6 +54994,8 @@ async def get_inspections_history(request: Request):
                     try: return int(s)
                     except: return None
                 
+                from datetime import date, datetime
+                today = date.today()
                 pending_contracts = []
                 for contract in contracts:
                     if not contract.get('checkin'): continue
@@ -55003,15 +55005,26 @@ async def get_inspections_history(request: Request):
                     self_checkout = contract.get('self_checkout')
                     checkout_fuel = None
                     source_insp = None
+                    checkout_created_at = None
                     if checkout:
                         checkout_fuel = _parse_fuel_level(checkout['fuel_level'])
                         source_insp = checkout['inspection_number']
+                        checkout_created_at = checkout.get('created_at')
                     elif self_checkout:
                         checkout_fuel = _parse_fuel_level(self_checkout['fuel_level'])
                         source_insp = self_checkout['inspection_number']
+                        checkout_created_at = self_checkout.get('created_at')
                     if checkout_fuel is None: continue
                     if checkout_fuel >= checkin_fuel: continue
                     if source_insp and source_insp in charged: continue
+                    if checkout_created_at:
+                        try:
+                            ca = str(checkout_created_at).replace(' ', 'T').replace('Z', '+00:00')
+                            ca_date = datetime.fromisoformat(ca).date()
+                            if ca_date < today:
+                                continue
+                        except Exception as e:
+                            logging.warning(f"Could not parse checkout date {checkout_created_at}: {e}")
                     pending_contracts.append(contract)
                 contracts = pending_contracts
                 logging.info(f"⛽ Fuel pending filter: {len(contracts)} contracts")
