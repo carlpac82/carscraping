@@ -8347,6 +8347,71 @@ def _ensure_fuel_charges_table():
     except Exception as e:
         logging.error(f"Error ensuring fuel_charges table: {e}")
 
+def _ensure_fuel_invoice_uploads_table():
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if _USE_NEW_DB:
+                    con.execute("""
+                        CREATE TABLE IF NOT EXISTS fuel_invoice_uploads (
+                            id SERIAL PRIMARY KEY,
+                            filename VARCHAR(300),
+                            content_b64 TEXT,
+                            uploaded_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """)
+                else:
+                    con.execute("""
+                        CREATE TABLE IF NOT EXISTS fuel_invoice_uploads (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            filename TEXT,
+                            content_b64 TEXT,
+                            uploaded_at TEXT DEFAULT (datetime('now'))
+                        )
+                    """)
+                con.commit()
+            finally:
+                con.close()
+    except Exception as e:
+        logging.error(f"Error ensuring fuel_invoice_uploads table: {e}")
+
+@app.post("/api/fuel-charges/upload-invoice")
+async def upload_fuel_invoice(request: Request, file: UploadFile = File(...)):
+    """Upload imediato da fatura (mesmo padrão do damage report handleRAUpload)"""
+    try:
+        require_auth(request)
+        content = await file.read()
+        if not content:
+            return JSONResponse({"ok": False, "error": "Ficheiro vazio"}, status_code=400)
+        if len(content) > 10 * 1024 * 1024:
+            return JSONResponse({"ok": False, "error": "Ficheiro demasiado grande (máx 10MB)"}, status_code=400)
+        import base64 as _b64
+        b64 = _b64.b64encode(content).decode('ascii')
+        _ensure_fuel_invoice_uploads_table()
+        from datetime import datetime
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if _USE_NEW_DB:
+                    cur = con.cursor()
+                    cur.execute("INSERT INTO fuel_invoice_uploads (filename, content_b64, uploaded_at) VALUES (%s,%s,%s) RETURNING id", (file.filename or "invoice.pdf", b64, now_str))
+                    new_id = cur.fetchone()[0]
+                else:
+                    cur = con.execute("INSERT INTO fuel_invoice_uploads (filename, content_b64, uploaded_at) VALUES (?,?,?)", (file.filename or "invoice.pdf", b64, now_str))
+                    new_id = cur.lastrowid
+                con.commit()
+            finally:
+                con.close()
+        logging.info(f"📎 Fuel invoice uploaded to DB: id={new_id}, {file.filename}, {len(content)} bytes")
+        return JSONResponse({"ok": True, "invoice_id": new_id, "filename": file.filename, "size": len(content)})
+    except Exception as e:
+        logging.error(f"Error uploading fuel invoice: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/fuel-settings")
 async def get_fuel_settings(request: Request):
     try:
@@ -8483,6 +8548,7 @@ async def send_fuel_charge_email(request: Request):
         fuel_level_checkout = body.get("fuel_level_checkout", "")
         invoice_pdf_b64 = body.get("invoice_pdf_b64", "")
         invoice_pdf_filename = body.get("invoice_pdf_filename", "")
+        invoice_upload_id = body.get("invoice_upload_id") or None
         sent_by = request.session.get("username", "system")
 
         if not client_email:
@@ -8589,7 +8655,30 @@ async def send_fuel_charge_email(request: Request):
         t = {"subject": subject}
 
         attachments = []
-        if invoice_pdf_bytes:
+        if invoice_upload_id:
+            # Fatura já carregada na BD no momento da seleção (padrão damage report)
+            import base64 as _b64
+            _ensure_fuel_invoice_uploads_table()
+            with _db_lock:
+                con = _db_connect()
+                try:
+                    placeholder = "%s" if _USE_NEW_DB else "?"
+                    if _USE_NEW_DB:
+                        cur = con.cursor()
+                        cur.execute(f"SELECT filename, content_b64 FROM fuel_invoice_uploads WHERE id = {placeholder}", (int(invoice_upload_id),))
+                        row = cur.fetchone()
+                    else:
+                        row = con.execute(f"SELECT filename, content_b64 FROM fuel_invoice_uploads WHERE id = {placeholder}", (int(invoice_upload_id),)).fetchone()
+                finally:
+                    con.close()
+            if row:
+                fname = row[0] or "invoice.pdf"
+                pdf_bytes = _b64.b64decode(row[1])
+                attachments.append({'filename': fname, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
+                logging.info(f"📎 PDF loaded from DB (upload id={invoice_upload_id}): {fname}, {len(pdf_bytes)} bytes")
+            else:
+                logging.warning(f"⚠️ Invoice upload id={invoice_upload_id} not found in DB")
+        elif invoice_pdf_bytes:
             fname = invoice_pdf_filename or "invoice.pdf"
             attachments.append({'filename': fname, 'content': invoice_pdf_bytes, 'mimetype': 'application/pdf'})
             logging.info(f"📎 PDF ready to attach (multipart): {fname}, {len(invoice_pdf_bytes)} bytes")
@@ -8638,6 +8727,20 @@ async def send_fuel_charge_email(request: Request):
                 logging.info(f"Fuel charge recorded: {vehicle_plate} {contract_number} {total_amount}EUR by {sent_by}")
             finally:
                 con.close()
+
+        # Limpar fatura temporária da BD após envio com sucesso
+        if invoice_upload_id:
+            try:
+                with _db_lock:
+                    con = _db_connect()
+                    try:
+                        placeholder = "%s" if _USE_NEW_DB else "?"
+                        con.execute(f"DELETE FROM fuel_invoice_uploads WHERE id = {placeholder}", (int(invoice_upload_id),))
+                        con.commit()
+                    finally:
+                        con.close()
+            except Exception as cleanup_err:
+                logging.warning(f"Could not cleanup fuel invoice upload {invoice_upload_id}: {cleanup_err}")
 
         return JSONResponse({"ok": True, "total_amount": total_amount, "message": "Email sent successfully"})
     except Exception as e:

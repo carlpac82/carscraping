@@ -8834,7 +8834,7 @@
 </div>
 
 <script>
-console.log('⛽ FUEL CHARGE MODULE VERSION: v8 (DR pattern 1:1, 2026-07-25 10:30)');
+console.log('⛽ FUEL CHARGE MODULE VERSION: v9 (upload to DB on select, 2026-07-25 10:40)');
 let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
@@ -8842,6 +8842,7 @@ let _fuelCameraStream = null;
 let _fcInvoicePdfB64 = '';
 let _fcInvoicePdfFilename = '';
 let _fcInvoiceFile = null;
+let _fcInvoiceUploadId = null;
 
 function parseFuelLevelPct(fuel) {
     if (!fuel) return 0;
@@ -8882,6 +8883,7 @@ function openFuelChargeModal(ra) {
     }
     _fcInvoiceFile = null;
     _fcInvoicePdfFilename = '';
+    _fcInvoiceUploadId = null;
 
     document.getElementById('fc-plate').textContent = c.vehicle_plate || '';
     document.getElementById('fc-plate-card').textContent = c.vehicle_plate || '';
@@ -8945,7 +8947,7 @@ async function _loadFuelOdometerPhoto(c, direction) {
     if (actions) actions.classList.remove('hidden');
 }
 
-function fuelSelectInvoicePDF(event) {
+async function fuelSelectInvoicePDF(event) {
     const file = event.target.files[0];
     if (!file) return;
     const maxSize = 10 * 1024 * 1024; // 10MB (mesmo limite do damage report)
@@ -8954,14 +8956,38 @@ function fuelSelectInvoicePDF(event) {
         event.target.value = '';
         return;
     }
-    // Mesmo padrão do damage report: guardar o File, limpar o input, ler só no envio
-    _fcInvoiceFile = file;
-    _fcInvoicePdfFilename = file.name;
-    console.log('⛽ PDF selected:', file.name, file.size, 'bytes');
-    document.getElementById('fc-invoice-label').textContent = file.name;
-    document.getElementById('fc-invoice-name-text').textContent = file.name;
-    document.getElementById('fc-invoice-name').classList.remove('hidden');
-    event.target.value = ''; // Limpar input (igual ao damage report)
+    // Upload imediato para a base de dados (mesmo padrão do handleRAUpload do damage report)
+    console.log('⛽ Uploading invoice to DB:', file.name, file.size, 'bytes');
+    document.getElementById('fc-invoice-label').textContent = 'A carregar ' + file.name + '...';
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await fetch('/api/fuel-charges/upload-invoice', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.ok) {
+            _fcInvoiceUploadId = data.invoice_id;
+            _fcInvoicePdfFilename = data.filename || file.name;
+            console.log('⛽ Invoice uploaded to DB, id:', data.invoice_id, '(' + data.size + ' bytes)');
+            document.getElementById('fc-invoice-label').textContent = _fcInvoicePdfFilename;
+            document.getElementById('fc-invoice-name-text').textContent = _fcInvoicePdfFilename;
+            document.getElementById('fc-invoice-name').classList.remove('hidden');
+        } else {
+            console.error('⛽ Invoice upload failed:', data.error);
+            alert('Erro ao carregar fatura: ' + (data.error || 'Erro desconhecido'));
+            _fcInvoiceUploadId = null;
+            document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
+        }
+    } catch (error) {
+        console.error('⛽ Invoice upload error:', error);
+        alert('Erro ao carregar fatura: ' + error.message);
+        _fcInvoiceUploadId = null;
+        document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
+    } finally {
+        event.target.value = ''; // Limpar input (igual ao damage report)
+    }
 }
 
 function closeFuelChargeModal() {
@@ -9020,22 +9046,9 @@ async function submitFuelCharge() {
             odometer_photo_checkout: _fcOdometerOutB64 || '',
             fuel_level_checkin: c.checkin ? (c.checkin.fuel_level || '') : '',
             fuel_level_checkout: checkout ? (checkout.fuel_level || '') : '',
-            invoice_pdf_b64: '',
-            invoice_pdf_filename: ''
+            invoice_upload_id: _fcInvoiceUploadId || null
         };
-        if (_fcInvoiceFile) {
-            // Ler exactamente como o damage report (readAsDataURL no envio)
-            console.log('⛽ [1/3] Reading PDF with FileReader (DR pattern):', _fcInvoiceFile.name);
-            const pdfBase64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(_fcInvoiceFile);
-            });
-            payload.invoice_pdf_b64 = pdfBase64;
-            payload.invoice_pdf_filename = _fcInvoicePdfFilename || 'invoice.pdf';
-            console.log('⛽ [2/3] PDF read OK:', pdfBase64 ? pdfBase64.length : 0, 'chars');
-        }
-        console.log('⛽ [3/3] Sending JSON request to /api/fuel-charges/send...');
+        console.log('⛽ Sending JSON request to /api/fuel-charges/send (invoice_upload_id: ' + (_fcInvoiceUploadId || 'none') + ')...');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         const r = await fetch('/api/fuel-charges/send', {
