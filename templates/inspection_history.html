@@ -1473,7 +1473,7 @@
                                 </div>
                                 
                                 <!-- Actions: Car icons and email -->
-                                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                                <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-3 pt-2 border-t border-gray-100">
                                     ${fuelChargeButton}
                                     ${hasCheckout ? `
                                     <button onclick="previewRecolhaWithButton('${contract.checkout.inspection_number}', ${hasSelfCheckout && contract.self_checkout.status === 'validated' ? `'${contract.self_checkout.inspection_number}'` : 'null'}, ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_brand || ''}', '${contract.vehicle_model || ''}', event)" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Check-out">
