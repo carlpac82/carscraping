@@ -8834,7 +8834,7 @@
 </div>
 
 <script>
-console.log('⛽ FUEL CHARGE MODULE VERSION: v10 (XHR upload with diagnostics, 2026-07-25 10:45)');
+console.log('⛽ FUEL CHARGE MODULE VERSION: v11 (clear input AFTER upload, 2026-07-25 10:50)');
 let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
@@ -8961,7 +8961,7 @@ async function fuelSelectInvoicePDF(event) {
     document.getElementById('fc-invoice-label').textContent = 'A carregar ' + file.name + '...';
     const formData = new FormData();
     formData.append('file', file);
-    event.target.value = ''; // Limpar input (igual ao damage report)
+    const inputEl = event.target; // SÓ limpar DEPOIS do upload terminar (Safari invalida o File se limpar antes)
 
     const resetLabel = function() {
         _fcInvoiceUploadId = null;
@@ -8975,6 +8975,7 @@ async function fuelSelectInvoicePDF(event) {
         console.log('⛽ Upload progress:', e.loaded, '/', e.total, 'bytes');
     };
     xhr.onload = function() {
+        inputEl.value = ''; // Limpar input agora que o upload terminou (igual ao finally do damage report)
         console.log('⛽ Upload response, status:', xhr.status);
         try {
             const data = JSON.parse(xhr.responseText);
@@ -8997,11 +8998,13 @@ async function fuelSelectInvoicePDF(event) {
         }
     };
     xhr.onerror = function() {
+        inputEl.value = '';
         console.error('⛽ Invoice upload NETWORK ERROR (status ' + xhr.status + ')');
         alert('Erro de rede ao carregar a fatura. Tenta novamente.');
         resetLabel();
     };
     xhr.ontimeout = function() {
+        inputEl.value = '';
         console.error('⛽ Invoice upload TIMEOUT (30s)');
         alert('O upload da fatura demorou demasiado (timeout 30s). Tenta novamente.');
         resetLabel();
