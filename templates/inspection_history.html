@@ -8834,7 +8834,7 @@
 </div>
 
 <script>
-console.log('⛽ FUEL CHARGE MODULE VERSION: v9 (upload to DB on select, 2026-07-25 10:40)');
+console.log('⛽ FUEL CHARGE MODULE VERSION: v10 (XHR upload with diagnostics, 2026-07-25 10:45)');
 let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
@@ -8956,38 +8956,57 @@ async function fuelSelectInvoicePDF(event) {
         event.target.value = '';
         return;
     }
-    // Upload imediato para a base de dados (mesmo padrão do handleRAUpload do damage report)
-    console.log('⛽ Uploading invoice to DB:', file.name, file.size, 'bytes');
+    // Upload imediato para a base de dados via XMLHttpRequest (workaround para bug do Safari com fetch+File)
+    console.log('⛽ Uploading invoice to DB via XHR:', file.name, file.size, 'bytes');
     document.getElementById('fc-invoice-label').textContent = 'A carregar ' + file.name + '...';
     const formData = new FormData();
     formData.append('file', file);
-    try {
-        const response = await fetch('/api/fuel-charges/upload-invoice', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        if (data.ok) {
-            _fcInvoiceUploadId = data.invoice_id;
-            _fcInvoicePdfFilename = data.filename || file.name;
-            console.log('⛽ Invoice uploaded to DB, id:', data.invoice_id, '(' + data.size + ' bytes)');
-            document.getElementById('fc-invoice-label').textContent = _fcInvoicePdfFilename;
-            document.getElementById('fc-invoice-name-text').textContent = _fcInvoicePdfFilename;
-            document.getElementById('fc-invoice-name').classList.remove('hidden');
-        } else {
-            console.error('⛽ Invoice upload failed:', data.error);
-            alert('Erro ao carregar fatura: ' + (data.error || 'Erro desconhecido'));
-            _fcInvoiceUploadId = null;
-            document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
-        }
-    } catch (error) {
-        console.error('⛽ Invoice upload error:', error);
-        alert('Erro ao carregar fatura: ' + error.message);
+    event.target.value = ''; // Limpar input (igual ao damage report)
+
+    const resetLabel = function() {
         _fcInvoiceUploadId = null;
         document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
-    } finally {
-        event.target.value = ''; // Limpar input (igual ao damage report)
-    }
+    };
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/fuel-charges/upload-invoice', true);
+    xhr.timeout = 30000;
+    xhr.upload.onprogress = function(e) {
+        console.log('⛽ Upload progress:', e.loaded, '/', e.total, 'bytes');
+    };
+    xhr.onload = function() {
+        console.log('⛽ Upload response, status:', xhr.status);
+        try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.ok) {
+                _fcInvoiceUploadId = data.invoice_id;
+                _fcInvoicePdfFilename = data.filename || file.name;
+                console.log('⛽ Invoice uploaded to DB, id:', data.invoice_id, '(' + data.size + ' bytes)');
+                document.getElementById('fc-invoice-label').textContent = _fcInvoicePdfFilename;
+                document.getElementById('fc-invoice-name-text').textContent = _fcInvoicePdfFilename;
+                document.getElementById('fc-invoice-name').classList.remove('hidden');
+            } else {
+                console.error('⛽ Invoice upload failed:', data.error);
+                alert('Erro ao carregar fatura: ' + (data.error || 'Erro desconhecido'));
+                resetLabel();
+            }
+        } catch (parseErr) {
+            console.error('⛽ Invoice upload: invalid response', xhr.status, xhr.responseText);
+            alert('Erro ao carregar fatura (HTTP ' + xhr.status + ')');
+            resetLabel();
+        }
+    };
+    xhr.onerror = function() {
+        console.error('⛽ Invoice upload NETWORK ERROR (status ' + xhr.status + ')');
+        alert('Erro de rede ao carregar a fatura. Tenta novamente.');
+        resetLabel();
+    };
+    xhr.ontimeout = function() {
+        console.error('⛽ Invoice upload TIMEOUT (30s)');
+        alert('O upload da fatura demorou demasiado (timeout 30s). Tenta novamente.');
+        resetLabel();
+    };
+    xhr.send(formData);
 }
 
 function closeFuelChargeModal() {
