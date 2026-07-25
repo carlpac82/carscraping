@@ -54404,7 +54404,8 @@ async def get_inspections_history(request: Request):
         # Get search and date parameters from query string
         search_term = request.query_params.get('search', '').strip()
         filter_date = request.query_params.get('date', '').strip()
-        logging.info(f"📋 Loading inspections history... (search: '{search_term}', date: '{filter_date}')")
+        fuel_pending = request.query_params.get('fuel_pending', '') == '1'
+        logging.info(f"📋 Loading inspections history... (search: '{search_term}', date: '{filter_date}', fuel_pending: {fuel_pending})")
         conn = _db_connect()
         try:
             # Detect database type
@@ -54423,7 +54424,28 @@ async def get_inspections_history(request: Request):
             # Use different JOIN strategy based on database type
             if is_postgres:
                 # PostgreSQL: Match RA by removing suffix from contract_number
-                if search_term:
+                if fuel_pending:
+                    # Load all checkins/checkouts/self-checkouts to find fuel pending charges
+                    cursor.execute("""
+                        SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                               vi.inspection_type, vi.inspector_name, vi.created_at, 
+                               vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                               vi.is_self_checkin,
+                               ra.extracted_data, ra.self_checkin_email,
+                               vi.has_damage,
+                               ra.status, ra.inspection_completed,
+                               ra.return_date
+                        FROM vehicle_inspections vi
+                        LEFT JOIN rental_agreements ra ON (
+                            ra.rental_agreement_number = vi.contract_number 
+                            OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
+                        )
+                        WHERE COALESCE(vi.status, '') != 'replaced'
+                        AND vi.inspection_type IN ('checkin', 'checkout', 'self_checkout')
+                        ORDER BY vi.created_at DESC
+                        LIMIT 5000
+                    """)
+                elif search_term:
                     # If searching, load ALL contracts matching search term
                     cursor.execute("""
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
@@ -54534,7 +54556,31 @@ async def get_inspections_history(request: Request):
                     """)
             else:
                 # SQLite: Match RA by removing suffix from contract_number
-                if search_term:
+                if fuel_pending:
+                    # Load all checkins/checkouts/self-checkouts to find fuel pending charges
+                    cursor.execute("""
+                        SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                               vi.inspection_type, vi.inspector_name, vi.created_at, 
+                               vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                               vi.is_self_checkin,
+                               ra.extracted_data, ra.self_checkin_email,
+                               vi.has_damage,
+                               ra.status, ra.inspection_completed,
+                               ra.return_date
+                        FROM vehicle_inspections vi
+                        LEFT JOIN rental_agreements ra ON (
+                            ra.rental_agreement_number = vi.contract_number 
+                            OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
+                                CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                THEN INSTR(vi.contract_number, '-') - 1 
+                                ELSE LENGTH(vi.contract_number) END)
+                        )
+                        WHERE COALESCE(vi.status, '') != 'replaced'
+                        AND vi.inspection_type IN ('checkin', 'checkout', 'self_checkout')
+                        ORDER BY vi.created_at DESC
+                        LIMIT 5000
+                    """)
+                elif search_term:
                     # If searching, load ALL contracts matching search term
                     cursor.execute("""
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
@@ -54925,8 +54971,53 @@ async def get_inspections_history(request: Request):
             # Convert to list and sort by latest date
             contracts = list(grouped.values())
             
+            # If fuel pending mode, filter to only contracts with fuel level below checkin and not charged
+            if fuel_pending:
+                # Load charged inspection numbers
+                charged = set()
+                try:
+                    cursor.execute("SELECT checkout_inspection_number FROM fuel_charges WHERE checkout_inspection_number IS NOT NULL AND checkout_inspection_number != ''")
+                    for row in cursor.fetchall():
+                        if row[0]:
+                            charged.add(row[0])
+                except Exception as e:
+                    logging.error(f"Error loading fuel charges for pending filter: {e}")
+                
+                def _parse_fuel_level(fuel):
+                    if fuel is None: return None
+                    s = str(fuel).lower().strip()
+                    if s in ('full', 'cheio', 'f'): return 100
+                    if s == '3/4': return 75
+                    if s == '1/2': return 50
+                    if s == '1/4': return 25
+                    if s in ('reserva', 'reserve', 'r', 'empty'): return 0
+                    try: return int(s)
+                    except: return None
+                
+                pending_contracts = []
+                for contract in contracts:
+                    if not contract.get('checkin'): continue
+                    checkin_fuel = _parse_fuel_level(contract['checkin']['fuel_level'])
+                    if checkin_fuel is None: continue
+                    checkout = contract.get('checkout')
+                    self_checkout = contract.get('self_checkout')
+                    checkout_fuel = None
+                    source_insp = None
+                    if checkout:
+                        checkout_fuel = _parse_fuel_level(checkout['fuel_level'])
+                        source_insp = checkout['inspection_number']
+                    elif self_checkout:
+                        checkout_fuel = _parse_fuel_level(self_checkout['fuel_level'])
+                        source_insp = self_checkout['inspection_number']
+                    if checkout_fuel is None: continue
+                    if checkout_fuel >= checkin_fuel: continue
+                    if source_insp and source_insp in charged: continue
+                    pending_contracts.append(contract)
+                contracts = pending_contracts
+                logging.info(f"⛽ Fuel pending filter: {len(contracts)} contracts")
+            
             # Filter active contracts: only show if expected_return_date <= today (unless search/date filter active)
-            if not search_term and not filter_date:
+            if not search_term and not filter_date and not fuel_pending:
                 from datetime import datetime, date
                 today = date.today()
                 

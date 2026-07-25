@@ -464,6 +464,8 @@
         const canFuelCharge = !!(currentUser && currentUser.can_fuel_charge);
         let chargedInspections = new Set();
         let fuelSettings = { price_per_liter: 1.89, admin_fee: 25.00 };
+        let totalFuelPendingCount = 0;
+        let pendingFuelContracts = [];
         window.fuelChargeContracts = {};
 
         async function loadFuelSettings() {
@@ -481,6 +483,19 @@
                     d.charges.forEach(c => { if (c.checkout_inspection_number) chargedInspections.add(c.checkout_inspection_number); });
                 }
             } catch(e) {}
+        }
+        async function loadFuelPending() {
+            try {
+                const r = await fetch('/api/inspections/history?fuel_pending=1');
+                const d = await r.json();
+                if ((d.ok || d.success) && d.contracts) {
+                    pendingFuelContracts = d.contracts;
+                    totalFuelPendingCount = d.contracts.length;
+                    const el = document.getElementById('fuelPendingCount');
+                    if (el) el.textContent = totalFuelPendingCount;
+                    console.log('⛽ Total fuel pending loaded:', totalFuelPendingCount);
+                }
+            } catch(e) { console.error('Error loading fuel pending:', e); }
         }
 
         // Modal de confirmação personalizado
@@ -697,22 +712,13 @@
                     }
                 }
                 
-                // Count combustível por cobrar
-                const isPending = _isFuelPending(contract);
-                if (isPending) {
-                    fuelPendingCount++;
-                    console.log('⛽ Fuel pending counted:', contract.contract_number, 'checkinFuel:', _isFuelPending.__pf ? '' : '', 'checkoutFuel:', contract.checkout ? contract.checkout.fuel_level : (contract.self_checkout ? contract.self_checkout.fuel_level : null));
-                } else if (contract.checkin) {
-                    const result = _isFuelPending(contract, true);
-                    console.log('🔎 Not fuel pending:', contract.contract_number, 'reason:', result);
-                }
             });
             
             document.getElementById('checkinCount').textContent = checkinCount;
             document.getElementById('checkoutCount').textContent = checkoutCount;
             document.getElementById('overdueCount').textContent = overdueCount;
             document.getElementById('pendingCount').textContent = pendingCount;
-            document.getElementById('fuelPendingCount').textContent = fuelPendingCount;
+            document.getElementById('fuelPendingCount').textContent = totalFuelPendingCount;
         }
         
         // Combustível por cobrar: nível na recolha (checkout ou self-checkout) abaixo do nível na entrega, sem cobrança enviada
@@ -830,7 +836,18 @@
                 });
             } else if (type === 'fuel_pending') {
                 document.getElementById('searchDate').value = '';
-                filtered = filtered.filter(c => _isFuelPending(c));
+                if (pendingFuelContracts.length === 0) {
+                    loadFuelPending().then(() => {
+                        contracts = pendingFuelContracts;
+                        renderHistory(contracts);
+                        updateStats();
+                    });
+                    return;
+                }
+                contracts = pendingFuelContracts;
+                renderHistory(contracts);
+                updateStats();
+                return;
             }
             
             // Se filtrar por checkout, incluir também contratos overdue (abertos com data de recolha passada)
@@ -8702,6 +8719,7 @@
             
             loadFuelSettings();
             loadChargedInspections().then(() => loadHistory());
+            loadFuelPending();
         });
     </script>
 
