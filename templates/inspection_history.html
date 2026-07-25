@@ -8834,7 +8834,7 @@
 </div>
 
 <script>
-console.log('⛽ FUEL CHARGE MODULE VERSION: v5 (arrayBuffer, 2026-07-25 10:05)');
+console.log('⛽ FUEL CHARGE MODULE VERSION: v6 (read-on-select, 2026-07-25 10:12)');
 let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
@@ -8944,7 +8944,7 @@ async function _loadFuelOdometerPhoto(c, direction) {
     if (actions) actions.classList.remove('hidden');
 }
 
-function fuelSelectInvoicePDF(event) {
+async function fuelSelectInvoicePDF(event) {
     const file = event.target.files[0];
     if (!file) return;
     const maxSize = 10 * 1024 * 1024; // 10MB (mesmo limite do damage report)
@@ -8953,11 +8953,43 @@ function fuelSelectInvoicePDF(event) {
         event.target.value = '';
         return;
     }
-    _fcInvoiceFile = file;
-    _fcInvoicePdfFilename = file.name;
-    document.getElementById('fc-invoice-label').textContent = file.name;
-    document.getElementById('fc-invoice-name-text').textContent = file.name;
-    document.getElementById('fc-invoice-name').classList.remove('hidden');
+    document.getElementById('fc-invoice-label').textContent = 'A ler ficheiro...';
+    try {
+        // Ler IMEDIATAMENTE na seleção — o Safari invalida o File se lermos mais tarde
+        console.log('⛽ Reading PDF on selection:', file.name, file.size, 'bytes');
+        let ab;
+        if (typeof file.arrayBuffer === 'function') {
+            ab = await file.arrayBuffer();
+        } else {
+            ab = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('FileReader error'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        const bytes = new Uint8Array(ab);
+        const chunks = [];
+        const CHUNK = 32768;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+            chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK)));
+        }
+        _fcInvoicePdfB64 = btoa(chunks.join(''));
+        _fcInvoicePdfFilename = file.name;
+        _fcInvoiceFile = file;
+        console.log('⛽ PDF read + base64 OK on selection:', _fcInvoicePdfB64.length, 'chars');
+        document.getElementById('fc-invoice-label').textContent = file.name;
+        document.getElementById('fc-invoice-name-text').textContent = file.name;
+        document.getElementById('fc-invoice-name').classList.remove('hidden');
+    } catch(err) {
+        console.error('⛽ Failed to read PDF:', err);
+        _fcInvoicePdfB64 = '';
+        _fcInvoicePdfFilename = '';
+        _fcInvoiceFile = null;
+        event.target.value = '';
+        document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
+        alert('Erro ao ler o ficheiro PDF: ' + (err.message || err) + '. Tente selecionar novamente.');
+    }
 }
 
 function closeFuelChargeModal() {
@@ -9019,21 +9051,13 @@ async function submitFuelCharge() {
             invoice_pdf_b64: '',
             invoice_pdf_filename: ''
         };
-        if (_fcInvoiceFile) {
-            console.log('⛽ [1/4] Reading PDF file:', _fcInvoiceFile.name, _fcInvoiceFile.size, 'bytes');
-            const ab = await _fcInvoiceFile.arrayBuffer();
-            console.log('⛽ [2/4] arrayBuffer read OK:', ab.byteLength, 'bytes');
-            const bytes = new Uint8Array(ab);
-            const chunks = [];
-            const CHUNK = 32768;
-            for (let i = 0; i < bytes.length; i += CHUNK) {
-                chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK)));
-            }
-            payload.invoice_pdf_b64 = btoa(chunks.join(''));
-            payload.invoice_pdf_filename = _fcInvoiceFile.name;
-            console.log('⛽ [3/4] base64 conversion OK:', payload.invoice_pdf_b64.length, 'chars');
+        if (_fcInvoicePdfB64) {
+            // PDF já foi lido e convertido no momento da seleção (workaround Safari stale File)
+            payload.invoice_pdf_b64 = _fcInvoicePdfB64;
+            payload.invoice_pdf_filename = _fcInvoicePdfFilename || 'invoice.pdf';
+            console.log('⛽ [1/2] Using pre-read PDF base64:', _fcInvoicePdfB64.length, 'chars');
         }
-        console.log('⛽ [4/4] Sending request to /api/fuel-charges/send...');
+        console.log('⛽ [2/2] Sending request to /api/fuel-charges/send...');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         const r = await fetch('/api/fuel-charges/send', {
