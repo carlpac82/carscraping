@@ -8834,7 +8834,7 @@
 </div>
 
 <script>
-console.log('⛽ FUEL CHARGE MODULE VERSION: v6 (read-on-select, 2026-07-25 10:12)');
+console.log('⛽ FUEL CHARGE MODULE VERSION: v7 (native FormData upload, 2026-07-25 10:20)');
 let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
@@ -8944,7 +8944,7 @@ async function _loadFuelOdometerPhoto(c, direction) {
     if (actions) actions.classList.remove('hidden');
 }
 
-async function fuelSelectInvoicePDF(event) {
+function fuelSelectInvoicePDF(event) {
     const file = event.target.files[0];
     if (!file) return;
     const maxSize = 10 * 1024 * 1024; // 10MB (mesmo limite do damage report)
@@ -8953,43 +8953,13 @@ async function fuelSelectInvoicePDF(event) {
         event.target.value = '';
         return;
     }
-    document.getElementById('fc-invoice-label').textContent = 'A ler ficheiro...';
-    try {
-        // Ler IMEDIATAMENTE na seleção — o Safari invalida o File se lermos mais tarde
-        console.log('⛽ Reading PDF on selection:', file.name, file.size, 'bytes');
-        let ab;
-        if (typeof file.arrayBuffer === 'function') {
-            ab = await file.arrayBuffer();
-        } else {
-            ab = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('FileReader error'));
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        const bytes = new Uint8Array(ab);
-        const chunks = [];
-        const CHUNK = 32768;
-        for (let i = 0; i < bytes.length; i += CHUNK) {
-            chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK)));
-        }
-        _fcInvoicePdfB64 = btoa(chunks.join(''));
-        _fcInvoicePdfFilename = file.name;
-        _fcInvoiceFile = file;
-        console.log('⛽ PDF read + base64 OK on selection:', _fcInvoicePdfB64.length, 'chars');
-        document.getElementById('fc-invoice-label').textContent = file.name;
-        document.getElementById('fc-invoice-name-text').textContent = file.name;
-        document.getElementById('fc-invoice-name').classList.remove('hidden');
-    } catch(err) {
-        console.error('⛽ Failed to read PDF:', err);
-        _fcInvoicePdfB64 = '';
-        _fcInvoicePdfFilename = '';
-        _fcInvoiceFile = null;
-        event.target.value = '';
-        document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
-        alert('Erro ao ler o ficheiro PDF: ' + (err.message || err) + '. Tente selecionar novamente.');
-    }
+    // NÃO ler o ficheiro em JS (Safari pendura) — o browser envia-o nativamente via FormData
+    _fcInvoiceFile = file;
+    _fcInvoicePdfFilename = file.name;
+    console.log('⛽ PDF selected (will be uploaded natively):', file.name, file.size, 'bytes');
+    document.getElementById('fc-invoice-label').textContent = file.name;
+    document.getElementById('fc-invoice-name-text').textContent = file.name;
+    document.getElementById('fc-invoice-name').classList.remove('hidden');
 }
 
 function closeFuelChargeModal() {
@@ -9033,37 +9003,32 @@ async function submitFuelCharge() {
     }
 
     try {
-        const payload = {
-            checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '',
-            checkin_inspection_number: c.checkin ? (c.checkin.inspection_number || '') : '',
-            vehicle_plate: c.vehicle_plate || '',
-            contract_number: c.contract_number || '',
-            client_name: c.client_name || '',
-            client_email: email,
-            liters_missing: liters,
-            price_per_liter: price,
-            admin_fee: fee,
-            language: lang,
-            odometer_photo_checkin: _fcOdometerInB64 || '',
-            odometer_photo_checkout: _fcOdometerOutB64 || '',
-            fuel_level_checkin: c.checkin ? (c.checkin.fuel_level || '') : '',
-            fuel_level_checkout: checkout ? (checkout.fuel_level || '') : '',
-            invoice_pdf_b64: '',
-            invoice_pdf_filename: ''
-        };
-        if (_fcInvoicePdfB64) {
-            // PDF já foi lido e convertido no momento da seleção (workaround Safari stale File)
-            payload.invoice_pdf_b64 = _fcInvoicePdfB64;
-            payload.invoice_pdf_filename = _fcInvoicePdfFilename || 'invoice.pdf';
-            console.log('⛽ [1/2] Using pre-read PDF base64:', _fcInvoicePdfB64.length, 'chars');
+        const fd = new FormData();
+        fd.append('checkout_inspection_number', checkout ? (checkout.inspection_number || '') : '');
+        fd.append('checkin_inspection_number', c.checkin ? (c.checkin.inspection_number || '') : '');
+        fd.append('vehicle_plate', c.vehicle_plate || '');
+        fd.append('contract_number', c.contract_number || '');
+        fd.append('client_name', c.client_name || '');
+        fd.append('client_email', email);
+        fd.append('liters_missing', String(liters));
+        fd.append('price_per_liter', String(price));
+        fd.append('admin_fee', String(fee));
+        fd.append('language', lang);
+        fd.append('odometer_photo_checkin', _fcOdometerInB64 || '');
+        fd.append('odometer_photo_checkout', _fcOdometerOutB64 || '');
+        fd.append('fuel_level_checkin', c.checkin ? (c.checkin.fuel_level || '') : '');
+        fd.append('fuel_level_checkout', checkout ? (checkout.fuel_level || '') : '');
+        if (_fcInvoiceFile) {
+            // Anexar o File directamente — o browser faz o streaming nativo (sem leitura JS)
+            fd.append('invoice_pdf', _fcInvoiceFile, _fcInvoiceFile.name);
+            console.log('⛽ [1/2] File attached to FormData (native upload):', _fcInvoiceFile.name);
         }
-        console.log('⛽ [2/2] Sending request to /api/fuel-charges/send...');
+        console.log('⛽ [2/2] Sending multipart request to /api/fuel-charges/send...');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         const r = await fetch('/api/fuel-charges/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: fd,
             signal: controller.signal
         });
         clearTimeout(timeoutId);

@@ -8451,9 +8451,22 @@ async def check_fuel_charge(request: Request, inspection_number: str):
 @app.post("/api/fuel-charges/send")
 async def send_fuel_charge_email(request: Request):
     try:
-        logging.info("⛽ /api/fuel-charges/send: request received, parsing JSON body...")
-        body = await request.json()
-        logging.info(f"⛽ JSON body parsed OK ({len(str(body.get('invoice_pdf_b64','')))} chars of PDF b64)")
+        content_type = request.headers.get("content-type", "")
+        logging.info(f"⛽ /api/fuel-charges/send: request received (content-type: {content_type})")
+        invoice_pdf_bytes = None
+        if "multipart/form-data" in content_type:
+            form = await request.form()
+            body = {k: v for k, v in form.items() if isinstance(v, str)}
+            upload = form.get("invoice_pdf")
+            if upload is not None and hasattr(upload, "read"):
+                invoice_pdf_bytes = await upload.read()
+                body["invoice_pdf_filename"] = upload.filename or "invoice.pdf"
+                logging.info(f"⛽ Multipart form parsed OK, invoice_pdf: {len(invoice_pdf_bytes)} bytes ({upload.filename})")
+            else:
+                logging.info("⛽ Multipart form parsed OK, no invoice_pdf file")
+        else:
+            body = await request.json()
+            logging.info(f"⛽ JSON body parsed OK ({len(str(body.get('invoice_pdf_b64','')))} chars of PDF b64)")
         checkout_inspection_number = body.get("checkout_inspection_number", "")
         checkin_inspection_number = body.get("checkin_inspection_number", "")
         vehicle_plate = body.get("vehicle_plate", "")
@@ -8576,7 +8589,11 @@ async def send_fuel_charge_email(request: Request):
         t = {"subject": subject}
 
         attachments = []
-        if invoice_pdf_b64:
+        if invoice_pdf_bytes:
+            fname = invoice_pdf_filename or "invoice.pdf"
+            attachments.append({'filename': fname, 'content': invoice_pdf_bytes, 'mimetype': 'application/pdf'})
+            logging.info(f"📎 PDF ready to attach (multipart): {fname}, {len(invoice_pdf_bytes)} bytes")
+        elif invoice_pdf_b64:
             import base64 as _b64
             if ',' in invoice_pdf_b64:
                 invoice_pdf_b64 = invoice_pdf_b64.split(',')[1]
