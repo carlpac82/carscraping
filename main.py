@@ -8451,7 +8451,9 @@ async def check_fuel_charge(request: Request, inspection_number: str):
 @app.post("/api/fuel-charges/send")
 async def send_fuel_charge_email(request: Request):
     try:
+        logging.info("⛽ /api/fuel-charges/send: request received, parsing JSON body...")
         body = await request.json()
+        logging.info(f"⛽ JSON body parsed OK ({len(str(body.get('invoice_pdf_b64','')))} chars of PDF b64)")
         checkout_inspection_number = body.get("checkout_inspection_number", "")
         checkin_inspection_number = body.get("checkin_inspection_number", "")
         vehicle_plate = body.get("vehicle_plate", "")
@@ -8584,8 +8586,10 @@ async def send_fuel_charge_email(request: Request):
             logging.info(f"📎 PDF ready to attach: {fname}, {len(pdf_bytes)} bytes")
         else:
             logging.info("📄 No invoice PDF provided")
+        logging.info(f"⛽ Sending fuel charge email to {client_email} (attachments: {len(attachments)})...")
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: _send_notification_email(client_email, t["subject"], html_body, attachments=attachments if attachments else None))
+        logging.info("⛽ Fuel charge email sent, recording in DB...")
 
         _ensure_fuel_charges_table()
         from datetime import datetime

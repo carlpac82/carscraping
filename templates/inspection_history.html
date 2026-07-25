@@ -8946,6 +8946,12 @@ async function _loadFuelOdometerPhoto(c, direction) {
 function fuelSelectInvoicePDF(event) {
     const file = event.target.files[0];
     if (!file) return;
+    const maxSize = 10 * 1024 * 1024; // 10MB (mesmo limite do damage report)
+    if (file.size > maxSize) {
+        alert('O ficheiro "' + file.name + '" é demasiado grande (' + (file.size / 1024 / 1024).toFixed(1) + ' MB). Máximo permitido: 10 MB.');
+        event.target.value = '';
+        return;
+    }
     _fcInvoiceFile = file;
     _fcInvoicePdfFilename = file.name;
     document.getElementById('fc-invoice-label').textContent = file.name;
@@ -9022,12 +9028,21 @@ async function submitFuelCharge() {
             payload.invoice_pdf_b64 = pdfBase64;
             payload.invoice_pdf_filename = _fcInvoiceFile.name;
         }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
         const r = await fetch('/api/fuel-charges/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
-        const d = await r.json();
+        clearTimeout(timeoutId);
+        let d;
+        try {
+            d = await r.json();
+        } catch(parseErr) {
+            throw new Error('Resposta inválida do servidor (HTTP ' + r.status + ')');
+        }
         if (d.ok) {
             // Update badge to green
             const badge = document.getElementById('fuelBadge-' + _fcCurrentRA);
