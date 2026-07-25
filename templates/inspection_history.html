@@ -576,6 +576,7 @@
                     contracts = data.contracts;
                     window.allContracts = data.contracts; // Store globally for swap history lookup
                     console.log('📊 Loaded', contracts.length, 'contracts');
+                    console.log('🔍 chargedInspections size:', chargedInspections.size);
                     updateStats();
                     renderHistory(contracts);
                     console.log('✅ renderHistory completed');
@@ -600,6 +601,7 @@
             let overdueCount = 0;
             let pendingCount = 0;
             let fuelPendingCount = 0;
+            console.log('📊 updateStats contracts count:', contracts.length);
             
             contracts.forEach(contract => {
                 // Count check-ins do dia
@@ -696,8 +698,13 @@
                 }
                 
                 // Count combustível por cobrar
-                if (_isFuelPending(contract)) {
+                const isPending = _isFuelPending(contract);
+                if (isPending) {
                     fuelPendingCount++;
+                    console.log('⛽ Fuel pending counted:', contract.contract_number, 'checkinFuel:', _isFuelPending.__pf ? '' : '', 'checkoutFuel:', contract.checkout ? contract.checkout.fuel_level : (contract.self_checkout ? contract.self_checkout.fuel_level : null));
+                } else if (contract.checkin) {
+                    const result = _isFuelPending(contract, true);
+                    console.log('🔎 Not fuel pending:', contract.contract_number, 'reason:', result);
                 }
             });
             
@@ -709,8 +716,8 @@
         }
         
         // Combustível por cobrar: nível na recolha (checkout ou self-checkout) abaixo do nível na entrega, sem cobrança enviada
-        function _isFuelPending(c) {
-            if (!c.checkin) return false;
+        function _isFuelPending(c, returnReason = false) {
+            if (!c.checkin) return returnReason ? 'no_checkin' : false;
             function _pf(fuel) {
                 if (fuel === null || fuel === undefined) return 0;
                 const s = String(fuel).toLowerCase().trim();
@@ -724,11 +731,16 @@
             }
             const checkinFuel = _pf(c.checkin.fuel_level);
             let fuelToCompare = null;
-            if (c.checkout) fuelToCompare = _pf(c.checkout.fuel_level);
-            else if (c.self_checkout) fuelToCompare = _pf(c.self_checkout.fuel_level);
-            if (fuelToCompare === null || fuelToCompare >= checkinFuel) return false;
+            let source = 'none';
+            if (c.checkout) { fuelToCompare = _pf(c.checkout.fuel_level); source = 'checkout'; }
+            else if (c.self_checkout) { fuelToCompare = _pf(c.self_checkout.fuel_level); source = 'self_checkout'; }
+            if (fuelToCompare === null) return returnReason ? 'no_checkout' : false;
+            if (fuelToCompare >= checkinFuel) return returnReason ? `fuel_${fuelToCompare}_not_below_${checkinFuel}` : false;
             const inspNum = c.checkout ? (c.checkout.inspection_number || '') : (c.self_checkout ? (c.self_checkout.inspection_number || '') : '');
             const alreadyCharged = inspNum && chargedInspections.has(inspNum);
+            if (returnReason) {
+                return { checkinFuel, fuelToCompare, source, inspNum, alreadyCharged };
+            }
             return !alreadyCharged;
         }
         
