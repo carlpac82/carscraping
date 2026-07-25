@@ -8791,7 +8791,10 @@
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-600 mb-1">Anexar Fatura (PDF) — Opcional</label>
-            <input type="file" id="fc-invoice-file" accept=".pdf" style="display: none;" onchange="fuelSelectInvoicePDF(event)">
+            <form id="fc-invoice-form" method="POST" action="/api/fuel-charges/upload-invoice" enctype="multipart/form-data" target="fc-upload-iframe" style="display: none;">
+              <input type="file" id="fc-invoice-file" name="file" accept=".pdf" onchange="fuelSelectInvoicePDF(event)">
+            </form>
+            <iframe name="fc-upload-iframe" id="fc-upload-iframe" style="display: none;" title="upload"></iframe>
             <button type="button" onclick="document.getElementById('fc-invoice-file').click()" class="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors w-full">
               <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
               <span id="fc-invoice-label" class="text-sm text-gray-600 truncate">Selecionar ficheiro PDF...</span>
@@ -8834,7 +8837,7 @@
 </div>
 
 <script>
-console.log('⛽ FUEL CHARGE MODULE VERSION: v11 (clear input AFTER upload, 2026-07-25 10:50)');
+console.log('⛽ FUEL CHARGE MODULE VERSION: v12 (native form submit to iframe, 2026-07-25 10:57)');
 let _fcCurrentRA = '';
 let _fcOdometerOutB64 = '';
 let _fcOdometerInB64 = '';
@@ -8956,29 +8959,39 @@ async function fuelSelectInvoicePDF(event) {
         event.target.value = '';
         return;
     }
-    // Upload imediato para a base de dados via XMLHttpRequest (workaround para bug do Safari com fetch+File)
-    console.log('⛽ Uploading invoice to DB via XHR:', file.name, file.size, 'bytes');
+    // SUBMISSÃO NATIVA DO FORMULÁRIO: o browser faz o upload sozinho para um iframe escondido.
+    // O JavaScript nunca lê o ficheiro — caminho interno do Safari completamente diferente de fetch/XHR/FileReader.
+    console.log('⛽ Native form submit, uploading:', file.name, file.size, 'bytes');
     document.getElementById('fc-invoice-label').textContent = 'A carregar ' + file.name + '...';
-    const formData = new FormData();
-    formData.append('file', file);
-    const inputEl = event.target; // SÓ limpar DEPOIS do upload terminar (Safari invalida o File se limpar antes)
 
     const resetLabel = function() {
         _fcInvoiceUploadId = null;
         document.getElementById('fc-invoice-label').textContent = 'Selecionar ficheiro PDF...';
     };
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/fuel-charges/upload-invoice', true);
-    xhr.timeout = 30000;
-    xhr.upload.onprogress = function(e) {
-        console.log('⛽ Upload progress:', e.loaded, '/', e.total, 'bytes');
-    };
-    xhr.onload = function() {
-        inputEl.value = ''; // Limpar input agora que o upload terminou (igual ao finally do damage report)
-        console.log('⛽ Upload response, status:', xhr.status);
+    const iframe = document.getElementById('fc-upload-iframe');
+    let uploadDone = false;
+    const timeoutId = setTimeout(function() {
+        if (!uploadDone) {
+            console.error('⛽ Native upload TIMEOUT (60s)');
+            alert('O upload da fatura demorou demasiado. Tenta novamente.');
+            resetLabel();
+        }
+    }, 60000);
+
+    iframe.onload = function() {
+        if (uploadDone) return;
+        uploadDone = true;
+        clearTimeout(timeoutId);
+        let responseText = '';
         try {
-            const data = JSON.parse(xhr.responseText);
+            responseText = iframe.contentDocument.body.innerText || iframe.contentDocument.body.textContent || '';
+        } catch (accessErr) {
+            console.error('⛽ Cannot read iframe response:', accessErr);
+        }
+        console.log('⛽ Native upload response:', responseText.substring(0, 200));
+        try {
+            const data = JSON.parse(responseText);
             if (data.ok) {
                 _fcInvoiceUploadId = data.invoice_id;
                 _fcInvoicePdfFilename = data.filename || file.name;
@@ -8992,24 +9005,14 @@ async function fuelSelectInvoicePDF(event) {
                 resetLabel();
             }
         } catch (parseErr) {
-            console.error('⛽ Invoice upload: invalid response', xhr.status, xhr.responseText);
-            alert('Erro ao carregar fatura (HTTP ' + xhr.status + ')');
+            console.error('⛽ Invoice upload: invalid response');
+            alert('Erro ao carregar fatura — resposta inválida do servidor.');
             resetLabel();
         }
+        document.getElementById('fc-invoice-file').value = '';
     };
-    xhr.onerror = function() {
-        inputEl.value = '';
-        console.error('⛽ Invoice upload NETWORK ERROR (status ' + xhr.status + ')');
-        alert('Erro de rede ao carregar a fatura. Tenta novamente.');
-        resetLabel();
-    };
-    xhr.ontimeout = function() {
-        inputEl.value = '';
-        console.error('⛽ Invoice upload TIMEOUT (30s)');
-        alert('O upload da fatura demorou demasiado (timeout 30s). Tenta novamente.');
-        resetLabel();
-    };
-    xhr.send(formData);
+
+    document.getElementById('fc-invoice-form').submit();
 }
 
 function closeFuelChargeModal() {
