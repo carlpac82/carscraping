@@ -8994,34 +8994,39 @@ async function submitFuelCharge() {
     }
 
     try {
-        const fd = new FormData();
-        fd.append('checkout_inspection_number', checkout ? (checkout.inspection_number || '') : '');
-        fd.append('checkin_inspection_number', c.checkin ? (c.checkin.inspection_number || '') : '');
-        fd.append('vehicle_plate', c.vehicle_plate || '');
-        fd.append('contract_number', c.contract_number || '');
-        fd.append('client_name', c.client_name || '');
-        fd.append('client_email', email);
-        fd.append('liters_missing', liters);
-        fd.append('price_per_liter', price);
-        fd.append('admin_fee', fee);
-        fd.append('language', lang);
-        fd.append('odometer_photo_checkin', _fcOdometerInB64 || '');
-        fd.append('odometer_photo_checkout', _fcOdometerOutB64 || '');
-        fd.append('fuel_level_checkin', c.checkin ? (c.checkin.fuel_level || '') : '');
-        fd.append('fuel_level_checkout', checkout ? (checkout.fuel_level || '') : '');
+        const payload = {
+            checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '',
+            checkin_inspection_number: c.checkin ? (c.checkin.inspection_number || '') : '',
+            vehicle_plate: c.vehicle_plate || '',
+            contract_number: c.contract_number || '',
+            client_name: c.client_name || '',
+            client_email: email,
+            liters_missing: liters,
+            price_per_liter: price,
+            admin_fee: fee,
+            language: lang,
+            odometer_photo_checkin: _fcOdometerInB64 || '',
+            odometer_photo_checkout: _fcOdometerOutB64 || '',
+            fuel_level_checkin: c.checkin ? (c.checkin.fuel_level || '') : '',
+            fuel_level_checkout: checkout ? (checkout.fuel_level || '') : '',
+            invoice_pdf_b64: '',
+            invoice_pdf_filename: ''
+        };
         if (_fcInvoiceFile) {
-            const ab = await _fcInvoiceFile.arrayBuffer();
-            const uint8 = new Uint8Array(ab);
-            let binary = '';
-            const chunk = 8192;
-            for (let i = 0; i < uint8.length; i += chunk) {
-                binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunk));
-            }
-            fd.append('invoice_pdf_b64', btoa(binary));
-            fd.append('invoice_pdf_filename', _fcInvoiceFile.name);
+            const pdfBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Erro ao ler o ficheiro PDF'));
+                reader.readAsDataURL(_fcInvoiceFile);
+            });
+            payload.invoice_pdf_b64 = pdfBase64;
+            payload.invoice_pdf_filename = _fcInvoiceFile.name;
         }
-        const payload = { contract_number: c.contract_number, checkout_inspection_number: checkout ? (checkout.inspection_number || '') : '' };
-        const r = await fetch('/api/fuel-charges/send', { method: 'POST', body: fd });
+        const r = await fetch('/api/fuel-charges/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
         const d = await r.json();
         if (d.ok) {
             // Update badge to green

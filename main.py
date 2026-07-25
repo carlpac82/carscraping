@@ -5570,13 +5570,19 @@ def _send_notification_email(to_email: str, subject: str, message: str, attachme
         # Anexar related ao email principal
         email_message.attach(msg_related)
         
-        # Adicionar anexos se fornecidos
+        # Adicionar anexos se fornecidos (mesmo padrão do damage report que funciona)
         if attachments:
-            from email.mime.application import MIMEApplication
             for attachment in attachments:
                 fname = attachment["filename"]
-                part = MIMEApplication(attachment['content'], Name=fname)
-                part['Content-Disposition'] = f'attachment; filename="{fname}"'
+                mimetype = attachment.get('mimetype', 'application/octet-stream')
+                try:
+                    main_type, sub_type = mimetype.split('/')
+                except ValueError:
+                    main_type, sub_type = 'application', 'octet-stream'
+                part = MIMEBase(main_type, sub_type)
+                part.set_payload(attachment['content'])
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f'attachment; filename="{fname}"')
                 email_message.attach(part)
                 logging.info(f"📎 Attached file: {fname}, {len(attachment['content'])} bytes")
         
@@ -8443,26 +8449,25 @@ async def check_fuel_charge(request: Request, inspection_number: str):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.post("/api/fuel-charges/send")
-async def send_fuel_charge_email(
-    request: Request,
-    checkout_inspection_number: str = Form(""),
-    checkin_inspection_number: str = Form(""),
-    vehicle_plate: str = Form(""),
-    contract_number: str = Form(""),
-    client_name: str = Form(""),
-    client_email: str = Form(""),
-    liters_missing: float = Form(0),
-    price_per_liter: float = Form(1.89),
-    admin_fee: float = Form(25.00),
-    language: str = Form("en"),
-    odometer_photo_checkin: str = Form(""),
-    odometer_photo_checkout: str = Form(""),
-    fuel_level_checkin: str = Form(""),
-    fuel_level_checkout: str = Form(""),
-    invoice_pdf_b64: str = Form(""),
-    invoice_pdf_filename: str = Form("")
-):
+async def send_fuel_charge_email(request: Request):
     try:
+        body = await request.json()
+        checkout_inspection_number = body.get("checkout_inspection_number", "")
+        checkin_inspection_number = body.get("checkin_inspection_number", "")
+        vehicle_plate = body.get("vehicle_plate", "")
+        contract_number = body.get("contract_number", "")
+        client_name = body.get("client_name", "")
+        client_email = body.get("client_email", "")
+        liters_missing = float(body.get("liters_missing", 0) or 0)
+        price_per_liter = float(body.get("price_per_liter", 1.89) or 1.89)
+        admin_fee = float(body.get("admin_fee", 25.00) or 25.00)
+        language = body.get("language", "en")
+        odometer_photo_checkin = body.get("odometer_photo_checkin", "")
+        odometer_photo_checkout = body.get("odometer_photo_checkout", "")
+        fuel_level_checkin = body.get("fuel_level_checkin", "")
+        fuel_level_checkout = body.get("fuel_level_checkout", "")
+        invoice_pdf_b64 = body.get("invoice_pdf_b64", "")
+        invoice_pdf_filename = body.get("invoice_pdf_filename", "")
         sent_by = request.session.get("username", "system")
 
         if not client_email:
@@ -8571,6 +8576,8 @@ async def send_fuel_charge_email(
         attachments = []
         if invoice_pdf_b64:
             import base64 as _b64
+            if ',' in invoice_pdf_b64:
+                invoice_pdf_b64 = invoice_pdf_b64.split(',')[1]
             pdf_bytes = _b64.b64decode(invoice_pdf_b64)
             fname = invoice_pdf_filename or "invoice.pdf"
             attachments.append({'filename': fname, 'content': pdf_bytes, 'mimetype': 'application/pdf'})
