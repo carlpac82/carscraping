@@ -9019,15 +9019,20 @@ async function submitFuelCharge() {
             invoice_pdf_filename: ''
         };
         if (_fcInvoiceFile) {
-            const pdfBase64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('Erro ao ler o ficheiro PDF'));
-                reader.readAsDataURL(_fcInvoiceFile);
-            });
-            payload.invoice_pdf_b64 = pdfBase64;
+            console.log('⛽ [1/4] Reading PDF file:', _fcInvoiceFile.name, _fcInvoiceFile.size, 'bytes');
+            const ab = await _fcInvoiceFile.arrayBuffer();
+            console.log('⛽ [2/4] arrayBuffer read OK:', ab.byteLength, 'bytes');
+            const bytes = new Uint8Array(ab);
+            const chunks = [];
+            const CHUNK = 32768;
+            for (let i = 0; i < bytes.length; i += CHUNK) {
+                chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK)));
+            }
+            payload.invoice_pdf_b64 = btoa(chunks.join(''));
             payload.invoice_pdf_filename = _fcInvoiceFile.name;
+            console.log('⛽ [3/4] base64 conversion OK:', payload.invoice_pdf_b64.length, 'chars');
         }
+        console.log('⛽ [4/4] Sending request to /api/fuel-charges/send...');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         const r = await fetch('/api/fuel-charges/send', {
