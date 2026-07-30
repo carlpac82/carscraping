@@ -9013,8 +9013,13 @@ async function _loadFuelOdometerPhoto(c, direction) {
         if (d.ok && d.inspection) {
             const photos = d.inspection.photos || {};
             const damagePhotos = d.inspection.damage_photos || {};
-            // Try 'odometer' (self-checkout), then 'damage_odometer' (recolha pelo rececionista), fallback to 'interior'
-            const odoUrl = photos['odometer'] || damagePhotos['damage_odometer'] || damagePhotos['odometer'] || photos['odometer_proof'] || photos['interior'];
+            let odoUrl;
+            if (direction === 'out') {
+                // Prioridade: foto do rececionista (recolha ou validacao do self-checkout), depois foto do self-checkout
+                odoUrl = damagePhotos['damage_odometer'] || photos['odometer_proof'] || photos['odometer'] || damagePhotos['odometer'] || photos['interior'];
+            } else {
+                odoUrl = photos['odometer'] || damagePhotos['damage_odometer'] || damagePhotos['odometer'] || photos['odometer_proof'] || photos['interior'];
+            }
             if (odoUrl) {
                 imgEl.src = odoUrl;
                 imgEl.classList.remove('hidden');
