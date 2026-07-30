@@ -8538,8 +8538,9 @@ async def send_fuel_charge_email(request: Request):
         contract_number = body.get("contract_number", "")
         client_name = body.get("client_name", "")
         client_email = body.get("client_email", "")
+        fuel_amount = float(body.get("fuel_amount", 0) or 0)
         liters_missing = float(body.get("liters_missing", 0) or 0)
-        price_per_liter = float(body.get("price_per_liter", 1.89) or 1.89)
+        price_per_liter = float(body.get("price_per_liter", 0) or 0)
         admin_fee = float(body.get("admin_fee", 25.00) or 25.00)
         language = body.get("language", "en")
         odometer_photo_checkin = body.get("odometer_photo_checkin", "")
@@ -8553,10 +8554,10 @@ async def send_fuel_charge_email(request: Request):
 
         if not client_email:
             return JSONResponse({"ok": False, "error": "Client email is required"}, status_code=400)
-        if liters_missing <= 0:
-            return JSONResponse({"ok": False, "error": "Liters missing must be greater than 0"}, status_code=400)
+        if fuel_amount <= 0 and liters_missing <= 0:
+            return JSONResponse({"ok": False, "error": "Fuel amount must be greater than 0"}, status_code=400)
 
-        subtotal = round(liters_missing * price_per_liter, 2)
+        subtotal = round(fuel_amount, 2) if fuel_amount > 0 else round(liters_missing * price_per_liter, 2)
         total_amount = round(subtotal + admin_fee, 2)
         first_name = client_name.split()[0] if client_name and ' ' in client_name else (client_name or "Cliente")
 
@@ -8646,8 +8647,6 @@ async def send_fuel_charge_email(request: Request):
         html_body = html_body.replace("{{FUEL_BAR_OUT}}", fuel_bar_html(pct_out, label_fuel_out_map[lang], is_return=True))
         html_body = html_body.replace("{{ODO_IMG_IN}}", odometer_img_html(odometer_photo_checkin, label_checkin_map[lang]))
         html_body = html_body.replace("{{ODO_IMG_OUT}}", odometer_img_html(odometer_photo_checkout, label_checkout_map[lang]))
-        html_body = html_body.replace("{{LITERS_MISSING}}", f"{liters_missing:.1f}")
-        html_body = html_body.replace("{{PRICE_PER_LITER}}", f"{price_per_liter:.3f}")
         html_body = html_body.replace("{{SUBTOTAL}}", f"{subtotal:.2f}")
         html_body = html_body.replace("{{ADMIN_FEE}}", f"{admin_fee:.2f}")
         html_body = html_body.replace("{{TOTAL_AMOUNT}}", f"{total_amount:.2f}")

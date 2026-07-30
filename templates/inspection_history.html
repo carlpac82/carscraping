@@ -8844,20 +8844,12 @@
         <div class="bg-gray-50 rounded-lg p-4 border">
           <div class="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label class="block text-sm font-semibold text-gray-600 mb-1">Litros em falta</label>
-              <input type="number" id="fc-liters" min="0.1" step="0.1" placeholder="0.0" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-600 mb-1">Preço por litro (€)</label>
-              <input type="number" id="fc-price" min="0.01" step="0.001" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
+              <label class="block text-sm font-semibold text-gray-600 mb-1">Valor do Combustível (€)</label>
+              <input type="number" id="fc-fuel-amount" min="0.01" step="0.01" placeholder="0.00" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-600 mb-1">Taxa administrativa (€)</label>
               <input type="number" id="fc-admin-fee" min="0" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" oninput="recalcFuelCharge()">
-            </div>
-            <div class="flex flex-col justify-end">
-              <label class="block text-sm font-semibold text-gray-600 mb-1">Subtotal (€)</label>
-              <div id="fc-subtotal" class="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-sm text-gray-700 font-semibold">0.00 €</div>
             </div>
           </div>
           <div class="bg-[#009cb6] rounded-lg px-4 py-3 flex items-center justify-between">
@@ -8979,9 +8971,8 @@ function openFuelChargeModal(ra) {
     document.getElementById('fc-ra').textContent = c.contract_number || '';
     document.getElementById('fc-client').textContent = c.client_name || '';
     document.getElementById('fc-email').value = c.client_email || '';
-    document.getElementById('fc-price').value = fuelSettings.price_per_liter.toFixed(3);
     document.getElementById('fc-admin-fee').value = fuelSettings.admin_fee.toFixed(2);
-    document.getElementById('fc-liters').value = '';
+    document.getElementById('fc-fuel-amount').value = '';
     recalcFuelCharge();
 
     // Fuel bars
@@ -9107,24 +9098,20 @@ function closeFuelChargeModal() {
 }
 
 function recalcFuelCharge() {
-    const liters = parseFloat(document.getElementById('fc-liters').value) || 0;
-    const price = parseFloat(document.getElementById('fc-price').value) || 0;
+    const fuelAmount = parseFloat(document.getElementById('fc-fuel-amount').value) || 0;
     const fee = parseFloat(document.getElementById('fc-admin-fee').value) || 0;
-    const subtotal = liters * price;
-    const total = subtotal + fee;
-    document.getElementById('fc-subtotal').textContent = subtotal.toFixed(2) + ' €';
+    const total = fuelAmount + fee;
     document.getElementById('fc-total').textContent = total.toFixed(2) + ' €';
 }
 
 async function submitFuelCharge() {
     const c = window.fuelChargeContracts[_fcCurrentRA];
     if (!c) return;
-    const liters = parseFloat(document.getElementById('fc-liters').value);
-    const price = parseFloat(document.getElementById('fc-price').value);
+    const fuelAmount = parseFloat(document.getElementById('fc-fuel-amount').value);
     const fee = parseFloat(document.getElementById('fc-admin-fee').value);
     const email = document.getElementById('fc-email').value.trim();
     if (!email) { alert('Introduza o email do cliente'); return; }
-    if (!liters || liters <= 0) { alert('Introduza os litros em falta'); return; }
+    if (!fuelAmount || fuelAmount <= 0) { alert('Introduza o valor do combustível'); return; }
 
     const checkout = c.checkout || c.self_checkout;
     const btn = document.getElementById('fc-send-btn');
@@ -9149,8 +9136,7 @@ async function submitFuelCharge() {
             contract_number: c.contract_number || '',
             client_name: c.client_name || '',
             client_email: email,
-            liters_missing: liters,
-            price_per_liter: price,
+            fuel_amount: fuelAmount,
             admin_fee: fee,
             language: lang,
             odometer_photo_checkin: _fcOdometerInB64 || '',
