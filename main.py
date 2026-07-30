@@ -54995,7 +54995,7 @@ async def get_inspections_history(request: Request):
                     except: return None
                 
                 from datetime import date, datetime
-                today = date.today()
+                fuel_cutoff_date = date(2026, 7, 25)
                 pending_contracts = []
                 for contract in contracts:
                     if not contract.get('checkin'): continue
@@ -55021,7 +55021,7 @@ async def get_inspections_history(request: Request):
                         try:
                             ca = str(checkout_created_at).replace(' ', 'T').replace('Z', '+00:00')
                             ca_date = datetime.fromisoformat(ca).date()
-                            if ca_date < today:
+                            if ca_date < fuel_cutoff_date:
                                 continue
                         except Exception as e:
                             logging.warning(f"Could not parse checkout date {checkout_created_at}: {e}")
