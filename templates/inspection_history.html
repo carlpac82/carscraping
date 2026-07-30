@@ -9010,9 +9010,11 @@ async function _loadFuelOdometerPhoto(c, direction) {
     try {
         const r = await fetch('/api/inspections/' + inspection.inspection_number);
         const d = await r.json();
-        if (d.ok && d.inspection && d.inspection.photos) {
-            // Try 'odometer', fallback to 'interior'
-            const odoUrl = d.inspection.photos['odometer'] || d.inspection.photos['interior'];
+        if (d.ok && d.inspection) {
+            const photos = d.inspection.photos || {};
+            const damagePhotos = d.inspection.damage_photos || {};
+            // Try 'odometer' (self-checkout), then 'damage_odometer' (recolha pelo rececionista), fallback to 'interior'
+            const odoUrl = photos['odometer'] || damagePhotos['damage_odometer'] || damagePhotos['odometer'] || photos['odometer_proof'] || photos['interior'];
             if (odoUrl) {
                 imgEl.src = odoUrl;
                 imgEl.classList.remove('hidden');
