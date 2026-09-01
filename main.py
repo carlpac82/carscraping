@@ -10709,12 +10709,24 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
         }
         
         # Get commissioners
+        import unicodedata
+        def _normalize_name(name):
+            """Uppercase, strip accents/punctuation and collapse whitespace for fuzzy matching"""
+            nfkd = unicodedata.normalize('NFKD', str(name))
+            ascii_str = nfkd.encode('ascii', 'ignore').decode('ascii')
+            ascii_str = re.sub(r'[^A-Za-z0-9]+', ' ', ascii_str).strip().upper()
+            return ascii_str
+
         cursor.execute("SELECT id, name FROM commissioners ORDER BY name")
-        commissioners = {row[1].upper(): row[0] for row in cursor.fetchall()}
+        commissioners_rows = cursor.fetchall()
+        commissioners = {row[1].upper(): row[0] for row in commissioners_rows}
+        commissioners_normalized = {_normalize_name(row[1]): row[0] for row in commissioners_rows}
+        hotel_mapping_normalized = {_normalize_name(k): v for k, v in hotel_mapping.items()}
         
         current_hotel = None
         imported_count = 0
         skipped_count = 0
+        unmatched_hotels = {}
         
         for idx, row in df.iterrows():
             # Identify hotel name
@@ -10726,16 +10738,32 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
             if pd.notna(row.get('Data Entrega')) and current_hotel:
                 # Find commissioner ID
                 commissioner_id = None
-                for hotel_name, comm_name in hotel_mapping.items():
-                    if hotel_name in current_hotel:
-                        commissioner_id = commissioners.get(comm_name.upper())
-                        break
-                
+                current_hotel_normalized = _normalize_name(current_hotel)
+
+                # 1) Exact match against commissioners table
+                commissioner_id = commissioners.get(current_hotel)
+
+                # 2) Normalized (accent/punctuation-insensitive) exact match
                 if not commissioner_id:
-                    commissioner_id = commissioners.get(current_hotel)
-                
+                    commissioner_id = commissioners_normalized.get(current_hotel_normalized)
+
+                # 3) Explicit hotel name mapping (exact/substring, normalized)
+                if not commissioner_id:
+                    for hotel_name_norm, comm_name in hotel_mapping_normalized.items():
+                        if hotel_name_norm in current_hotel_normalized:
+                            commissioner_id = commissioners_normalized.get(_normalize_name(comm_name))
+                            break
+
+                # 4) Normalized substring match against every commissioner name
+                if not commissioner_id:
+                    for comm_name_norm, comm_id in commissioners_normalized.items():
+                        if comm_name_norm and (comm_name_norm in current_hotel_normalized or current_hotel_normalized in comm_name_norm):
+                            commissioner_id = comm_id
+                            break
+
                 if not commissioner_id:
                     skipped_count += 1
+                    unmatched_hotels[current_hotel] = unmatched_hotels.get(current_hotel, 0) + 1
                     continue
                 
                 try:
@@ -10802,11 +10830,15 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
         conn.commit()
         cursor.close()
         conn.close()
+
+        if unmatched_hotels:
+            print(f"⚠️ Commissions import: {len(unmatched_hotels)} hotel(s) without a matching commissioner: {unmatched_hotels}")
         
         return JSONResponse({
             "ok": True,
             "imported": imported_count,
-            "skipped": skipped_count
+            "skipped": skipped_count,
+            "unmatched_hotels": unmatched_hotels
         })
         
     except HTTPException as e:
