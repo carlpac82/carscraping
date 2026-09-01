@@ -22,6 +22,9 @@ import threading
 import time
 from collections import defaultdict, deque
 
+import pandas as pd
+import psycopg2
+
 # Configure logging level based on environment
 # WARNING in production (Railway), INFO in development
 IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENVIRONMENT") == "production"
