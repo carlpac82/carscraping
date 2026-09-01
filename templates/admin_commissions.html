@@ -2453,9 +2453,9 @@
                   const data = await response.json();
                   if (data.ok) {
                       let msg = `Importação concluída!\n${data.imported} registos importados\n${data.skipped} registos ignorados`;
-                      if (data.unmatched_hotels && Object.keys(data.unmatched_hotels).length > 0) {
-                          msg += '\n\nHotéis/Agentes sem correspondência (verificar nome no sistema de comissões):\n';
-                          msg += Object.entries(data.unmatched_hotels).map(([name, count]) => `- ${name} (${count})`).join('\n');
+                      if (data.unmatched_commissioners && Object.keys(data.unmatched_commissioners).length > 0) {
+                          msg += '\n\nComissionistas sem correspondência (verificar nome no sistema de comissões):\n';
+                          msg += Object.entries(data.unmatched_commissioners).map(([name, count]) => `- ${name} (${count})`).join('\n');
                       }
                       alert(msg);
                       loadCommissions();

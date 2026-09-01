@@ -10679,8 +10679,8 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
         )
         cursor = conn.cursor()
         
-        # Hotel mapping
-        hotel_mapping = {
+        # Commissioner name mapping (Excel voucher/section name -> commissioner name in DB)
+        commissioner_mapping = {
             'AQUA PEDRA DOS BICOS': 'AQUA PEDRA DOS BICOS',
             'AQUAMAR': 'AQUAMAR',
             'BAIA GRANDE': 'BAIA GRANDE',
@@ -10721,49 +10721,49 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
         commissioners_rows = cursor.fetchall()
         commissioners = {row[1].upper(): row[0] for row in commissioners_rows}
         commissioners_normalized = {_normalize_name(row[1]): row[0] for row in commissioners_rows}
-        hotel_mapping_normalized = {_normalize_name(k): v for k, v in hotel_mapping.items()}
+        commissioner_mapping_normalized = {_normalize_name(k): v for k, v in commissioner_mapping.items()}
         
-        current_hotel = None
+        current_commissioner_name = None
         imported_count = 0
         skipped_count = 0
-        unmatched_hotels = {}
+        unmatched_commissioners = {}
         
         for idx, row in df.iterrows():
-            # Identify hotel name
+            # Identify commissioner section name
             if pd.notna(row.get('Voucher')) and pd.isna(row.get('Data Entrega')):
-                current_hotel = str(row['Voucher']).strip().upper()
+                current_commissioner_name = str(row['Voucher']).strip().upper()
                 continue
             
             # Process booking
-            if pd.notna(row.get('Data Entrega')) and current_hotel:
+            if pd.notna(row.get('Data Entrega')) and current_commissioner_name:
                 # Find commissioner ID
                 commissioner_id = None
-                current_hotel_normalized = _normalize_name(current_hotel)
+                current_commissioner_normalized = _normalize_name(current_commissioner_name)
 
                 # 1) Exact match against commissioners table
-                commissioner_id = commissioners.get(current_hotel)
+                commissioner_id = commissioners.get(current_commissioner_name)
 
                 # 2) Normalized (accent/punctuation-insensitive) exact match
                 if not commissioner_id:
-                    commissioner_id = commissioners_normalized.get(current_hotel_normalized)
+                    commissioner_id = commissioners_normalized.get(current_commissioner_normalized)
 
-                # 3) Explicit hotel name mapping (exact/substring, normalized)
+                # 3) Explicit commissioner name mapping (exact/substring, normalized)
                 if not commissioner_id:
-                    for hotel_name_norm, comm_name in hotel_mapping_normalized.items():
-                        if hotel_name_norm in current_hotel_normalized:
+                    for comm_name_norm, comm_name in commissioner_mapping_normalized.items():
+                        if comm_name_norm in current_commissioner_normalized:
                             commissioner_id = commissioners_normalized.get(_normalize_name(comm_name))
                             break
 
                 # 4) Normalized substring match against every commissioner name
                 if not commissioner_id:
                     for comm_name_norm, comm_id in commissioners_normalized.items():
-                        if comm_name_norm and (comm_name_norm in current_hotel_normalized or current_hotel_normalized in comm_name_norm):
+                        if comm_name_norm and (comm_name_norm in current_commissioner_normalized or current_commissioner_normalized in comm_name_norm):
                             commissioner_id = comm_id
                             break
 
                 if not commissioner_id:
                     skipped_count += 1
-                    unmatched_hotels[current_hotel] = unmatched_hotels.get(current_hotel, 0) + 1
+                    unmatched_commissioners[current_commissioner_name] = unmatched_commissioners.get(current_commissioner_name, 0) + 1
                     continue
                 
                 try:
@@ -10795,7 +10795,7 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
                     manual_voucher = None
                     if pd.notna(row.get('Voucher')):
                         voucher_str = str(row['Voucher']).strip()
-                        if voucher_str and voucher_str != 'nan' and voucher_str.upper() != current_hotel:
+                        if voucher_str and voucher_str != 'nan' and voucher_str.upper() != current_commissioner_name:
                             manual_voucher = voucher_str
                     
                     # Calculate dropoff date
@@ -10831,14 +10831,14 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
         cursor.close()
         conn.close()
 
-        if unmatched_hotels:
-            print(f"⚠️ Commissions import: {len(unmatched_hotels)} hotel(s) without a matching commissioner: {unmatched_hotels}")
+        if unmatched_commissioners:
+            print(f"⚠️ Commissions import: {len(unmatched_commissioners)} commissioner(s) without a match: {unmatched_commissioners}")
         
         return JSONResponse({
             "ok": True,
             "imported": imported_count,
             "skipped": skipped_count,
-            "unmatched_hotels": unmatched_hotels
+            "unmatched_commissioners": unmatched_commissioners
         })
         
     except HTTPException as e:
