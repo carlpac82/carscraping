@@ -2237,6 +2237,10 @@
                 window.currentInspectionSignature = inspection.signature || null;
                 // Store checkin photos for lightbox when viewing checkout
                 window.currentCheckinPhotos = checkinInspectionData ? checkinInspectionData.photos || {} : {};
+                // Store old (swapped-out) vehicle photos for lightbox when viewing a vehicle swap
+                window.currentOldVehiclePhotos = (swapHistory && swapHistory.old_inspection && swapHistory.old_inspection.photos)
+                    ? swapHistory.old_inspection.photos
+                    : [];
                 
                 let photosHtml = '';
                 if (inspection.photos && Object.keys(inspection.photos).length > 0) {
@@ -4268,11 +4272,19 @@
             lightboxPhotos = [];
             const photos = window.currentInspectionPhotos || {};
             const checkinPhotos = window.currentCheckinPhotos || {};
+            const oldVehiclePhotos = window.currentOldVehiclePhotos || [];
             
             // Check if clicked photo is from checkin (key starts with "checkin_")
             const isCheckinPhoto = photoKey && photoKey.startsWith('checkin_');
+            // Check if clicked photo is from the old (swapped-out) vehicle (key starts with "old_")
+            const isOldVehiclePhoto = photoKey && photoKey.startsWith('old_');
             
-            if (isCheckinPhoto) {
+            if (isOldVehiclePhoto) {
+                // Show old vehicle photos only
+                oldVehiclePhotos.forEach(photo => {
+                    lightboxPhotos.push({ key: 'old_' + photo.photo_type, url: photo.image_data, label: photoLabelsMap[photo.photo_type] || photo.photo_type });
+                });
+            } else if (isCheckinPhoto) {
                 // Show checkin photos only
                 const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
                 photoOrder.forEach(key => {
