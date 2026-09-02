@@ -10747,18 +10747,14 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
                 if not commissioner_id:
                     commissioner_id = commissioners_normalized.get(current_commissioner_normalized)
 
-                # 3) Explicit commissioner name mapping (exact/substring, normalized)
+                # 3) Explicit commissioner name mapping (normalized exact match only,
+                #    to avoid false positives from short/generic names being matched
+                #    as substrings of unrelated commissioner names, e.g. "AP" matching
+                #    "APARTAMENTOS CABRITA")
                 if not commissioner_id:
                     for comm_name_norm, comm_name in commissioner_mapping_normalized.items():
-                        if comm_name_norm in current_commissioner_normalized:
+                        if comm_name_norm == current_commissioner_normalized:
                             commissioner_id = commissioners_normalized.get(_normalize_name(comm_name))
-                            break
-
-                # 4) Normalized substring match against every commissioner name
-                if not commissioner_id:
-                    for comm_name_norm, comm_id in commissioners_normalized.items():
-                        if comm_name_norm and (comm_name_norm in current_commissioner_normalized or current_commissioner_normalized in comm_name_norm):
-                            commissioner_id = comm_id
                             break
 
                 if not commissioner_id:
